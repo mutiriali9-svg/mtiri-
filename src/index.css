@@ -1,0 +1,300 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Madari Brand Colors */
+    --navy: 217 47% 20%;
+    --navy-deep: 220 52% 12%;
+    --navy-light: 217 40% 28%;
+    --gold: 41 55% 54%;
+    --gold-light: 41 65% 65%;
+    --gold-muted: 41 40% 72%;
+
+    /* Surface Colors */
+    --background: 0 0% 99%;
+    --surface: 210 17% 98%;
+    --surface-2: 210 14% 96%;
+    --foreground: 215 25% 20%;
+    --foreground-muted: 215 16% 47%;
+
+    /* System */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 20%;
+    --primary: 217 47% 20%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 14% 96%;
+    --secondary-foreground: 215 25% 20%;
+    --muted: 210 14% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 41 55% 54%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 357 70% 58%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 174 60% 40%;
+    --success-foreground: 0 0% 98%;
+    --border: 214 22% 90%;
+    --input: 214 22% 90%;
+    --ring: 217 47% 20%;
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 220 52% 12%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 41 55% 54%;
+    --sidebar-primary-foreground: 220 52% 12%;
+    --sidebar-accent: 217 40% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 217 35% 20%;
+    --sidebar-ring: 41 55% 54%;
+  }
+
+  .dark {
+    --background: 220 52% 8%;
+    --foreground: 210 20% 95%;
+    --card: 220 45% 11%;
+    --card-foreground: 210 20% 95%;
+    --primary: 41 55% 54%;
+    --primary-foreground: 220 52% 10%;
+    --secondary: 220 40% 16%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 220 40% 16%;
+    --muted-foreground: 215 20% 60%;
+    --border: 220 35% 18%;
+    --input: 220 35% 18%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-cairo;
+    font-size: 16px;
+    line-height: 1.6;
+    overscroll-behavior-y: none;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* iOS Safe Area support */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Disable text selection on interactive elements */
+  button, a, [role="tab"], [role="button"], nav {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* Dark mode via system preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 220 52% 8%;
+    --foreground: 210 20% 95%;
+    --card: 220 45% 11%;
+    --card-foreground: 210 20% 95%;
+    --primary: 41 55% 54%;
+    --primary-foreground: 220 52% 10%;
+    --secondary: 220 40% 16%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 220 40% 16%;
+    --muted-foreground: 215 20% 60%;
+    --border: 220 35% 18%;
+    --input: 220 35% 18%;
+    --surface: 220 45% 13%;
+  }
+}
+
+@layer utilities {
+  .font-cairo {
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .text-navy {
+    color: hsl(var(--navy));
+  }
+
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+
+  .bg-navy {
+    background-color: hsl(var(--navy));
+  }
+
+  .bg-navy-deep {
+    background-color: hsl(var(--navy-deep));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+
+  .border-navy {
+    border-color: hsl(var(--navy));
+  }
+
+  /* Gold Thread accent line */
+  .gold-thread {
+    border-right: 2px solid hsl(var(--gold));
+  }
+
+  /* Beveled card effect */
+  .card-bevel {
+    border: 1px solid #E2E8F0;
+    box-shadow: 2px 2px 0px 0px rgba(27, 43, 75, 0.06);
+  }
+
+  /* Gold pulse animation */
+  .gold-pulse {
+    animation: goldPulse 0.8s ease-out;
+  }
+
+  /* Success state */
+  .text-success {
+    color: hsl(var(--success));
+  }
+
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(15deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(5deg); }
+  90% { transform: rotate(-3deg); }
+}
+
+@keyframes goldPulse {
+  0% { background-color: transparent; }
+  30% { background-color: rgba(201, 168, 76, 0.2); }
+  100% { background-color: transparent; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes staggerReveal {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-stagger {
+  animation: staggerReveal 0.3s ease-out forwards;
+}
+
+/* ===== FORCE BLACK TEXT ON ALL INTERACTIVE INPUTS (mobile/desktop) ===== */
+input[type="date"],
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field,
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="email"],
+input[type="tel"],
+select,
+textarea {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Radix Select Trigger — force black text regardless of theme */
+[role="combobox"],
+[data-radix-select-trigger],
+[data-slot="select-trigger"] {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+/* Radix Select Content & Items */
+[role="listbox"],
+[data-radix-select-content] {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+[role="option"],
+[data-radix-select-item] {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Menu button (hamburger ☰) in top header */
+header button svg,
+header button [data-lucide] {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--surface));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--navy-light));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--navy));
+}
+
+/* Table striping */
+.table-striped tr:nth-child(even) td {
+  background-color: hsl(210 17% 98%);
+}
+
+/* RTL specific */
+[dir="rtl"] .ltr-override {
+  direction: ltr;
+}

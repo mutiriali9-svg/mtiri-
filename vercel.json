@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "VITE_BASE44_APP_ID": "6a185028f7a3d14b6f7288d3",
+    "VITE_BASE44_API_URL": "https://api.base44.com"
+  }
+}
