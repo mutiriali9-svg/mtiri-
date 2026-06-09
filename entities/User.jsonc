@@ -1,0 +1,18 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "data_entry",
+        "investor",
+        "delete_request"
+      ],
+      "default": "data_entry",
+      "description": "\u062f\u0648\u0631 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645"
+    }
+  },
+  "required": []
+}
