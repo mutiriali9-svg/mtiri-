@@ -110,9 +110,12 @@ const AuthenticatedApp = () => {
         <Route path="/activity-log" element={<ActivityLogPage />} />
         <Route path="/my-payments" element={<MyPayments />} />
       </Route>
-      <Route path="*" element={<PageN
+      <Route path="*" element={<PageNotFound />} />
+    </Routes>
+  );
+};
 
-      function App() {
+function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
