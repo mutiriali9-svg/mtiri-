@@ -1,3 +1,4 @@
+import AuthCallback from '@/pages/callback/index';
 import CompleteProfile from '@/pages/CompleteProfile';
 import PendingApproval from '@/pages/PendingApproval';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -69,6 +70,14 @@ const AuthenticatedApp = () => {
     }
   }
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role === 'pending') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
   if (user?.role === 'delete_request') {
     return <DeletedAccountScreen />;
   }
@@ -78,7 +87,7 @@ const AuthenticatedApp = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/notifications" element={<Notifications />} />
-<Route path="/contracts" element={<ContractAlerts />} />
+        <Route path="/contracts" element={<ContractAlerts />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/units" element={<Units />} />
         <Route path="/payments" element={<Payments />} />
@@ -101,12 +110,9 @@ const AuthenticatedApp = () => {
         <Route path="/activity-log" element={<ActivityLogPage />} />
         <Route path="/my-payments" element={<MyPayments />} />
       </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
-  );
-};
+      <Route path="*" element={<PageN
 
-function App() {
+      function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
@@ -118,6 +124,9 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/request-access" element={<RequestAccess />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/pending-approval" element={<PendingApproval />} />
               <Route path="*" element={<AuthenticatedApp />} />
             </Routes>
           </Router>
