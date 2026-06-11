@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
-      window.location.href = '/login';
     }
   } catch (error) {
     setAuthError({ type: 'unknown', message: error.message });
