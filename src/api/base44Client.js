@@ -76,9 +76,12 @@ export const base44 = {
       return data;
     },
     logout: async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/login';
-    },
+  await supabase.auth.signOut();
+  window.location.reload();
+  setTimeout(() => {
+    window.location.href = '/login';
+  }, 500);
+},
     redirectToLogin: () => {
       window.location.href = '/login';
     },
