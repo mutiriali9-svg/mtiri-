@@ -38,7 +38,7 @@ import ActivityLogPage from '@/pages/ActivityLog';
 import MyPayments from '@/pages/MyPayments';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, isAuthenticated, authChecked } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -50,6 +50,10 @@ const AuthenticatedApp = () => {
         </div>
       </div>
     );
+  }
+
+  if (!isAuthenticated && authChecked) {
+    return <Navigate to="/login" replace />;
   }
 
   if (authError) {
