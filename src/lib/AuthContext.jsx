@@ -16,24 +16,25 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => { checkAppState(); }, []);
 
   const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await checkUserAuth();
-      } else {
-        setIsLoadingAuth(false);
-        setIsAuthenticated(false);
-        setAuthChecked(true);
-      }
-    } catch (error) {
-      setAuthError({ type: 'unknown', message: error.message });
-    } finally {
-      setIsLoadingPublicSettings(false);
+  try {
+    setIsLoadingPublicSettings(true);
+    setAuthError(null);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await checkUserAuth();
+    } else {
       setIsLoadingAuth(false);
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      window.location.href = '/login';
     }
-  };
+  } catch (error) {
+    setAuthError({ type: 'unknown', message: error.message });
+  } finally {
+    setIsLoadingPublicSettings(false);
+    setIsLoadingAuth(false);
+  }
+};
 
   const checkUserAuth = async () => {
     try {
