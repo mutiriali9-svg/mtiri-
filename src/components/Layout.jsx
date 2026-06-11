@@ -6,7 +6,7 @@ import {
   BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { base44, supabase } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -270,11 +270,12 @@ const allUnits = [...units, ...reUnits];
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleLogout = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    base44.auth.logout();
-  };
+  const handleLogout = async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  await supabase.auth.signOut();
+  window.location.href = '/login';
+};
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
