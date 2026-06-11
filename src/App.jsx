@@ -1,3 +1,5 @@
+import CompleteProfile from '@/pages/CompleteProfile';
+import PendingApproval from '@/pages/PendingApproval';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import ContractAlerts from '@/pages/ContractAlerts';
 import Login from '@/pages/Login';
