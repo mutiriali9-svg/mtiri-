@@ -2,7 +2,6 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44, supabase } from '@/api/base44Client';
 
 const AuthContext = createContext();
-const APP_ID = import.meta.env.VITE_BASE44_APP_ID;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -16,24 +15,24 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => { checkAppState(); }, []);
 
   const checkAppState = async () => {
-  try {
-    setIsLoadingPublicSettings(true);
-    setAuthError(null);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await checkUserAuth();
-    } else {
+    try {
+      setIsLoadingPublicSettings(true);
+      setAuthError(null);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await checkUserAuth();
+      } else {
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        setAuthChecked(true);
+      }
+    } catch (error) {
+      setAuthError({ type: 'unknown', message: error.message });
+    } finally {
+      setIsLoadingPublicSettings(false);
       setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
     }
-  } catch (error) {
-    setAuthError({ type: 'unknown', message: error.message });
-  } finally {
-    setIsLoadingPublicSettings(false);
-    setIsLoadingAuth(false);
-  }
-};
+  };
 
   const checkUserAuth = async () => {
     try {
@@ -53,14 +52,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = async () => {
     setUser(null);
     setIsAuthenticated(false);
-    base44.auth.logout(shouldRedirect ? window.location.href : undefined);
+    await supabase.auth.signOut();
+    window.location.href = '/login';
   };
 
   const navigateToLogin = () => {
-    base44.auth.redirectToLogin(window.location.href);
+    window.location.href = '/login';
   };
 
   return (
