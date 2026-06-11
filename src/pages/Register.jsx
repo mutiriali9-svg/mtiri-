@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -193,8 +193,12 @@ export default function Register() {
   };
 
   const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin + "/auth/callback" } }); if (error) setError(error.message);
-  };
+  const { error } = await supabase.auth.signInWithOAuth({ 
+    provider: "google", 
+    options: { redirectTo: window.location.origin + "/auth/callback" } 
+  });
+  if (error) setError(error.message);
+};
 
   if (showOtp) {
     return (
