@@ -39,6 +39,7 @@ import Notifications from '@/pages/Notifications';
 import SmartAlerts from '@/pages/SmartAlerts';
 import ActivityLogPage from '@/pages/ActivityLog';
 import MyPayments from '@/pages/MyPayments';
+import Profile from '@/pages/Profile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, isAuthenticated, authChecked } = useAuth();
@@ -85,6 +86,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route element={<Layout />}>
+      <Route path="/profile" element={<Profile />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/contracts" element={<ContractAlerts />} />
