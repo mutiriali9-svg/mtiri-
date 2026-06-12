@@ -632,34 +632,39 @@ setRegistrationRequestsCount(pendingRequests.length);
           </button>
 
           {/* User + Logout + Delete Account */}
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-              style={{ backgroundColor: '#C9A84C', color: '#0E1A30' }}>
-              {user?.full_name?.[0] || 'م'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-xs font-medium truncate">{user?.full_name || 'المدير'}</p>
-              <p className="text-white/40 text-xs truncate">{roleLabel}</p>
-            </div>
-            <button
-              onPointerDown={handleLogout}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-all flex-shrink-0"
-              title={lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+<div className="flex items-center gap-3 px-3 py-2">
+  {/* رابط البروفايل يغلف الصورة والاسم */}
+  <Link to="/profile" className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all">
+    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+      style={{ backgroundColor: '#C9A84C', color: '#0E1A30' }}>
+      {user?.full_name?.[0] || 'م'}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-white text-xs font-medium truncate">{user?.full_name || 'المدير'}</p>
+      <p className="text-white/40 text-xs truncate">{roleLabel}</p>
+    </div>
+  </Link>
+  
+  {/* زر تسجيل الخروج */}
+  <button
+    onPointerDown={handleLogout}
+    className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-all flex-shrink-0"
+    title={lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+  >
+    <LogOut size={16} />
+  </button>
+</div>
 
-          {/* Delete Account - for non-admin only */}
-          {user?.role !== 'admin' && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all text-sm min-h-[44px]"
-            >
-              <X size={15} style={{ flexShrink: 0 }} />
-              <span>{lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}</span>
-            </button>
-          )}
+{/* Delete Account - for non-admin only */}
+{user?.role !== 'admin' && (
+  <button
+    onClick={() => setShowDeleteConfirm(true)}
+    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all text-sm min-h-[44px]"
+  >
+    <X size={15} style={{ flexShrink: 0 }} />
+    <span>{lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}</span>
+  </button>
+)}
 
         </div>
       </aside>
