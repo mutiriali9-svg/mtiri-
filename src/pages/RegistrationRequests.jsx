@@ -50,7 +50,7 @@ export default function RegistrationRequests() {
   }
 
   const handleApprove = async (req) => {
-  const { supabase } = await import('@/api/base44Client');
+  
   
   // جيب الـ id الصحيح
   const { data: userId } = await supabase.rpc('get_user_id_by_email', { user_email: req.email });
