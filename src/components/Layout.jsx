@@ -22,7 +22,7 @@ const adminNavKeys = [
   { path: '/payments', key: 'payments', icon: CreditCard },
   { path: '/expenses', key: 'expenses', icon: Receipt },
   { path: '/savings', key: 'savings', icon: Wallet },
-  { path: '/registration-requests', key: 'registrationRequests', icon: ClipboardList },
+  
 ];
 
 const dataEntryNavKeys = [
@@ -716,6 +716,7 @@ setRegistrationRequestsCount(pendingRequests.length);
               newPaymentsCount={newPaymentsCount}
               urgentAlertsCount={urgentAlertsCount}
               expiredContractsCount={expiredContractsCount}
+              registrationRequestsCount={registrationRequestsCount}
               userRole={user?.role}
             />
             {/* Language toggle (desktop only) */}
