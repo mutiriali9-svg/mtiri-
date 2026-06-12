@@ -2,12 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, BellRing, X, BellDot, FileWarning } from 'lucide-react';
 
-export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, userRole }) {
+export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-  const totalCount = (newPaymentsCount || 0) + (urgentAlertsCount || 0) + (expiredContractsCount || 0);
+  const totalCount = (newPaymentsCount || 0) + (urgentAlertsCount || 0) + (expiredContractsCount || 0) + (registrationRequestsCount || 0);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -56,7 +56,15 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
       to: '/contracts',
     });
   }
-
+if (userRole === 'admin' && registrationRequestsCount > 0) {
+  items.push({
+    icon: ClipboardList,
+    label: isRtl ? 'طلبات التسجيل' : 'Registration Requests',
+    count: registrationRequestsCount || 0,
+    color: '#E63946',
+    to: '/registration-requests',
+  });
+}
   return (
     <div className="relative" ref={ref}>
       {/* Bell Button */}

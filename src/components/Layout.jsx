@@ -183,7 +183,8 @@ export default function Layout() {
 
   const [urgentAlertsCount, setUrgentAlertsCount] = useState(0);
   const [expiredContractsCount, setExpiredContractsCount] = useState(0);
-
+  const [registrationRequestsCount, setRegistrationRequestsCount] = useState(0);
+  
   // Load urgent alerts count for all roles
   useEffect(() => {
     if (!user?.role) return;
@@ -210,7 +211,18 @@ const allUnits = [...units, ...reUnits];
     return () => clearInterval(interval);
   }, [user]);
 
-  // Clear badge immediately when user navigates to /notifications
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+    const loadRequests = async () => {
+      const requests = await base44.entities.RegistrationRequest.list({ status: 'pending' });
+      setRegistrationRequestsCount(requests?.length || 0);
+    };
+    loadRequests();
+    const interval = setInterval(loadRequests, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Clear badge immediately
   useEffect(() => {
     if (location.pathname === '/notifications') {
       localStorage.setItem('notifications_seen_at', new Date().toISOString());
