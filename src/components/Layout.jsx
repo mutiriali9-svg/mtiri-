@@ -633,8 +633,11 @@ setRegistrationRequestsCount(pendingRequests.length);
 
           {/* User + Logout + Delete Account */}
 <div className="flex items-center gap-3 px-3 py-2">
-  {/* رابط البروفايل يغلف الصورة والاسم */}
-  <Link to="/profile" className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all">
+  {/* هنا نستخدم button عادي مع navigate لمنع أي تداخل مع الـ Link */}
+  <button 
+    onClick={() => navigate('/profile')}
+    className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all text-right"
+  >
     <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
       style={{ backgroundColor: '#C9A84C', color: '#0E1A30' }}>
       {user?.full_name?.[0] || 'م'}
@@ -643,7 +646,7 @@ setRegistrationRequestsCount(pendingRequests.length);
       <p className="text-white text-xs font-medium truncate">{user?.full_name || 'المدير'}</p>
       <p className="text-white/40 text-xs truncate">{roleLabel}</p>
     </div>
-  </Link>
+  </button>
   
   {/* زر تسجيل الخروج */}
   <button
