@@ -214,8 +214,10 @@ const allUnits = [...units, ...reUnits];
   useEffect(() => {
     if (user?.role !== 'admin') return;
     const loadRequests = async () => {
-      const requests = await base44.entities.RegistrationRequest.list({ status: 'pending' });
-      setRegistrationRequestsCount(requests?.length || 0);
+      const requests = await base44.entities.RegistrationRequest.list();
+const pendingRequests = requests.filter(r => r.status === 'pending');
+setRegistrationRequestsCount(pendingRequests.length);
+      
     };
     loadRequests();
     const interval = setInterval(loadRequests, 60000);
