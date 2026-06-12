@@ -83,6 +83,10 @@ if (!user?.role) {
   return <Navigate to="/complete-profile" replace />;
 }
 
+if (!user?.role) {
+  return <Navigate to="/complete-profile" replace />;
+}
+
 if (user?.role === 'delete_request') {
   return <DeletedAccountScreen />;
 }
