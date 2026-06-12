@@ -600,11 +600,7 @@ setRegistrationRequestsCount(pendingRequests.length);
               </div>
             </>
           )}
-{user?.role === 'admin' && (
-            <div className="mt-2">
-              <div className="border-b border-white/10 mb-2" />
-              <Link
-                to="/registration-requests"
+
                 className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
                   location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`}
