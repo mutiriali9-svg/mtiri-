@@ -50,11 +50,32 @@ export default function RegistrationRequests() {
   }
 
   const handleApprove = async (req) => {
-  // تحديث registration_requests
+  const { supabase } = await import('@/api/base44Client');
+  
+  // جيب الـ id الصحيح
+  const { data: userId } = await supabase.rpc('get_user_id_by_email', { user_email: req.email });
+  
+  if (userId) {
+    // حدّث users مع كل البيانات
+    await supabase.from('users').upsert({
+      id: userId,
+      email: req.email,
+      full_name: `${req.first_name} ${req.last_name}`,
+      username: req.username,
+      phone: req.phone,
+      role: req.role || 'data_entry',
+    });
+  }
+
+  // حدّث registration_requests
   await base44.entities.RegistrationRequest.update(req.id, {
     status: 'approved',
     role: req.role || 'data_entry',
   });
+
+  toast({ description: `تم قبول طلب ${req.first_name} ${req.last_name} ✓` });
+  fetchData();
+};
   
   // تحديث users table
   const { supabase } = await import('@/api/base44Client');
