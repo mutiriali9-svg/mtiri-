@@ -36,12 +36,12 @@ export default function RegistrationRequests() {
   const { toast } = useToast();
 
   const fetchData = () => {
-    setLoading(true);
-    base44.entities.RegistrationRequest.list('-created_date').then(data => {
-      setRequests(data);
-      setLoading(false);
-    });
-  };
+  setLoading(true);
+  base44.entities.RegistrationRequest.list('-created_at').then(data => {
+    setRequests(data);
+    setLoading(false);
+  });
+};
 
   useEffect(() => { fetchData(); }, []);
 
@@ -50,19 +50,22 @@ export default function RegistrationRequests() {
   }
 
   const handleApprove = async (req) => {
-    await base44.entities.RegistrationRequest.update(req.id, {
-      status: 'approved',
-      role: req.role || 'data_entry',
-    });
-    // Invite the user with the selected role
-    try {
-      await base44.users.inviteUser(req.email, req.role || 'data_entry');
-    } catch (e) {
-      // User might already exist in auth
-    }
-    toast({ description: `تم قبول طلب ${req.first_name} ${req.last_name} ✓` });
-    fetchData();
-  };
+  // تحديث registration_requests
+  await base44.entities.RegistrationRequest.update(req.id, {
+    status: 'approved',
+    role: req.role || 'data_entry',
+  });
+  
+  // تحديث users table
+  const { supabase } = await import('@/api/base44Client');
+  await supabase
+    .from('users')
+    .update({ role: req.role || 'data_entry', full_name: `${req.first_name} ${req.last_name}` })
+    .eq('email', req.email);
+  
+  toast({ description: `تم قبول طلب ${req.first_name} ${req.last_name} ✓` });
+  fetchData();
+};
 
   const handleReject = (req) => {
     setConfirmReject({
