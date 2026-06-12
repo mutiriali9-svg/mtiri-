@@ -71,7 +71,7 @@ const AuthenticatedApp = () => {
     }
   }
 
-  if (!user) {
+  if (!user && !isLoadingAuth) {
     return <Navigate to="/login" replace />;
   }
 
