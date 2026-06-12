@@ -1,30 +1,90 @@
-const checkUserAuth = async () => {
-  try {
-    setIsLoadingAuth(true);
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) throw { status: 401 };
-    
-    const { data: profile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-    
-    if (profile) {
-      setUser(profile);
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(true);
-      setUser({ id: authUser.id, email: authUser.email, role: null });
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { base44, supabase } from '@/api/base44Client';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
+
+  useEffect(() => { checkAppState(); }, []);
+
+  const checkAppState = async () => {
+    try {
+      setIsLoadingPublicSettings(true);
+      setAuthError(null);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await checkUserAuth();
+      } else {
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        setAuthChecked(true);
+      }
+    } catch (error) {
+      setAuthError({ type: 'unknown', message: error.message });
+    } finally {
+      setIsLoadingPublicSettings(false);
+      setIsLoadingAuth(false);
     }
-    setAuthChecked(true);
-  } catch (error) {
+  };
+
+  const checkUserAuth = async () => {
+    try {
+      setIsLoadingAuth(true);
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw { status: 401 };
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (profile) {
+        setUser(profile);
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(true);
+        setUser({ id: authUser.id, email: authUser.email, role: null });
+      }
+      setAuthChecked(true);
+    } catch (error) {
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      if (error.status === 401 || error.status === 403) {
+        setAuthError({ type: 'auth_required', message: 'Authentication required' });
+      }
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  };
+
+  const logout = async () => {
+    setUser(null);
     setIsAuthenticated(false);
-    setAuthChecked(true);
-    if (error.status === 401 || error.status === 403) {
-      setAuthError({ type: 'auth_required', message: 'Authentication required' });
-    }
-  } finally {
-    setIsLoadingAuth(false);
-  }
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
+  const navigateToLogin = () => {
+    window.location.href = '/login';
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, appPublicSettings, authChecked, logout, navigateToLogin, checkUserAuth, checkAppState }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
 };
