@@ -1,10 +1,7 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/base44Client';
 
 export default function PendingApproval() {
-  const navigate = useNavigate();
-
   useEffect(() => {
     const checkApproval = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -18,7 +15,9 @@ export default function PendingApproval() {
 
       if (profile && profile.role !== 'pending') {
         await supabase.auth.refreshSession();
-window.location.href = '/';
+        window.location.href = '/';
+      }
+    };
 
     checkApproval();
     const interval = setInterval(checkApproval, 10000);
