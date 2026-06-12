@@ -24,7 +24,7 @@ export default function Profile() {
       console.log('fetchProfile running');
       const { data: { session } } = await supabase.auth.getSession();
       console.log('session:', session);
-      const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) return;
       const { data } = await supabase.from('users').select('*').eq('id', session.user.id).single();
       if (data) {
