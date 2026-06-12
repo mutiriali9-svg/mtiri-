@@ -17,7 +17,7 @@ export default function PendingApproval() {
         .single();
 
       if (profile && profile.role !== 'pending') {
-        window.location.href = '/';
+        window.location.reload();
       }
     };
 
