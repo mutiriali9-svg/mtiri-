@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-const { supabase } = await import('@/api/base44Client');
+import { base44, supabase } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { Check, X, User, Phone, Mail, AtSign, Clock, UserCheck, UserX } from 'lucide-react';
@@ -78,7 +78,7 @@ export default function RegistrationRequests() {
 };
   
   // تحديث users table
-  const { supabase } = await import('@/api/base44Client');
+  
   await supabase
     .from('users')
     .update({ role: req.role || 'data_entry', full_name: `${req.first_name} ${req.last_name}` })
