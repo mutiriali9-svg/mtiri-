@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44, supabase } from '@/api/base44Client';
+const { supabase } = await import('@/api/base44Client');
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { Check, X, User, Phone, Mail, AtSign, Clock, UserCheck, UserX } from 'lucide-react';
