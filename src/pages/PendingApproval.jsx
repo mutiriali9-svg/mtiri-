@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { supabase } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function PendingApproval() {
+  const { checkAppState } = useAuth();
+
   useEffect(() => {
     const checkApproval = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -14,7 +17,7 @@ export default function PendingApproval() {
         .single();
 
       if (profile && profile.role !== 'pending') {
-        await supabase.auth.refreshSession();
+        await checkAppState();
         window.location.href = '/';
       }
     };
