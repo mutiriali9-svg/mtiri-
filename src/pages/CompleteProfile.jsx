@@ -33,11 +33,13 @@ export default function CompleteProfile() {
 
       // أضفه في users بدون role
       await supabase.from('users').upsert({
-        id: user.id,
-        email: user.email,
-        full_name: form.full_name,
-        role: 'pending',
-      });
+  id: user.id,
+  email: user.email,
+  full_name: form.full_name,
+  username: form.username,
+  phone: form.phone,
+  role: 'pending',
+});
 
       navigate('/pending-approval');
     } catch (err) {
