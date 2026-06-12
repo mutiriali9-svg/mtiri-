@@ -601,21 +601,7 @@ setRegistrationRequestsCount(pendingRequests.length);
             </>
           )}
 
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
-                  location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-                style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
-                  <ClipboardList size={16} style={{ color: '#A8B2C0' }} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>طلبات التسجيل</span>
-                </div>
-              </Link>
-            </div>
-          )}
+
           {isDataEntry && (
             <div className="space-y-1">
               {dataEntryNavKeys.map((item) => {
