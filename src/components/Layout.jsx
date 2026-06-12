@@ -168,6 +168,7 @@ export default function Layout() {
     const saved = localStorage.getItem('sidebar_re_open');
     return saved !== null ? saved === 'true' : false;
   });
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
   const isMounted = useRef(false);
   useEffect(() => {
@@ -472,50 +473,49 @@ setRegistrationRequestsCount(pendingRequests.length);
             </div>
           )}
 
-          {/* Activity Log + Smart Alerts - Admin */}
-          {user?.role === 'admin' && (
-            <div className="mt-2">
-              <div className="border-b border-white/10 mb-2" />
-              <Link
-                to="/activity-log"
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
-                  location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-                style={{ borderRight: isRtl && location.pathname === '/activity-log' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/activity-log' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
-                  <History size={16} style={{ color: '#A8B2C0' }} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('activityLog')}</span>
-                </div>
-              </Link>
-            </div>
-          )}
-
-          {/* Smart Alerts - Admin - مستقل */}
-          {user?.role === 'admin' && (
-            <div className="mt-2">
-              <div className="border-b border-white/10 mb-2" />
-              <Link
-                to="/smart-alerts"
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
-                  location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-                style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
-                  <BellRing size={16} style={{ color: '#A8B2C0' }} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('smartAlerts')}</span>
-                  <span className="text-[10px]" style={{ color: 'rgba(168,178,192,0.6)' }}>{lang === 'ar' ? 'لتتبع الدفعات' : 'Track Payments'}</span>
-                </div>
-              </Link>
-            </div>
-          )}
+{/* Alerts Section - Admin */}
+{user?.role === 'admin' && (
+  <div className="mt-2">
+    <div className="border-b border-white/10 mb-2" />
+    <button
+      onClick={() => setAlertsOpen(prev => !prev)}
+      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
+    >
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
+        <Bell size={16} style={{ color: '#C9A84C' }} />
+      </div>
+      <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>الإشعارات</span>
+      {alertsOpen
+        ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
+        : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
+      }
+    </button>
+    <div className="overflow-hidden transition-all duration-300 ease-in-out"
+      style={{ maxHeight: alertsOpen ? '600px' : '0px', opacity: alertsOpen ? 1 : 0 }}>
+      <div className="space-y-1 mt-1">
+        <Link to="/activity-log"
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+          style={{ borderRight: isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
+          <History size={18} style={{ color: location.pathname === '/activity-log' ? '#C9A84C' : '', flexShrink: 0 }} />
+          <span className="text-sm font-medium">{navLabel('activityLog')}</span>
+        </Link>
+        <Link to="/smart-alerts"
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+          style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
+          <BellRing size={18} style={{ color: location.pathname === '/smart-alerts' ? '#C9A84C' : '', flexShrink: 0 }} />
+          <span className="text-sm font-medium">{navLabel('smartAlerts')}</span>
+        </Link>
+        <Link to="/registration-requests"
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+          style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
+          <ClipboardList size={18} style={{ color: location.pathname === '/registration-requests' ? '#C9A84C' : '', flexShrink: 0 }} />
+          <span className="text-sm font-medium">طلبات التسجيل</span>
+        </Link>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Investor: نفس شكل المدير بقسمين */}
           {isInvestor && (
