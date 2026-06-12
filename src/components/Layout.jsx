@@ -633,9 +633,12 @@ setRegistrationRequestsCount(pendingRequests.length);
 
           {/* User + Logout + Delete Account */}
 <div className="flex items-center gap-3 px-3 py-2">
-  {/* هنا نستخدم button عادي مع navigate لمنع أي تداخل مع الـ Link */}
+  {/* رابط البروفايل */}
   <button 
-    onClick={() => navigate('/profile')}
+    onClick={(e) => {
+      e.stopPropagation();
+      navigate('/profile');
+    }}
     className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all text-right"
   >
     <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
@@ -650,7 +653,10 @@ setRegistrationRequestsCount(pendingRequests.length);
   
   {/* زر تسجيل الخروج */}
   <button
-    onPointerDown={handleLogout}
+    onClick={(e) => {
+      e.stopPropagation();
+      handleLogout(e);
+    }}
     className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-all flex-shrink-0"
     title={lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}
   >
