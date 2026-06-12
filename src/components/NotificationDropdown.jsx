@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Bell, BellRing, X, BellDot, FileWarning } from 'lucide-react';
+
 
 export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole }) {
   const [open, setOpen] = useState(false);
