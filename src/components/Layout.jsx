@@ -22,6 +22,7 @@ const adminNavKeys = [
   { path: '/payments', key: 'payments', icon: CreditCard },
   { path: '/expenses', key: 'expenses', icon: Receipt },
   { path: '/savings', key: 'savings', icon: Wallet },
+  { path: '/registration-requests', key: 'registrationRequests', icon: ClipboardList },
 ];
 
 const dataEntryNavKeys = [
