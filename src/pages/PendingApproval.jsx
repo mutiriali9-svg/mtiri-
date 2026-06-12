@@ -1,4 +1,31 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/api/base44Client';
+
 export default function PendingApproval() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkApproval = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile && profile.role !== 'pending') {
+        window.location.href = '/';
+      }
+    };
+
+    checkApproval();
+    const interval = setInterval(checkApproval, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#0E1A30' }}>
       <div className="text-center space-y-4">
