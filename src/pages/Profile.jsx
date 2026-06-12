@@ -18,22 +18,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    console.log('Profile useEffect running');
-    const fetchProfile = async () => {
-      console.log('fetchProfile running');
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('session:', session);
-      
-      if (!session) return;
-      const { data } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-      if (data) {
-        setProfile(data);
-        setUsername(data.username || '');
-      }
-    };
-    fetchProfile();
-  }, []);
+  
 
   const handleSave = async () => {
     if (!username.trim()) return;
