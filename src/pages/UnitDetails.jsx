@@ -57,16 +57,16 @@ export default function UnitDetails() {
   };
 
   useEffect(() => {
-    const decodedUnit = decodeURIComponent(unitNumber);
-    Promise.all([
-      base44.entities.Unit.filter({ unit_number: decodedUnit }),
-      base44.entities.Payment.filter({ unit_number: decodedUnit }, '-payment_date'),
-    ]).then(([units, pays]) => {
-      setUnit(units[0] || null);
-      setPayments(pays);
-      setLoading(false);
-    });
-  }, [unitNumber]);
+  const decodedUnit = decodeURIComponent(unitNumber);
+  Promise.all([
+    base44.entities.Unit.filter({ unit_number: decodedUnit }),
+    base44.entities.Payment.list('-payment_date', 500),
+  ]).then(([units, allPays]) => {
+    setUnit(units[0] || null);
+    setPayments(allPays.filter(p => p.unit_number === decodedUnit));
+    setLoading(false);
+  });
+}, [unitNumber]);
 
   const openEdit = () => {
     setForm({ ...emptyUnit, ...unit });
