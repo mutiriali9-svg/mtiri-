@@ -119,6 +119,20 @@ export default function DataEntry() {
       receipt_image_url: data.receipt_image_url,
     });
 
+    const created = await base44.entities.Payment.create({
+      tenant_name: data.tenant_name || '',
+      unit_number: data.unit_number || '',
+      amount: data.amount,
+      payment_date: data.payment_date || '',
+      due_months: data.due_months || '',
+      payment_method: data.payment_method || 'bank_transfer',
+      receipt_number: data.receipt_number || '',
+      notes: data.notes || '',
+      status: data.status || 'paid',
+      receipt_image_url: data.receipt_image_url,
+      created_by: user?.id || '',
+    });
+
     // سجّل في سجل العمليات
     base44.functions.invoke('logActivity', {
       action: 'create',
