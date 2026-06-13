@@ -21,7 +21,7 @@ function calcSmartArrears(alert, paidNow) {
 const emptyPayment = {
   tenant_name: '', unit_number: '', amount: '',
   payment_date: new Date().toISOString().split('T')[0],
-  due_months: '', payment_method: 'bank_transfer', receipt_number: '', notes: '', status: 'paid',
+  due_months: '', payment_method: '', receipt_number: '', notes: '', status: 'paid',
 };
 
 export default function DataEntry() {
