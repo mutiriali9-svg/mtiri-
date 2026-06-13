@@ -100,7 +100,6 @@ if (user?.role === 'delete_request') {
         <Route path="/payments" element={<Payments />} />
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/units/:unitNumber" element={<UnitDetails />} />
         <Route path="/data-entry" element={<DataEntry />} />
         <Route path="/investors" element={<Investors />} />
@@ -122,6 +121,7 @@ if (user?.role === 'delete_request') {
     </Routes>
   );
 };
+        
 
 function App() {
   return (
@@ -131,7 +131,7 @@ function App() {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
-              
+              <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/request-access" element={<RequestAccess />} />
