@@ -4,7 +4,6 @@ import PendingApproval from '@/pages/PendingApproval';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import ContractAlerts from '@/pages/ContractAlerts';
 import Login from '@/pages/Login';
-import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import { Toaster } from "@/components/ui/toaster"
@@ -130,7 +129,7 @@ function App() {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/request-access" element={<RequestAccess />} />
