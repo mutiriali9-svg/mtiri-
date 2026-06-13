@@ -64,7 +64,7 @@ export const t_data = {
     searchPayments: 'بحث باسم المستأجر أو رقم الشقة...',
     totalShown: 'إجمالي المبالغ المعروضة', paymentCount: 'عدد الدفعات',
     dueMonth: 'مستحق لشهر', paymentMethod: 'طريقة الدفع',
-    receiptNumber: 'رقم الإيصال', receiptImage: 'صورة الإيصال (اختياري)',
+    receiptNumber: 'رقم الإيصال', receiptImage: 'صورة الإيصال *',,
     uploadReceipt: 'رفع صورة الإيصال', editPayment: 'تعديل الدفعة',
     addPayment: 'تسجيل دفعة جديدة', savePayment: 'حفظ الدفعة',
     noPayments: 'لا توجد دفعات', deletePaymentConfirm: 'هل أنت متأكد من حذف هذه الدفعة؟',
