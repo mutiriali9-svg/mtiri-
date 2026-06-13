@@ -56,7 +56,7 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
       label: isRtl ? 'العقود المنتهية' : 'Expired Contracts',
       count: expiredContractsCount || 0,
       color: expiredContractsCount > 0 ? '#E63946' : '#6B7280',
-      to: '/contracts',
+      to: '/units',
     });
   }
 if (userRole === 'admin' && registrationRequestsCount > 0) {
