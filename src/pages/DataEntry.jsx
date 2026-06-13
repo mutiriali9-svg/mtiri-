@@ -103,7 +103,8 @@ export default function DataEntry() {
 if (!paymentForm.tenant_name.trim()) errors.push('اسم المستأجر');
 if (!paidAmount || paidAmount <= 0) errors.push('المبلغ');
 if (!paymentForm.payment_date) errors.push('تاريخ الدفعة');
-if (!paymentForm.payment_method) errors.push('طريقة الدفع*');
+if (!paymentForm.payment_method) errors.push('طريقة الدفع*.');
+if (!paymentForm.due_months.trim()) errors.push('الأشهر المستحقة*.');
 if (!paymentImage) errors.push('صورة الإيصال');
 
 if (errors.length > 0) {
