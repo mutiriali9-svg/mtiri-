@@ -15,18 +15,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/";
-    } catch (err) {
-      setError(err.message || "Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    window.location.href = "/";
+  } catch (err) {
+    setError(err.message || "Invalid email or password");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleGoogle = async () => {
   const { error } = await supabase.auth.signInWithOAuth({ 
@@ -38,15 +39,18 @@ export default function Login() {
 
   return (
     <AuthLayout
-      icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
-      footer={
-        <>
-          
-        </>
-      }
-    >
+  icon={LogIn}
+  title="Welcome back"
+  subtitle="Log in to your account"
+  footer={
+    <>
+      Don't have an account?{" "}
+      <Link to="/register" className="text-primary font-medium hover:underline">
+        Create one
+      </Link>
+    </>
+  }
+>
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
