@@ -1,4 +1,5 @@
 import AuthCallback from '@/pages/callback/index';
+import Register from '@/pages/Register';
 import CompleteProfile from '@/pages/CompleteProfile';
 import PendingApproval from '@/pages/PendingApproval';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -99,6 +100,7 @@ if (user?.role === 'delete_request') {
         <Route path="/payments" element={<Payments />} />
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/units/:unitNumber" element={<UnitDetails />} />
         <Route path="/data-entry" element={<DataEntry />} />
         <Route path="/investors" element={<Investors />} />
