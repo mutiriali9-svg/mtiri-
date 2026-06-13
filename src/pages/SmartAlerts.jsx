@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { uploadFile } from '@/api/base44Client';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -269,15 +270,15 @@ export default function SmartAlerts() {
   };
 
   const handleReceiptUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setReceiptUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setPaymentInput(p => ({ ...p, receipt_url: file_url, notes: p.notes }));
-    setReceiptUploading(false);
-    setReceiptUploaded(true);
-    setTimeout(() => setReceiptUploaded(false), 3000);
-  };
+  const file = e.target.files[0];
+  if (!file) return;
+  setReceiptUploading(true);
+  const { file_url } = await uploadFile(file);
+  setPaymentInput(p => ({ ...p, receipt_url: file_url }));
+  setReceiptUploading(false);
+  setReceiptUploaded(true);
+  setTimeout(() => setReceiptUploaded(false), 3000);
+};
 
   const handleDataEntryPaid = async () => {
     const alert = paymentModal;
@@ -299,15 +300,16 @@ export default function SmartAlerts() {
     const newBalance = Math.max(0, currentBalance - paidAmount);
 
     await base44.entities.Payment.create({
-      tenant_name: alert.tenant_name,
-      unit_number: alert.unit_number,
-      amount: paidAmount,
-      payment_date: today,
-      due_months: paymentInput.due_months || '',
-      status: 'paid',
-      notes: paymentInput.notes || '',
-      receipt_image_url: paymentInput.receipt_url || '',
-    });
+  tenant_name: alert.tenant_name,
+  unit_number: alert.unit_number,
+  amount: paidAmount,
+  payment_date: today,
+  due_months: paymentInput.due_months || '',
+  status: 'paid',
+  notes: paymentInput.notes || '',
+  receipt_image_url: paymentInput.receipt_url || '',
+  created_by: user?.id || '',
+});
 
     const planObj = PAYMENT_PLANS.find(p => p.value === (alert.payment_plan || 'monthly'));
     const planLabel = planObj?.label[lang] || planObj?.label.ar || 'شهري';
