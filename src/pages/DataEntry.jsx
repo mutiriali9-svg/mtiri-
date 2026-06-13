@@ -99,12 +99,16 @@ export default function DataEntry() {
     const paidAmount = parseFloat(paymentForm.amount) || 0;
 
     // validation
-    if (!paymentForm.tenant_name.trim()) return showError('الرجاء إدخال اسم المستأجر');
-if (!paidAmount || paidAmount <= 0) return showError('الرجاء إدخال مبلغ صحيح');
-if (!paymentForm.payment_date) return showError('الرجاء إدخال تاريخ الدفعة');
-if (!paymentForm.due_months.trim()) return showError('الرجاء إدخال مستحق لشهر');
-if (!paymentImage) return showError('الرجاء رفع صورة الإيصال');
-if (!paymentForm.payment_method || paymentForm.payment_method === '') return showError('الرجاء اختيار طريقة الدفع');
+    const errors = [];
+if (!paymentForm.tenant_name.trim()) errors.push('اسم المستأجر');
+if (!paidAmount || paidAmount <= 0) errors.push('المبلغ');
+if (!paymentForm.payment_date) errors.push('تاريخ الدفعة');
+if (!paymentForm.payment_method) errors.push('طريقة الدفع*');
+if (!paymentImage) errors.push('صورة الإيصال');
+
+if (errors.length > 0) {
+  return showError(`يرجى إكمال: ${errors.join(' · ')}`);
+}
 
     setSaving(true);
     const data = { ...paymentForm, amount: paidAmount, receipt_image_url: paymentImage || '' };
@@ -260,7 +264,7 @@ if (!paymentForm.payment_method || paymentForm.payment_method === '') return sho
           })()}
 
           <div className="space-y-1.5">
-            <Label>{t('amount')} (AED) *</Label>
+            <Label>{t('amount')} * (AED) *</Label>
             <Input required type="number" min="0" value={paymentForm.amount} onChange={e => setP('amount', e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-1.5">
@@ -290,7 +294,7 @@ if (!paymentForm.payment_method || paymentForm.payment_method === '') return sho
             <Input value={paymentForm.notes} onChange={e => setP('notes', e.target.value)} />
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label>{t('receiptImage')}</Label>
+            <Label>{t('receiptImage')} *</Label>
             {paymentImage ? (
               <div className="relative w-full rounded-lg overflow-hidden border border-border">
                 <img src={paymentImage} alt="receipt" className="w-full max-h-48 object-contain bg-muted" />
