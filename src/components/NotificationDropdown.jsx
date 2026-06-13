@@ -49,7 +49,7 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
     });
   }
 
-  const showExpiredContracts = userRole === 'admin' || userRole === 'investor';
+  const showExpiredContracts = userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry';
   if (showExpiredContracts) {
     items.push({
       icon: FileWarning,
