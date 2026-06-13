@@ -119,7 +119,7 @@ export default function MyPayments() {
       setLoading(true);
       const all = await base44.entities.Payment.list('-payment_date', 200);
       // Show only payments created by this user
-      setPayments(all.filter(p => p.created_by_id === user.id));
+      setPayments(all.filter(p => p.created_by === user.id));
       setLoading(false);
     };
     load();
