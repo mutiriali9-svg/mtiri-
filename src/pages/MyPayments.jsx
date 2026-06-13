@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { CreditCard, X, Calendar, Hash, Building2, User, Image, FileText, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

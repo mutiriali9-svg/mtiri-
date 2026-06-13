@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import StatCard from '@/components/StatCard';
 import PageHeader from '@/components/PageHeader';
 import { Link } from 'react-router-dom';

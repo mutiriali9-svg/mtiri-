@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { useLang } from '@/lib/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { ArrowRight, ArrowLeft, Building2, Calendar, Phone, Receipt, Filter, Edit2, Upload, X, FileImage, Loader2 } from 'lucide-react';
@@ -76,7 +76,7 @@ export default function UnitDetails() {
   const handleContractUpload = async (file) => {
     if (!file) return;
     setUploadingContract(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file);
     setForm(p => ({ ...p, contract_image_url: file_url }));
     setUploadingContract(false);
   };

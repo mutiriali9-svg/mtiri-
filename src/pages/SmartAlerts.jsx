@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { uploadFile } from '@/api/base44Client';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import {

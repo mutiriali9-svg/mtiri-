@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { PlusCircle, CheckCircle2, CreditCard, Camera, X, ImagePlus, Clock, AlertTriangle, Calculator } from 'lucide-react';
@@ -89,7 +89,7 @@ export default function DataEntry() {
   const handleImageUpload = async (file) => {
     if (!file) return;
     setUploadingP(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file);
     setPaymentImage(file_url);
     setUploadingP(false);
   };

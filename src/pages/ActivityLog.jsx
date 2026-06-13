@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { useLang } from '@/lib/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';

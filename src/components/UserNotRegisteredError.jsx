@@ -1,7 +1,7 @@
 import { Globe, CheckCircle2, Loader2, User, Phone, AtSign } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { t_data } from '@/lib/LanguageContext';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

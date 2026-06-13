@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 
 export default function DeletedAccountScreen() {
   const [seconds, setSeconds] = useState(30);

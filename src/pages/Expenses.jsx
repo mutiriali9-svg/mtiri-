@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
@@ -64,7 +64,7 @@ export default function Expenses() {
     setUploading(true);
     setImageType(file.type === 'application/pdf' ? 'pdf' : 'image');
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file);
       setImage(file_url);
       setErrors(p => ({ ...p, image: false }));
     } catch (err) {

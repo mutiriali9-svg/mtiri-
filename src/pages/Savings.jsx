@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import { useLang } from '@/lib/LanguageContext';
 import { Wallet, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

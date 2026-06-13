@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
@@ -71,7 +71,7 @@ export default function Payments() {
     if (!file) return;
     setUploading(true);
     try {
-      const result = await base44.integrations.Core.UploadFile({ file });
+      const result = await uploadFile(file);
       setReceiptUrl(result.file_url);
     } catch {
       toast({ description: 'فشل رفع الملف، حاول مجدداً', variant: 'destructive' });
