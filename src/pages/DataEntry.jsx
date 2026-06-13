@@ -275,7 +275,10 @@ if (!paymentForm.payment_method || paymentForm.payment_method === '') return sho
             <Label>{t('paymentMethod')}</Label>
             <select value={paymentForm.payment_method} onChange={e => setP('payment_method', e.target.value)}
               className="w-full h-9 border border-input rounded-md px-3 text-sm bg-transparent">
-              {Object.entries(paymentMethods).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              <option value="">— اختر —</option>
+              <option value="cash">{t('cash')}</option>
+              <option value="bank_transfer">{t('bank_transfer')}</option>
+              <option value="cheque">{t('cheque')}</option>
             </select>
           </div>
           <div className="space-y-1.5">
