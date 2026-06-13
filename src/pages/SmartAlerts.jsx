@@ -998,37 +998,32 @@ export default function SmartAlerts() {
                 )}
 
                 {/* رفع الإيصال - إجباري */}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold">{t('رفع الإيصال *', 'Upload Receipt *')}</Label>
-                  {receiptUploaded ? (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium" style={{ backgroundColor: 'rgba(42,157,143,0.1)', color: '#2A9D8F', border: '1px solid #2A9D8F33' }}>
-                      <CheckCircle2 size={14} /> {t('تم رفع الإيصال بنجاح ✓', 'Receipt uploaded successfully ✓')}
-                    </div>
-                  ) : (
-                    <label className="flex items-center justify-center w-full px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all"
-                      style={{ borderColor: receiptUploading ? '#C9A84C' : 'rgba(201,168,76,0.3)' }}>
-                      <input type="file" accept="image/*,.pdf" onChange={handleReceiptUpload} className="hidden" disabled={receiptUploading} />
-                      <div className="flex items-center gap-2">
-                        {receiptUploading ? (
-  <div className="flex items-center justify-center gap-2 py-3">
-    <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} />
-    <span className="text-xs text-muted-foreground">{t('جاري الرفع...', 'Uploading...')}</span>
-  </div>
-) : paymentInput.receipt_url ? (
-  <div className="relative">
-    <img src={paymentInput.receipt_url} alt="إيصال" className="w-full max-h-48 object-contain rounded-xl border border-border" />
-    <button type="button" onClick={() => setPaymentInput(p => ({ ...p, receipt_url: '' }))}
-      className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5">
-      <X size={14} />
-    </button>
-  </div>
-) : (
-  <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-4 cursor-pointer hover:border-amber-400 transition-colors">
-    <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
-    <Upload size={14} style={{ color: '#C9A84C' }} />
-    <span className="text-xs" style={{ color: '#C9A84C' }}>{t('انقر لرفع الإيصال', 'Click to upload receipt')}</span>
-  </label>
-)}
+<div className="space-y-1.5">
+  <Label className="text-sm font-semibold">{t('رفع الإيصال *', 'Upload Receipt *')}</Label>
+  {receiptUploading ? (
+    <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl" style={{ borderColor: '#C9A84C' }}>
+      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} />
+      <span className="text-xs text-muted-foreground">{t('جاري الرفع...', 'Uploading...')}</span>
+    </div>
+  ) : paymentInput.receipt_url ? (
+    <div className="relative">
+      <img src={paymentInput.receipt_url} alt="إيصال" className="w-full max-h-48 object-contain rounded-xl border border-border" />
+      <button type="button" onClick={() => setPaymentInput(p => ({ ...p, receipt_url: '' }))}
+        className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5">
+        <X size={14} />
+      </button>
+    </div>
+  ) : (
+    <label className="flex items-center justify-center w-full px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all"
+      style={{ borderColor: 'rgba(201,168,76,0.3)' }}>
+      <input type="file" accept="image/*,.pdf" onChange={handleReceiptUpload} className="hidden" />
+      <div className="flex items-center gap-2">
+        <Upload size={14} style={{ color: '#C9A84C' }} />
+        <span className="text-xs" style={{ color: '#C9A84C' }}>{t('انقر لرفع الإيصال', 'Click to upload receipt')}</span>
+      </div>
+    </label>
+  )}
+</div>
 
                 {/* ملاحظات */}
                 <div className="space-y-1.5">
