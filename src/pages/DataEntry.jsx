@@ -273,7 +273,7 @@ if (errors.length > 0) {
             <Input required type="date" value={paymentForm.payment_date} onChange={e => setP('payment_date', e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>{t('dueMonths')}</Label>
+            <Label>{t('dueMonths')} *</Label>
             <Input value={paymentForm.due_months} onChange={e => setP('due_months', e.target.value)} />
           </div>
           <div className="space-y-1.5">
