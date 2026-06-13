@@ -100,8 +100,11 @@ export default function DataEntry() {
 
     // validation
     if (!paymentForm.tenant_name.trim()) return showError('الرجاء إدخال اسم المستأجر');
-    if (!paidAmount || paidAmount <= 0) return showError('الرجاء إدخال مبلغ صحيح');
-    if (!paymentForm.payment_date) return showError('الرجاء إدخال تاريخ الدفعة');
+if (!paidAmount || paidAmount <= 0) return showError('الرجاء إدخال مبلغ صحيح');
+if (!paymentForm.payment_date) return showError('الرجاء إدخال تاريخ الدفعة');
+if (!paymentForm.due_months.trim()) return showError('الرجاء إدخال مستحق لشهر');
+if (!paymentImage) return showError('الرجاء رفع صورة الإيصال');
+if (!paymentForm.payment_method || paymentForm.payment_method === '') return showError('الرجاء اختيار طريقة الدفع');
 
     setSaving(true);
     const data = { ...paymentForm, amount: paidAmount, receipt_image_url: paymentImage || '' };
@@ -114,7 +117,7 @@ export default function DataEntry() {
       amount: data.amount,
       payment_date: data.payment_date || '',
       due_months: data.due_months || '',
-      payment_method: data.payment_method || 'bank_transfer',
+      payment_method: data.payment_method || '',
       receipt_number: data.receipt_number || '',
       notes: data.notes || '',
       status: data.status || 'paid',
