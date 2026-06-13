@@ -1009,14 +1009,26 @@ export default function SmartAlerts() {
                       style={{ borderColor: receiptUploading ? '#C9A84C' : 'rgba(201,168,76,0.3)' }}>
                       <input type="file" accept="image/*,.pdf" onChange={handleReceiptUpload} className="hidden" disabled={receiptUploading} />
                       <div className="flex items-center gap-2">
-                        {receiptUploading
-                          ? <><div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} /><span className="text-xs text-muted-foreground">{t('جاري الرفع...', 'Uploading...')}</span></>
-                          : <><Upload size={14} style={{ color: '#C9A84C' }} /><span className="text-xs" style={{ color: '#C9A84C' }}>{t('انقر لرفع الإيصال', 'Click to upload receipt')}</span></>
-                        }
-                      </div>
-                    </label>
-                  )}
-                </div>
+                        {receiptUploading ? (
+  <div className="flex items-center justify-center gap-2 py-3">
+    <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} />
+    <span className="text-xs text-muted-foreground">{t('جاري الرفع...', 'Uploading...')}</span>
+  </div>
+) : paymentInput.receipt_url ? (
+  <div className="relative">
+    <img src={paymentInput.receipt_url} alt="إيصال" className="w-full max-h-48 object-contain rounded-xl border border-border" />
+    <button type="button" onClick={() => setPaymentInput(p => ({ ...p, receipt_url: '' }))}
+      className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5">
+      <X size={14} />
+    </button>
+  </div>
+) : (
+  <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-4 cursor-pointer hover:border-amber-400 transition-colors">
+    <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
+    <Upload size={14} style={{ color: '#C9A84C' }} />
+    <span className="text-xs" style={{ color: '#C9A84C' }}>{t('انقر لرفع الإيصال', 'Click to upload receipt')}</span>
+  </label>
+)}
 
                 {/* ملاحظات */}
                 <div className="space-y-1.5">
