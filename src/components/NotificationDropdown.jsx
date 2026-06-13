@@ -8,7 +8,9 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-  const totalCount = (newPaymentsCount || 0) + (urgentAlertsCount || 0) + (expiredContractsCount || 0) + (registrationRequestsCount || 0);
+  const totalCount = (newPaymentsCount || 0) + (urgentAlertsCount || 0) + 
+  ((userRole === 'admin' || userRole === 'investor') ? (expiredContractsCount || 0) : 0) +
+  (userRole === 'admin' ? (registrationRequestsCount || 0) : 0);
 
   useEffect(() => {
     const handleClick = (e) => {
