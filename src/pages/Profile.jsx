@@ -18,7 +18,22 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      if (data) {
+        setProfile(data);
+        setUsername(data.username || '');
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleSave = async () => {
     if (!username.trim()) return;
