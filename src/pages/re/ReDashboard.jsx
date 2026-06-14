@@ -23,6 +23,8 @@ export default function ReDashboard() {
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
   const { t, lang } = useLang();
+  const isAr = lang === 'ar';
+  const currency = isAr ? 'د.إ' : 'AED';
 
   const MONTHS = lang === 'ar' ? MONTHS_AR : MONTHS_EN;
 
@@ -99,9 +101,9 @@ export default function ReDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} د.إ`} subtitle={t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
-        <StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} د.إ`} subtitle={`${payments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} />
-        <StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpensesSum)} د.إ`} subtitle={`${expenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} />
+        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} subtitle={t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
+<StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} ${currency}`} subtitle={`${filteredPayments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/payments" />
+<StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpenses)} ${currency}`} subtitle={`${filteredExpenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/expenses" />
         <StatCard title="نسبة الإشغال" titleEn="Occupancy Rate" value={`${occupancyRate}%`} subtitle={`${occupiedUnits} / ${units.length}`} icon={Building2} accentColor="gold" delay={240} />
       </div>
 
