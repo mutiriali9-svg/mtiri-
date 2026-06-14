@@ -45,6 +45,7 @@ export default function Login() {
     });
     if (error) setError(error.message);
   };
+
   return (
     <AuthLayout
       icon={LogIn}
@@ -53,7 +54,10 @@ export default function Login() {
       footer={
         <>
           {currentLang === 'ar' ? 'ليس لديك حساب؟' : "Don't have an account?"}{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
+          <Link
+            to="/register"
+            className="inline-block px-4 py-1.5 rounded-full border border-blue-400 text-blue-400 text-sm font-medium hover:bg-blue-400/10 transition-colors"
+          >
             {currentLang === 'ar' ? 'تسجيل حساب جديد' : 'Register new account'}
           </Link>
         </>
