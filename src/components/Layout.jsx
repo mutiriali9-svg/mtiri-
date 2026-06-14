@@ -512,7 +512,7 @@ setRegistrationRequestsCount(pendingRequests.length);
           className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
           style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
           <ClipboardList size={18} style={{ color: location.pathname === '/registration-requests' ? '#C9A84C' : '', flexShrink: 0 }} />
-          <span className="text-sm font-medium">{isAr ? 'طلبات التسجيل' : 'Registration Requests'}</span>
+          <span className="text-sm font-medium">{navLabel('registrationRequests')}</span>
         </Link>
       </div>
     </div>
