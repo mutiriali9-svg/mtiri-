@@ -45,7 +45,8 @@ export default function Expenses() {
   const fileRef = useRef();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();  
+  const isAr = lang === 'ar';     
   const canEdit = user?.role === 'admin' || user?.role === 'manager';
 
   const categoryLabels = {
@@ -211,7 +212,7 @@ export default function Expenses() {
             <SelectValue placeholder="السنة" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل السنوات</SelectItem>
+            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>
