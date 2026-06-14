@@ -152,31 +152,31 @@ export default function Register() {
           <Label>{tx.email} *</Label>
           <div className="relative">
             <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pr-10 h-12" required />
+            <Input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pr-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.phone} *</Label>
           <div className="relative">
             <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="tel" placeholder={tx.phonePh} value={phone} onChange={e => setPhone(e.target.value)} className="pr-10 h-12" required />
+            <Input type="tel" autoComplete="tel" placeholder={tx.phonePh} value={phone} onChange={e => setPhone(e.target.value)} className="pr-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.password} *</Label>
           <div className="relative">
             <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pr-10 h-12" required />
+            <Input type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pr-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.confirmPassword} *</Label>
           <div className="relative">
             <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pr-10 h-12" required />
+            <Input type="password" autoComplete="new-password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pr-10 h-12" required />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading} style={{ backgroundColor: '#1B2B4B' }}>
+        <Button type="submit" className="w-full h-12 font-medium text-base text-white" disabled={loading} style={{ backgroundColor: '#1B2B4B' }}>
           {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{tx.creating}</> : tx.createAccount}
         </Button>
       </form>
