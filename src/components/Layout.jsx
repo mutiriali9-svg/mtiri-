@@ -736,7 +736,7 @@ setRegistrationRequestsCount(pendingRequests.length);
                 style={{ backgroundColor: '#1B2B4B', color: '#C9A84C' }}>
                 {user?.full_name?.[0] || 'م'}
               </div>
-              <span className="text-sm font-medium text-foreground hidden sm:block">{user?.full_name || 'المدير'}</span>
+              <span className="text-sm font-medium text-foreground hidden sm:block">{user?.full_name || (lang === 'ar' ? 'المدير' : 'Owner')}</span>
             </button>
           </div>
         </header>
