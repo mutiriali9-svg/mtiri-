@@ -8,7 +8,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-4">
             <img 
-              src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/logo_png.%20(2).png"
+              src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/logo_png.%20(3).png"
               alt="المطيري"
               className="w-32 h-32 object-contain mx-auto"
             />
