@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [viewExpense, setViewExpense] = useState(null);
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
+  const currency = isAr ? 'د.إ' : 'AED';
   const expCategoryAr = expCategoryLabels[lang] || expCategoryLabels.ar;
 
   const MONTHS = isAr ? MONTHS_AR : MONTHS_EN;
@@ -191,9 +192,9 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} د.إ`} subtitle={t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
-        <StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} د.إ`} subtitle={`${filteredPayments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/payments" />
-        <StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpenses)} د.إ`} subtitle={`${filteredExpenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/expenses" />
+        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} subtitle={t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
+<StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} ${currency}`} subtitle={`${filteredPayments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/payments" />
+<StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpenses)} ${currency}`} subtitle={`${filteredExpenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/expenses" />
         <StatCard title="نسبة الإشغال" titleEn="Occupancy Rate" value={`${occupancyRate}%`} subtitle={`${occupiedUnits} / ${units.length}`} icon={Building2} accentColor="gold" delay={240} href="/units"
           extra={<p className="text-xs mt-1 font-medium" style={{ color: occupancyStatusColor }}>{occupancyStatusText()}</p>} />
       </div>
