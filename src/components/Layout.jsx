@@ -88,6 +88,7 @@ const navLabels = {
     reReports: 'التقارير',
     reInvestors: 'المستثمرون',
     reSavings: 'الادخار',
+    alerts: 'الإشعارات',
   },
   en: {
     dashboard: 'Dashboard',
@@ -111,6 +112,7 @@ const navLabels = {
     reReports: 'Reports',
     reInvestors: 'Investors',
     reSavings: 'Savings',
+    alerts: 'Notifications',
   },
 };
 
@@ -485,7 +487,7 @@ setRegistrationRequestsCount(pendingRequests.length);
         style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
         <Bell size={16} style={{ color: '#C9A84C' }} />
       </div>
-      <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>الإشعارات</span>
+      <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
       {alertsOpen
         ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
         : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
