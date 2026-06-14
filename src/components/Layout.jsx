@@ -273,7 +273,7 @@ setRegistrationRequestsCount(pendingRequests.length);
   }, [location.pathname]);
 
   // Redirect data_entry users away from restricted pages
-  const isAllowedDataEntry = location.pathname === '/data-entry' || location.pathname.startsWith('/units') || location.pathname === '/pending-approvals' || location.pathname.startsWith('/smart-alerts') || location.pathname === '/my-payments';
+  const isAllowedDataEntry = location.pathname === '/data-entry' || location.pathname.startsWith('/units') || location.pathname === '/pending-approvals' || location.pathname.startsWith('/smart-alerts') || location.pathname === '/my-payments' || location.pathname === '/profile';
   if (user && isDataEntry && !isAllowedDataEntry) {
     return <Navigate to="/data-entry" replace />;
   }
@@ -282,7 +282,7 @@ setRegistrationRequestsCount(pendingRequests.length);
   const isAllowedInvestor = [
     '/', '/dashboard', '/units', '/payments', '/expenses', '/reports', '/investors', '/savings',
     '/re-dashboard', '/re-units', '/re-payments', '/re-expenses', '/re-reports', '/re-investors', '/re-savings',
-    '/smart-alerts', '/notifications'
+    '/smart-alerts', '/notifications', '/profile'
   ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
   if (user && isInvestor && !isAllowedInvestor) {
     return <Navigate to="/dashboard" replace />;
