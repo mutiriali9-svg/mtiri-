@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import { LogIn, Mail, Lock, Loader2, Globe } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -125,6 +126,21 @@ export default function Login() {
           )}
         </Button>
       </form>
+      
+      <div className="flex justify-center mt-4">
+        <button 
+          onClick={() => {
+            const newLang = localStorage.getItem('app_lang') === 'en' ? 'ar' : 'en';
+            localStorage.setItem('app_lang', newLang);
+            window.location.reload();
+          }}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Globe className="w-4 h-4" />
+          {localStorage.getItem('app_lang') === 'en' ? 'عربي' : 'English'}
+        </button>
+      </div>
+
     </AuthLayout>
   );
 }
