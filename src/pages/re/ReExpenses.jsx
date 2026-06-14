@@ -36,7 +36,8 @@ export default function ReExpenses() {
   const fileRef = useRef();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isAr = lang === 'ar';
   const canEdit = user?.role === 'admin';
 
   const categoryLabels = {
@@ -152,7 +153,7 @@ export default function ReExpenses() {
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-28"><SelectValue placeholder="السنة" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل السنوات</SelectItem>
+            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>

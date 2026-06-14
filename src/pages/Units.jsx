@@ -41,7 +41,8 @@ export default function Units() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isAr = lang === 'ar';
   const isAdmin = user?.role === 'admin';
   const canEdit = isAdmin || user?.role === 'data_entry';
   const isInvestor = user?.role === 'investor';
@@ -203,7 +204,7 @@ export default function Units() {
             <SelectValue placeholder="السنة" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل السنوات</SelectItem>
+            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>

@@ -37,7 +37,8 @@ export default function ReUnits() {
   const contractFileRef = useRef(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isAr = lang === 'ar';
   const isAdmin = user?.role === 'admin';
 
   const statusConfig = {
@@ -182,7 +183,7 @@ export default function ReUnits() {
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-28 h-7 text-xs"><SelectValue placeholder="السنة" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل السنوات</SelectItem>
+            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>

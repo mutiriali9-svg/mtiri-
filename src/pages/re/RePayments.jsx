@@ -40,7 +40,8 @@ export default function RePayments() {
   const fileRef = useRef();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isAr = lang === 'ar';    
   const canEdit = user?.role === 'admin';
 
   const methodLabels = { cash: t('cash'), bank_transfer: t('bank_transfer'), cheque: t('cheque'), other: t('other') };
@@ -158,7 +159,7 @@ export default function RePayments() {
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-28"><SelectValue placeholder="السنة" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل السنوات</SelectItem>
+            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>

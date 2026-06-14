@@ -49,7 +49,8 @@ export default function Payments() {
   const today = new Date().toISOString().split('T')[0];
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isAr = lang === 'ar'; 
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
@@ -268,7 +269,7 @@ export default function Payments() {
               <SelectValue placeholder="السنة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">كل السنوات</SelectItem>
+              <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
               {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
