@@ -133,11 +133,11 @@ export default function Dashboard() {
     );
   }
 
-  const expCategoryAr = {
-    maintenance: 'صيانة', salary: 'رواتب', utilities: 'مرافق',
-    equipment: 'معدات', cleaning: 'نظافة', admin: 'إدارة',
-    marketing: 'تسويق', insurance: 'تأمين', savings: 'ادخار', other: 'أخرى',
-  };
+  const expCategoryLabels = {
+  ar: { maintenance: 'صيانة', salary: 'رواتب', utilities: 'مرافق', equipment: 'معدات', cleaning: 'نظافة', admin: 'إدارة', marketing: 'تسويق', insurance: 'تأمين', savings: 'ادخار', other: 'أخرى' },
+  en: { maintenance: 'Maintenance', salary: 'Salary', utilities: 'Utilities', equipment: 'Equipment', cleaning: 'Cleaning', admin: 'Admin', marketing: 'Marketing', insurance: 'Insurance', savings: 'Savings', other: 'Other' },
+};
+const expCategoryAr = expCategoryLabels[lang] || expCategoryLabels.ar;
 
   const expCategory = (days) => {
     if (days < 0) return { color: '#7C3AED', bg: 'rgba(124,58,237,0.1)' };
@@ -388,11 +388,11 @@ export default function Dashboard() {
       <div className="bg-white card-bevel rounded-xl p-3 sm:p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold" style={{ color: '#1B2B4B' }}>آخر المصروفات</h3>
-            <p className="text-xs text-muted-foreground">أحدث المصروفات المسجّلة</p>
+            <h3 className="font-bold" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'آخر المصروفات' : 'Recent Expenses'}</h3>
+            <p className="text-xs text-muted-foreground">{lang === 'ar' ? 'أحدث المصروفات المسجّلة' : 'Latest recorded expenses'}</p>
           </div>
           <Link to="/expenses" className="text-xs font-medium hover:underline" style={{ color: '#C9A84C' }}>
-            عرض الكل
+            {lang === 'ar' ? 'عرض الكل' : 'View all'}
           </Link>
         </div>
 
@@ -401,10 +401,10 @@ export default function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">البيان</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">التصنيف</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">المبلغ</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">التاريخ</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{lang === 'ar' ? 'البيان' : 'Description'}</th>
+<th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{lang === 'ar' ? 'التصنيف' : 'Category'}</th>
+<th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{lang === 'ar' ? 'المبلغ' : 'Amount'}</th>
+<th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{lang === 'ar' ? 'التاريخ' : 'Date'}</th>
               </tr>
             </thead>
             <tbody className="table-striped">
@@ -419,9 +419,8 @@ export default function Dashboard() {
             </tbody>
           </table>
           {expenses.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground text-sm">لا توجد مصروفات مسجّلة</div>
-          )}
-        </div>
+  <div className="text-center py-8 text-muted-foreground text-sm">{lang === 'ar' ? 'لا توجد مصروفات مسجّلة' : 'No expenses registered'}</div>
+)}
 
         {/* Mobile Cards */}
         <div className="md:hidden space-y-1.5">
