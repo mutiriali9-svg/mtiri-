@@ -7,7 +7,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-  src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/logo_png.png.png"
+  src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/logo_png..png"
   alt="المطيري"
   className="w-48 h-48 object-contain mx-auto mb-2"
   style={{ mixBlendMode: 'screen' }}
