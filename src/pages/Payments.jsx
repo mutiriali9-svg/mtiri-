@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
@@ -45,27 +45,35 @@ export default function Payments() {
   const [viewItem, setViewItem] = useState(null);
   const [inlineError, setInlineError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [unitAlert, setUnitAlert] = useState(null); // التنبيه الذكي للوحدة المختارة
+  const [unitAlert, setUnitAlert] = useState(null);
+
+  // Combobox
+  const [comboQuery, setComboQuery] = useState('');
+  const [comboOpen, setComboOpen] = useState(false);
+  const comboRef = useRef(null);
+
   const today = new Date().toISOString().split('T')[0];
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, lang } = useLang();
-  const isAr = lang === 'ar'; 
+  const isAr = lang === 'ar';
 
-  const showSuccess = (msg) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(''), 3000);
-  };
+  const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); };
   const canEdit = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'data_entry';
 
-  const methodLabels = {
-    cash: t('cash'), bank_transfer: t('bank_transfer'), cheque: t('cheque'), other: t('other')
-  };
+  const methodLabels = { cash: t('cash'), bank_transfer: t('bank_transfer'), cheque: t('cheque'), other: t('other') };
   const statusConfig = {
     paid: { label: t('paid'), color: '#2A9D8F', bg: 'rgba(42,157,143,0.1)' },
     pending: { label: t('pending'), color: '#C9A84C', bg: 'rgba(201,168,76,0.1)' },
     late: { label: t('late'), color: '#E63946', bg: 'rgba(230,57,70,0.1)' },
   };
+
+  // Close combobox on outside click
+  useEffect(() => {
+    const handler = (e) => { if (comboRef.current && !comboRef.current.contains(e.target)) setComboOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -95,34 +103,48 @@ export default function Payments() {
   useEffect(() => { fetchData(); }, []);
   const refreshing = usePullToRefresh(fetchData);
 
-  const openAdd = () => { setEditItem(null); setForm(emptyPayment); setReceiptUrl(''); setInlineError(''); setUnitAlert(null); setDialogOpen(true); };
-  const openEdit = (p) => { setEditItem(p); setForm({ ...emptyPayment, ...p }); setReceiptUrl(p.receipt_image_url || ''); setInlineError(''); setUnitAlert(null); setDialogOpen(true); };
+  const sortedUnits = [...units].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0));
 
-  const handleUnitSelect = async (unitNum) => {
-    const selectedUnit = units.find(u => u.unit_number === unitNum);
-    setForm(p => ({
-      ...p,
-      unit_number: unitNum === 'none' ? '' : unitNum,
-      tenant_name: selectedUnit?.tenant_name || p.tenant_name,
-    }));
+  const filteredComboUnits = comboQuery.trim()
+    ? sortedUnits.filter(u =>
+        u.unit_number?.toLowerCase().includes(comboQuery.toLowerCase()) ||
+        u.tenant_name?.toLowerCase().includes(comboQuery.toLowerCase())
+      )
+    : sortedUnits;
+
+  const openAdd = () => {
+    setEditItem(null); setForm(emptyPayment); setReceiptUrl('');
+    setInlineError(''); setUnitAlert(null);
+    setComboQuery(''); setComboOpen(false);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (p) => {
+    setEditItem(p); setForm({ ...emptyPayment, ...p }); setReceiptUrl(p.receipt_image_url || '');
+    setInlineError(''); setUnitAlert(null);
+    setComboQuery(p.unit_number ? `${p.unit_number}${p.tenant_name ? ' — ' + p.tenant_name : ''}` : '');
+    setComboOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleUnitSelect = async (unit) => {
+    setComboQuery(`${unit.unit_number}${unit.tenant_name ? ' — ' + unit.tenant_name : ''}`);
+    setComboOpen(false);
+    setForm(p => ({ ...p, unit_number: unit.unit_number, tenant_name: unit.tenant_name || p.tenant_name }));
     setUnitAlert(null);
-    if (unitNum && unitNum !== 'none') {
-      // جلب التنبيه الذكي للوحدة
-      const alerts = await base44.entities.PaymentAlert.filter({ unit_number: unitNum });
+    try {
+      const alerts = await base44.entities.PaymentAlert.filter({ unit_number: unit.unit_number });
       const active = alerts.find(a => a.status !== 'paid');
       setUnitAlert(active || null);
-    }
+    } catch {}
   };
 
   const logActivity = (action, payment, oldData = null, newData = null) => {
     base44.functions.invoke('logActivity', {
-      action,
-      entity_type: 'Payment',
-      entity_id: payment?.id || '',
+      action, entity_type: 'Payment', entity_id: payment?.id || '',
       entity_label: `دفعة ${payment?.tenant_name || ''} - وحدة ${payment?.unit_number || ''}`,
       changes_summary: action === 'create' ? `إضافة دفعة ${payment?.amount?.toLocaleString()} AED` : action === 'update' ? `تعديل دفعة ${payment?.tenant_name}` : `حذف دفعة ${payment?.tenant_name}`,
-      old_data: oldData,
-      new_data: newData,
+      old_data: oldData, new_data: newData,
     }).catch(() => {});
   };
 
@@ -141,15 +163,13 @@ export default function Payments() {
     setSaving(true);
     const data = { ...form, amount: parseFloat(form.amount) || 0, receipt_image_url: receiptUrl };
     if (editItem) {
-      setDialogOpen(false);
-      setSaving(false);
+      setDialogOpen(false); setSaving(false);
       await base44.entities.Payment.update(editItem.id, data);
       setPayments(prev => prev.map(p => p.id === editItem.id ? { ...p, ...data } : p));
       logActivity('update', { ...editItem, ...data }, editItem, data);
       showSuccess(t('paymentUpdated'));
     } else {
-      setDialogOpen(false);
-      setSaving(false);
+      setDialogOpen(false); setSaving(false);
       const created = await base44.entities.Payment.create(data);
       const newPayment = { ...data, ...(created || {}), id: created?.id || `temp_${Date.now()}` };
       setPayments(prev => [newPayment, ...prev]);
@@ -157,7 +177,6 @@ export default function Payments() {
       setTimeout(() => setNewRowPulse(null), 1200);
       logActivity('create', { ...data, id: created?.id }, null, data);
 
-      // تحديث التنبيه الذكي
       if (unitAlert) {
         const paidAmount = parseFloat(data.amount) || 0;
         const monthly = Number(unitAlert.original_amount || 0);
@@ -167,29 +186,18 @@ export default function Payments() {
         const alertDate = unitAlert.alert_date || today;
         const isPaidEarly = paymentDate < alertDate;
         const nextDate = getNextAlertDate(alertDate, unitAlert.payment_plan || 'monthly');
-
         if (newBalance === 0) {
-          // سداد كامل → جدول للدورة القادمة
           await base44.entities.PaymentAlert.update(unitAlert.id, {
-            remaining_balance: monthly,
-            last_paid_date: paymentDate,
-            last_paid_amount: paidAmount,
-            alert_date: nextDate,
-            next_alert_date: nextDate,
-            status: nextDate > today ? 'active' : 'overdue',
+            remaining_balance: monthly, last_paid_date: paymentDate, last_paid_amount: paidAmount,
+            alert_date: nextDate, next_alert_date: nextDate, status: nextDate > today ? 'active' : 'overdue',
           });
         } else {
-          // دفع جزئي → اخصم فقط، ابق على نفس تاريخ الاستحقاق
-          // active إذا الدفع قبل موعد الاستحقاق، overdue إذا تجاوزناه
           await base44.entities.PaymentAlert.update(unitAlert.id, {
-            remaining_balance: newBalance,
-            last_paid_date: paymentDate,
-            last_paid_amount: paidAmount,
+            remaining_balance: newBalance, last_paid_date: paymentDate, last_paid_amount: paidAmount,
             status: isPaidEarly ? 'active' : 'overdue',
           });
         }
       }
-
       showSuccess(t('paymentAdded'));
     }
   };
@@ -225,13 +233,11 @@ export default function Payments() {
       {successMsg && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-semibold animate-fade-in-up"
           style={{ backgroundColor: '#1B2B4B', minWidth: 220, textAlign: 'center' }}>
-          <CheckCircle2 size={16} style={{ color: '#C9A84C' }} />
-          {successMsg}
+          <CheckCircle2 size={16} style={{ color: '#C9A84C' }} />{successMsg}
         </div>
       )}
       <PageHeader
-        titleAr="جدول الدفعات"
-        titleEn="Payment Ledger"
+        titleAr="جدول الدفعات" titleEn="Payment Ledger"
         description={`${payments.length} — ${t('total')}: ${total.toLocaleString()} AED`}
         actions={canEdit && (
           <Button onClick={openAdd} className="gap-2 text-sm" style={{ backgroundColor: '#1B2B4B' }}>
@@ -241,22 +247,13 @@ export default function Payments() {
       />
 
       <div className="space-y-2">
-        {/* Row 1: Search + Status + Year */}
         <div className="flex flex-wrap gap-2">
           <div className="relative flex-1 min-w-40">
             <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-            <Input
-              placeholder={t('searchPayments')}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pr-9 text-sm"
-              style={{ color: '#111827' }}
-            />
+            <Input placeholder={t('searchPayments')} value={search} onChange={e => setSearch(e.target.value)} className="pr-9 text-sm" style={{ color: '#111827' }} />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 sm:w-36">
-              <SelectValue placeholder={t('status')} />
-            </SelectTrigger>
+            <SelectTrigger className="w-32 sm:w-36"><SelectValue placeholder={t('status')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allStatuses_pay')}</SelectItem>
               <SelectItem value="paid">{t('paid')}</SelectItem>
@@ -265,16 +262,13 @@ export default function Payments() {
             </SelectContent>
           </Select>
           <Select value={yearFilter} onValueChange={setYearFilter}>
-            <SelectTrigger className="w-24 sm:w-28">
-              <SelectValue placeholder="السنة" />
-            </SelectTrigger>
+            <SelectTrigger className="w-24 sm:w-28"><SelectValue placeholder="السنة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
               {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        {/* Row 2: Date range */}
         <div className="flex items-center gap-2 flex-wrap">
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="flex-1 min-w-32 text-sm" style={{ color: '#111827' }} />
           <span className="text-xs" style={{ color: '#111827' }}>—</span>
@@ -285,7 +279,6 @@ export default function Payments() {
         </div>
       </div>
 
-      {/* Total bar */}
       <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
           <p className="text-white/60 text-xs">{t('totalShown')}</p>
@@ -312,9 +305,7 @@ export default function Payments() {
               {loading ? (
                 Array(6).fill(0).map((_, i) => (
                   <tr key={i} className="border-b border-border">
-                    {Array(8).fill(0).map((_, j) => (
-                      <td key={j} className="py-3 px-4"><div className="h-4 bg-muted rounded animate-pulse" /></td>
-                    ))}
+                    {Array(8).fill(0).map((_, j) => <td key={j} className="py-3 px-4"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
@@ -333,19 +324,14 @@ export default function Payments() {
                     <td className="py-3 px-4 text-muted-foreground text-xs">{p.due_months || '-'}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{methodLabels[p.payment_method] || '-'}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                        style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
                     </td>
                     <td className="py-3 px-4" onClick={ev => ev.stopPropagation()}>
                       {canEdit && (
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy">
-                            <Edit2 size={14} />
-                          </button>
+                          <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
                           {user?.role === 'admin' && (
-                            <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-                              <Trash2 size={14} />
-                            </button>
+                            <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                           )}
                         </div>
                       )}
@@ -390,23 +376,14 @@ export default function Payments() {
                     <p className="text-sm font-bold" style={{ color: '#2A9D8F' }}>{(p.amount || 0).toLocaleString()}</p>
                     <p className="text-[10px] text-muted-foreground text-left">AED</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
-                    style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
                   {canEdit && (
                     <div className="flex items-center gap-0.5" onPointerDown={ev => ev.stopPropagation()} onClick={ev => ev.stopPropagation()}>
-                      <button
-                        onPointerDown={ev => { ev.stopPropagation(); }}
-                        onClick={(ev) => { ev.stopPropagation(); openEdit(p); }}
-                        className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[36px] min-h-[36px] flex items-center justify-center">
-                        <Edit2 size={14} />
-                      </button>
+                      <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); openEdit(p); }}
+                        className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[36px] min-h-[36px] flex items-center justify-center"><Edit2 size={14} /></button>
                       {user?.role === 'admin' && (
-                        <button
-                          onPointerDown={ev => { ev.stopPropagation(); }}
-                          onClick={(ev) => { ev.stopPropagation(); handleDelete(p.id); }}
-                          className="p-2 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive min-w-[36px] min-h-[36px] flex items-center justify-center">
-                          <Trash2 size={14} />
-                        </button>
+                        <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); handleDelete(p.id); }}
+                          className="p-2 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive min-w-[36px] min-h-[36px] flex items-center justify-center"><Trash2 size={14} /></button>
                       )}
                     </div>
                   )}
@@ -419,67 +396,31 @@ export default function Payments() {
 
       <ConfirmDialog open={!!confirmDelete} message={confirmDelete?.message} onConfirm={confirmDelete?.onConfirm} onCancel={() => setConfirmDelete(null)} />
 
-      {/* View Payment Dialog */}
+      {/* View Dialog */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-md font-cairo">
-          <DialogHeader>
-            <DialogTitle>بيانات الدفعة</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>
           {viewItem && (() => {
             const sc = statusConfig[viewItem.status] || statusConfig.paid;
             return (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">اسم المستأجر</p>
-                    <p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">رقم الشقة</p>
-                    <p className="font-semibold">{viewItem.unit_number || '-'}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">المبلغ</p>
-                    <p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">الحالة</p>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block"
-                      style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">تاريخ الدفع</p>
-                    <p className="font-medium">{viewItem.payment_date || '-'}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">مستحق لشهر</p>
-                    <p className="font-medium">{viewItem.due_months || '-'}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">طريقة الدفع</p>
-                    <p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">رقم الإيصال</p>
-                    <p className="font-medium">{viewItem.receipt_number || '-'}</p>
-                  </div>
-                  {viewItem.notes && (
-                    <div className="col-span-2 space-y-0.5">
-                      <p className="text-xs text-muted-foreground">ملاحظات</p>
-                      <p className="font-medium">{viewItem.notes}</p>
-                    </div>
-                  )}
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">الحالة</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">تاريخ الدفع</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">مستحق لشهر</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">طريقة الدفع</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الإيصال</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
+                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">ملاحظات</p><p className="font-medium">{viewItem.notes}</p></div>}
                 </div>
                 {viewItem.receipt_image_url && (
                   <div className="space-y-1.5">
                     <p className="text-xs text-muted-foreground font-medium">صورة الإيصال</p>
                     <div className="rounded-lg border border-border overflow-hidden">
                       {viewItem.receipt_image_url.toLowerCase().endsWith('.pdf') ? (
-                        <div className="flex items-center gap-3 p-3 bg-muted">
-                          <FileText size={24} style={{ color: '#C9A84C' }} />
-                          <a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer"
-                            className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a>
-                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
                       ) : (
                         <img src={viewItem.receipt_image_url} alt="receipt" className="w-full max-h-64 object-contain p-2 bg-muted" />
                       )}
@@ -496,12 +437,13 @@ export default function Payments() {
         </DialogContent>
       </Dialog>
 
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle>
-          </DialogHeader>
-          {/* ملخص التنبيه الذكي للوحدة — يظهر فقط لإضافة جديدة */}
+        <DialogContent className="max-w-md font-cairo" style={{ maxHeight: '90vh', overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ overflowY: 'auto', flex: 1, padding: '0 0 8px' }}>
+          <DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader>
+
+          {/* Smart Alert */}
           {!editItem && unitAlert && (() => {
             const monthly = Number(unitAlert.original_amount || 0);
             const currentBalance = Number(unitAlert.remaining_balance ?? monthly);
@@ -520,65 +462,27 @@ export default function Payments() {
                   <span className="text-xs font-bold" style={{ color: '#1B2B4B' }}>التنبيه الذكي — وحدة {unitAlert.unit_number}</span>
                   <span className="text-xs text-muted-foreground">الاستحقاق: {alertDate}</span>
                 </div>
-
-                {/* الأرقام الحالية */}
                 <div className="grid grid-cols-3 gap-2 text-xs text-center">
-                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(42,157,143,0.07)' }}>
-                    <p className="text-muted-foreground">الشهري</p>
-                    <p className="font-bold" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()}</p>
-                  </div>
+                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(42,157,143,0.07)' }}><p className="text-muted-foreground">الشهري</p><p className="font-bold" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()}</p></div>
                   {overdueAmt > 0 ? (
-                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.07)' }}>
-                      <p className="text-muted-foreground">متأخر</p>
-                      <p className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p>
-                    </div>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.07)' }}><p className="text-muted-foreground">متأخر</p><p className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p></div>
                   ) : (
-                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.04)' }}>
-                      <p className="text-muted-foreground">الحالة</p>
-                      <p className="font-bold text-[10px]" style={{ color: '#2A9D8F' }}>نشط</p>
-                    </div>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.04)' }}><p className="text-muted-foreground">الحالة</p><p className="font-bold text-[10px]" style={{ color: '#2A9D8F' }}>نشط</p></div>
                   )}
-                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}>
-                    <p className="text-muted-foreground">المستحق</p>
-                    <p className="font-bold" style={{ color: '#1B2B4B' }}>{currentBalance.toLocaleString()}</p>
-                  </div>
+                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}><p className="text-muted-foreground">المستحق</p><p className="font-bold" style={{ color: '#1B2B4B' }}>{currentBalance.toLocaleString()}</p></div>
                 </div>
-
-                {/* معاينة ما بعد الدفع */}
                 {paidNow > 0 && (
-                  <div className="rounded-lg p-2.5 space-y-1.5 border-t pt-2"
-                    style={{ backgroundColor: isFullyPaid ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.04)', borderColor: isFullyPaid ? '#2A9D8F33' : '#E6394633' }}>
-                    <p className="text-xs font-bold" style={{ color: isFullyPaid ? '#2A9D8F' : '#E63946' }}>
-                      {isFullyPaid ? '✅ سيتم تسوية الكامل' : '⚠️ دفعة جزئية'}
-                    </p>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">المدفوع</span>
-                      <span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} د.إ</span>
-                    </div>
+                  <div className="rounded-lg p-2.5 space-y-1.5 border-t pt-2" style={{ backgroundColor: isFullyPaid ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.04)' }}>
+                    <p className="text-xs font-bold" style={{ color: isFullyPaid ? '#2A9D8F' : '#E63946' }}>{isFullyPaid ? '✅ سيتم تسوية الكامل' : '⚠️ دفعة جزئية'}</p>
+                    <div className="flex justify-between text-xs"><span className="text-muted-foreground">المدفوع</span><span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} د.إ</span></div>
                     {isPartial && (
                       <>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">المتبقي بعد الدفع</span>
-                          <span className="font-bold" style={{ color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>
-                            {afterPay.toLocaleString()} د.إ
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">حالة التنبيه بعد الدفع</span>
-                          <span className="font-bold px-2 py-0.5 rounded-full text-[10px]"
-                            style={{ backgroundColor: isPaidEarly ? 'rgba(27,43,75,0.08)' : 'rgba(230,57,70,0.1)', color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>
-                            {isPaidEarly ? '🟢 نشط (دفع مبكر)' : '🔴 متأخر'}
-                          </span>
-                        </div>
+                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">المتبقي بعد الدفع</span><span className="font-bold" style={{ color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>{afterPay.toLocaleString()} د.إ</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">حالة التنبيه بعد الدفع</span><span className="font-bold px-2 py-0.5 rounded-full text-[10px]" style={{ backgroundColor: isPaidEarly ? 'rgba(27,43,75,0.08)' : 'rgba(230,57,70,0.1)', color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>{isPaidEarly ? '🟢 نشط (دفع مبكر)' : '🔴 متأخر'}</span></div>
                       </>
                     )}
                     {isFullyPaid && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">الدفعة القادمة</span>
-                        <span className="font-bold" style={{ color: '#1B2B4B' }}>
-                          {getNextAlertDate(alertDate, unitAlert.payment_plan || 'monthly')} — {monthly.toLocaleString()} د.إ
-                        </span>
-                      </div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">الدفعة القادمة</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{getNextAlertDate(alertDate, unitAlert.payment_plan || 'monthly')} — {monthly.toLocaleString()} د.إ</span></div>
                     )}
                   </div>
                 )}
@@ -591,29 +495,45 @@ export default function Payments() {
               <Label>{t('tenantName')} *</Label>
               <Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} />
             </div>
-            <div className="space-y-1.5">
+
+            {/* Combobox للوحدة — يحل محل Select */}
+            <div className="space-y-1.5" ref={comboRef}>
               <Label>{t('unitNumber')}</Label>
-              <Select value={form.unit_number || 'none'} onValueChange={handleUnitSelect}>
-                <SelectTrigger><SelectValue placeholder={t('unitNumber')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('noneUnit')}</SelectItem>
-                  {[...units].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0))
-                    .map(u => <SelectItem key={u.id} value={u.unit_number}>{u.unit_number} — {u.tenant_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  value={comboQuery}
+                  onChange={e => { setComboQuery(e.target.value); setComboOpen(true); if (!e.target.value) { setForm(p => ({ ...p, unit_number: '' })); setUnitAlert(null); } }}
+                  onFocus={() => setComboOpen(true)}
+                  placeholder="رقم الوحدة أو اسم المستأجر..."
+                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  autoComplete="off"
+                />
+                {comboQuery && (
+                  <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X size={13} />
+                  </button>
+                )}
+                {comboOpen && filteredComboUnits.length > 0 && (
+                  <div className="absolute w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto" style={{ zIndex: 9999 }}>
+                    {filteredComboUnits.map(u => (
+                      <button key={u.id} type="button" onClick={() => handleUnitSelect(u)}
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
+                        <span>
+                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
+                          {u.tenant_name && <span className="text-muted-foreground"> — {u.tenant_name}</span>}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>{t('amountAED')}</Label>
-              <Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('paymentDate')} *</Label>
-              <Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('dueMonth')} *</Label>
-              <Input value={form.due_months} onChange={e => setForm(p => ({ ...p, due_months: e.target.value }))} placeholder="مثال: يوليو 2026" />
-            </div>
+
+            <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t('paymentDate')} *</Label><Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t('dueMonth')} *</Label><Input value={form.due_months} onChange={e => setForm(p => ({ ...p, due_months: e.target.value }))} placeholder="مثال: يوليو 2026" /></div>
             <div className="space-y-1.5">
               <Label>{t('paymentMethod')}</Label>
               <Select value={form.payment_method} onValueChange={v => setForm(p => ({ ...p, payment_method: v }))}>
@@ -637,50 +557,38 @@ export default function Payments() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>{t('receiptNumber')}</Label>
-              <Input value={form.receipt_number} onChange={e => setForm(p => ({ ...p, receipt_number: e.target.value }))} />
-            </div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>{t('notes')}</Label>
-              <Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
-            </div>
+            <div className="space-y-1.5"><Label>{t('receiptNumber')}</Label><Input value={form.receipt_number} onChange={e => setForm(p => ({ ...p, receipt_number: e.target.value }))} /></div>
+            <div className="sm:col-span-2 space-y-1.5"><Label>{t('notes')}</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
             <div className="sm:col-span-2 space-y-1.5">
               <Label>{t('receiptImage')} *</Label>
               {receiptUrl ? (
                 <div className="w-full rounded-lg border border-border bg-muted overflow-hidden">
                   {receiptUrl.toLowerCase().endsWith('.pdf') ? (
-                    <div className="flex items-center gap-3 p-3">
-                      <FileText size={24} style={{ color: '#C9A84C' }} />
-                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a>
-                    </div>
+                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
                   ) : (
                     <img src={receiptUrl} alt="receipt" className="w-full max-h-52 object-contain p-2" />
                   )}
                   <div className="flex items-center justify-between px-3 py-2 bg-green-50 border-t border-green-100">
                     <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> تم رفع الإيصال بنجاح</span>
-                    <button type="button" onClick={() => setReceiptUrl('')}
-                      className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><X size={12} /> حذف</button>
+                    <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><X size={12} /> حذف</button>
                   </div>
                 </div>
               ) : (
                 <label className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:border-amber-400 hover:bg-amber-50/40 transition-colors cursor-pointer">
                   <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-                  {uploading ? (
-                    <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>جارٍ الرفع...</span></>
-                  ) : (
-                    <><ImagePlus size={22} style={{ color: '#C9A84C' }} /><span>اضغط لرفع صورة الإيصال أو PDF</span></>
-                  )}
+                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>جارٍ الرفع...</span></> : <><ImagePlus size={22} style={{ color: '#C9A84C' }} /><span>اضغط لرفع صورة الإيصال أو PDF</span></>}
                 </label>
               )}
             </div>
           </div>
+
           {inlineError && (
             <div className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium animate-fade-in-up"
               style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946', border: '1px solid rgba(230,57,70,0.2)' }}>
               {inlineError}
             </div>
           )}
+          </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
             <Button onClick={handleSave} disabled={saving || uploading} style={{ backgroundColor: '#1B2B4B' }}>
