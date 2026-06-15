@@ -28,6 +28,7 @@ const emptyPayment = {
 export default function Payments() {
   const [payments, setPayments] = useState([]);
   const [units, setUnits] = useState([]);
+  const [reUnits, setReUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -91,26 +92,31 @@ export default function Payments() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [p, u] = await Promise.all([
+    const [p, u, ru] = await Promise.all([
       base44.entities.Payment.list('-payment_date'),
       base44.entities.Unit.list(),
+      base44.entities.ReUnit.list(),
     ]);
     setPayments(p);
     setUnits(u);
+    setReUnits(ru || []);
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, []);
   const refreshing = usePullToRefresh(fetchData);
 
-  const sortedUnits = [...units].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0));
+  const allUnits = [
+    ...units.map(u => ({ ...u, _type: 'qarya' })),
+    ...reUnits.map(u => ({ ...u, _type: 're' })),
+  ].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0));
 
   const filteredComboUnits = comboQuery.trim()
-    ? sortedUnits.filter(u =>
+    ? allUnits.filter(u =>
         u.unit_number?.toLowerCase().includes(comboQuery.toLowerCase()) ||
         u.tenant_name?.toLowerCase().includes(comboQuery.toLowerCase())
       )
-    : sortedUnits;
+    : allUnits;
 
   const openAdd = () => {
     setEditItem(null); setForm(emptyPayment); setReceiptUrl('');
@@ -522,8 +528,14 @@ export default function Payments() {
                     {filteredComboUnits.map(u => (
                       <button key={u.id} type="button" onClick={() => handleUnitSelect(u)}
                         className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
-                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
-                        {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
+                        <span>
+                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
+                          {u.tenant_name && <span className="text-muted-foreground"> — {u.tenant_name}</span>}
+                        </span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>
+                          {u._type === 're' ? 'عقارات' : 'القرية'}
+                        </span>
                       </button>
                     ))}
                   </div>
