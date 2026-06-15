@@ -502,12 +502,11 @@ export default function Payments() {
                   onChange={e => {
                     const val = e.target.value;
                     setComboQuery(val);
-                    setComboOpen(true);
-                    // إذا ما اختار من القائمة — يحفظ كاسم مستأجر مباشرة
+                    setComboOpen(val.length > 0);
                     setForm(p => ({ ...p, tenant_name: val, unit_number: '' }));
                     setUnitAlert(null);
                   }}
-                  onFocus={() => setComboOpen(true)}
+                  onFocus={() => { if (comboQuery.length > 0) setComboOpen(true); }}
                   placeholder="ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً..."
                   className="w-full pr-9 pl-7 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
