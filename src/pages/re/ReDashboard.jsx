@@ -12,6 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend
 } from 'recharts';
 import { differenceInDays, parseISO, isValid, getYear, getMonth } from 'date-fns';
+import { useAuth } from '@/lib/AuthContext';
 
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -24,6 +25,9 @@ export default function ReDashboard() {
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
+  const { user } = useAuth();
+  const isTester = user?.role === 'tester';
+  const maskName = (name) => isTester ? '***' : name;
   const currency = isAr ? 'د.إ' : 'AED';
 
   const MONTHS = lang === 'ar' ? MONTHS_AR : MONTHS_EN;
@@ -220,7 +224,7 @@ export default function ReDashboard() {
           {payments.slice(0, 5).map((p) => (
             <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{p.tenant_name}</p>
+                <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</p>
                 <p className="text-xs text-muted-foreground">{t('unit')}: {p.unit_number || '-'}</p>
               </div>
               <div className="text-left flex-shrink-0">

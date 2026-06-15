@@ -20,6 +20,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import PullRefreshIndicator from '@/components/PullRefreshIndicator';
+import { useAuth } from '@/lib/AuthContext';
+
 
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -43,6 +45,9 @@ export default function Dashboard() {
   const [viewExpense, setViewExpense] = useState(null);
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
+  const { user } = useAuth();
+  const isTester = user?.role === 'tester';
+  const maskName = (name) => isTester ? '***' : name;
   const currency = isAr ? 'د.إ' : 'AED';
   const expCategoryAr = expCategoryLabels[lang] || expCategoryLabels.ar;
 
@@ -296,7 +301,7 @@ export default function Dashboard() {
             <tbody className="table-striped">
               {payments.slice(0, 5).map((p) => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer" onClick={() => setViewPayment(p)}>
-                  <td className="py-2.5 px-3 font-medium" style={{ color: '#1B2B4B' }}>{p.tenant_name}</td>
+                  <td className="py-2.5 px-3 font-medium" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</td>
                   <td className="py-2.5 px-3 text-muted-foreground">{p.unit_number || '-'}</td>
                   <td className="py-2.5 px-3 font-semibold" style={{ color: '#2A9D8F' }}>{fmt(p.amount || 0)} AED</td>
                   <td className="py-2.5 px-3 text-muted-foreground text-xs">{p.payment_date}</td>
@@ -312,7 +317,7 @@ export default function Dashboard() {
           ) : payments.slice(0, 5).map((p) => (
             <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:bg-surface transition-colors cursor-pointer" onClick={() => setViewPayment(p)}>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{p.tenant_name}</p>
+                <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{t('unit')}: {p.unit_number || '-'}</p>
               </div>
               <div className="text-left flex-shrink-0">
@@ -383,7 +388,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="space-y-0.5 col-span-2">
                 <p className="text-xs text-muted-foreground">{isAr ? 'اسم المستأجر' : 'Tenant Name'}</p>
-                <p className="font-bold text-base" style={{ color: '#1B2B4B' }}>{viewPayment.tenant_name}</p>
+                <p className="font-bold text-base" style={{ color: '#1B2B4B' }}>{maskName(viewPayment.tenant_name)}</p>
               </div>
               <div className="space-y-0.5">
                 <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة' : 'Unit'}</p>
