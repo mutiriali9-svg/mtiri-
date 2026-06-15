@@ -491,26 +491,29 @@ export default function Payments() {
           })()}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
-            <div className="space-y-1.5">
-              <Label>{t('tenantName')} *</Label>
-              <Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} />
-            </div>
 
-            {/* Combobox للوحدة — يحل محل Select */}
-            <div className="space-y-1.5" ref={comboRef}>
-              <Label>{t('unitNumber')}</Label>
+            {/* Combobox — حقل واحد للوحدة والاسم */}
+            <div className="sm:col-span-2 space-y-1.5" ref={comboRef}>
+              <Label>{t('tenantName')} / {t('unitNumber')} *</Label>
               <div className="relative">
                 <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   value={comboQuery}
-                  onChange={e => { setComboQuery(e.target.value); setComboOpen(true); if (!e.target.value) { setForm(p => ({ ...p, unit_number: '' })); setUnitAlert(null); } }}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setComboQuery(val);
+                    setComboOpen(true);
+                    // إذا ما اختار من القائمة — يحفظ كاسم مستأجر مباشرة
+                    setForm(p => ({ ...p, tenant_name: val, unit_number: '' }));
+                    setUnitAlert(null);
+                  }}
                   onFocus={() => setComboOpen(true)}
-                  placeholder="رقم الوحدة أو اسم المستأجر..."
-                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  placeholder="ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً..."
+                  className="w-full pr-9 pl-7 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                 />
                 {comboQuery && (
-                  <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
+                  <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <X size={13} />
                   </button>
@@ -520,15 +523,20 @@ export default function Payments() {
                     {filteredComboUnits.map(u => (
                       <button key={u.id} type="button" onClick={() => handleUnitSelect(u)}
                         className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
-                        <span>
-                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
-                          {u.tenant_name && <span className="text-muted-foreground"> — {u.tenant_name}</span>}
-                        </span>
+                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
+                        {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
+              {/* يعرض الاسم والوحدة المختارة */}
+              {form.unit_number && (
+                <p className="text-xs text-muted-foreground px-1">
+                  وحدة: <strong style={{ color: '#1B2B4B' }}>{form.unit_number}</strong>
+                  {form.tenant_name && <span> · {form.tenant_name}</span>}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
