@@ -16,7 +16,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
           <img
-            src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/Gemini_Generated_Image_ymwfgnymwfgnymwf.png"
+            src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/emblem-feathered.png"
             alt="المطيري"
             style={{ width: 'min(120px, 30vw)', height: 'auto', display: 'block' }}
           />
