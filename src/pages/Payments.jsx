@@ -514,7 +514,7 @@ export default function Payments() {
                   onClick={() => setComboOpen(true)}
                   onFocus={() => {}}
                   placeholder="ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً..."
-                  className="w-full pr-9 pl-7 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                   autoFocus={false}
                 />
@@ -541,13 +541,6 @@ export default function Payments() {
                   </div>
                 )}
               </div>
-              {/* يعرض الاسم والوحدة المختارة */}
-              {form.unit_number && (
-                <p className="text-xs text-muted-foreground px-1">
-                  وحدة: <strong style={{ color: '#1B2B4B' }}>{form.unit_number}</strong>
-                  {form.tenant_name && <span> · {form.tenant_name}</span>}
-                </p>
-              )}
             </div>
 
             <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
