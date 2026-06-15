@@ -498,8 +498,8 @@ export default function Payments() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
 
-            {/* Combobox — حقل واحد للوحدة والاسم */}
-            <div className="sm:col-span-2 space-y-1.5" ref={comboRef}>
+            {/* Combobox */}
+            <div className="sm:col-span-2" ref={comboRef}>
               <div className="relative">
                 <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
@@ -512,12 +512,11 @@ export default function Payments() {
                     setUnitAlert(null);
                   }}
                   onClick={() => setComboOpen(true)}
-                  onFocus={() => {}}
-                  placeholder="ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً..."
+                  placeholder="ابحث برقم الوحدة أو اسم المستأجر..."
                   className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
-                  autoFocus={false}
                 />
+                {comboQuery && (
                   <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <X size={13} />
@@ -528,11 +527,9 @@ export default function Payments() {
                     {filteredComboUnits.map(u => (
                       <button key={u.id} type="button" onClick={() => handleUnitSelect(u)}
                         className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
-                        <span>
-                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
-                          {u.tenant_name && <span className="text-muted-foreground"> — {u.tenant_name}</span>}
-                        </span>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
+                        {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
+                        <span className="text-xs px-1.5 py-0.5 rounded-full mr-auto flex-shrink-0"
                           style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>
                           {u._type === 're' ? 'عقارات' : 'القرية'}
                         </span>
