@@ -13,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [currentLang, setCurrentLang] = useState(localStorage.getItem('app_lang') || 'ar');
 
   const toggleLang = () => {
@@ -28,7 +29,11 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: { persistSession: rememberMe },
+      });
       if (error) throw error;
       window.location.href = "/";
     } catch (err) {
@@ -39,9 +44,9 @@ export default function Login() {
   };
 
   const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ 
-      provider: "google", 
-      options: { redirectTo: window.location.origin + "/auth/callback" } 
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/auth/callback" },
     });
     if (error) setError(error.message);
   };
@@ -99,8 +104,25 @@ export default function Login() {
               value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 h-12" required />
           </div>
         </div>
+
+        {/* Remember Me */}
+        <div className="flex items-center gap-2">
+          <input
+            id="remember"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="w-4 h-4 rounded border-border cursor-pointer accent-[#C9A84C]"
+          />
+          <Label htmlFor="remember" className="text-sm cursor-pointer">
+            {currentLang === 'ar' ? 'تذكرني' : 'Remember me'}
+          </Label>
+        </div>
+
         <Button type="submit" className="w-full h-12 font-medium" disabled={loading} style={{ backgroundColor: '#C9A84C', color: '#1B2B4B' }}>
-          {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{currentLang === 'ar' ? 'جاري الدخول...' : 'Logging in...'}</> : (currentLang === 'ar' ? 'تسجيل الدخول' : 'Log in')}
+          {loading
+            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{currentLang === 'ar' ? 'جاري الدخول...' : 'Logging in...'}</>
+            : (currentLang === 'ar' ? 'تسجيل الدخول' : 'Log in')}
         </Button>
       </form>
 
