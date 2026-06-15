@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2, User, Phone, Globe, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import { LogIn, Mail, Lock, Loader2, Globe } from "lucide-react";
+
+const APP_URL = 'https://www.mteiri-bm.com';
 
 const t = {
   ar: {
