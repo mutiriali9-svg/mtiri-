@@ -234,14 +234,26 @@ export default function Profile() {
       </div>
 
       {/* Change password - manual users only */}
-      {isManualUser && (
-        <div className="bg-white card-bevel rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Lock size={16} style={{ color: '#1B2B4B' }} />
-            <h2 className="font-bold text-base" style={{ color: '#1B2B4B' }}>تغيير كلمة المرور</h2>
-          </div>
+{isManualUser && user?.role === 'tester' && (
+  <div className="bg-white card-bevel rounded-2xl p-6">
+    <div className="flex items-center gap-3 p-4 rounded-xl"
+      style={{ backgroundColor: 'rgba(230,57,70,0.07)', border: '1px solid rgba(230,57,70,0.2)' }}>
+      <Lock size={16} style={{ color: '#E63946' }} />
+      <p className="text-sm font-medium" style={{ color: '#E63946' }}>
+        ليس لديك الصلاحية لتغيير كلمة المرور
+      </p>
+    </div>
+  </div>
+)}
 
-          <div className="space-y-3">
+{isManualUser && user?.role !== 'tester' && (
+  <div className="bg-white card-bevel rounded-2xl p-6 space-y-4">
+    <div className="flex items-center gap-2">
+      <Lock size={16} style={{ color: '#1B2B4B' }} />
+      <h2 className="font-bold text-base" style={{ color: '#1B2B4B' }}>تغيير كلمة المرور</h2>
+    </div>
+
+    <div className="space-y-3">
             {/* Hidden username field — tells browser/Google PM to use email not phone */}
             <input
               type="text"

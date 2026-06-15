@@ -89,6 +89,7 @@ const navLabels = {
     reInvestors: 'المستثمرون',
     reSavings: 'الادخار',
     alerts: 'الإشعارات',
+    userManagement: 'إدارة الحسابات',
   },
   en: {
     dashboard: 'Dashboard',
@@ -113,6 +114,7 @@ const navLabels = {
     reInvestors: 'Investors',
     reSavings: 'Savings',
     alerts: 'Notifications',
+    userManagement: 'User Management',
   },
 };
 
@@ -516,6 +518,32 @@ setRegistrationRequestsCount(pendingRequests.length);
         </Link>
       </div>
     </div>
+  </div>
+)}
+{/* User Management - Admin Only */}
+{user?.role === 'admin' && (
+  <div className="mt-2">
+    <div className="border-b border-white/10 mb-2" />
+    <Link
+      to="/users"
+      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
+        location.pathname === '/users' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
+      }`}
+      style={{
+        borderRight: isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
+        borderLeft: !isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
+      }}
+    >
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
+        <Users size={16} style={{ color: '#C9A84C' }} />
+      </div>
+      <div className="flex flex-col">
+        <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>
+          {navLabel('userManagement')}
+        </span>
+      </div>
+    </Link>
   </div>
 )}
 
