@@ -19,7 +19,7 @@ export default function Profile() {
   // Username
   const [username, setUsername] = useState('');
   const [savingUsername, setSavingUsername] = useState(false);
-  const [usernameStatus, setUsernameStatus] = useState(''); // '', 'saving', 'saved'
+  const [usernameStatus, setUsernameStatus] = useState('');
 
   // Phone
   const [phone, setPhone] = useState('');
@@ -48,13 +48,11 @@ export default function Profile() {
       setUsername(data.username || '');
       setPhone(data.phone || '');
     }
-    // Determine if user registered manually (email/password) vs OAuth
     setIsManualUser(session.user.app_metadata?.provider === 'email');
   };
 
   useEffect(() => { loadProfile(); }, []);
 
-  // 1) Save username -> show updating message then refresh page
   const handleSaveUsername = async () => {
     if (!username.trim()) return;
     setSavingUsername(true);
@@ -67,7 +65,6 @@ export default function Profile() {
     }, 900);
   };
 
-  // 3) Save phone number
   const handleSavePhone = async () => {
     setSavingPhone(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -78,7 +75,6 @@ export default function Profile() {
     setTimeout(() => setPhoneSaved(false), 2000);
   };
 
-  // 4) Change password (manual users only)
   const handleChangePassword = async () => {
     setPasswordError('');
     setPasswordSuccess(false);
@@ -98,7 +94,6 @@ export default function Profile() {
 
     setPasswordSaving(true);
 
-    // Verify old password by attempting sign-in
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: profile?.email,
       password: oldPassword,
@@ -175,7 +170,6 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* 2) Email - read only */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
             <Mail size={16} className="text-muted-foreground" />
             <div>
@@ -184,7 +178,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* 1) Username - editable */}
+          {/* Username - editable */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <AtSign size={14} /> اسم المستخدم
@@ -195,6 +189,7 @@ export default function Profile() {
                 onChange={e => setUsername(e.target.value)}
                 className="flex-1 px-3 py-2 rounded-xl border border-border text-sm focus:outline-none"
                 placeholder="اسم المستخدم"
+                autoComplete="username"
               />
               <button
                 onClick={handleSaveUsername}
@@ -211,7 +206,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* 3) Phone - editable */}
+          {/* Phone - editable */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone size={14} /> رقم الهاتف
@@ -223,6 +218,7 @@ export default function Profile() {
                 className="flex-1 px-3 py-2 rounded-xl border border-border text-sm focus:outline-none"
                 placeholder="رقم الهاتف"
                 dir="ltr"
+                autoComplete="tel"
               />
               <button
                 onClick={handleSavePhone}
@@ -237,7 +233,7 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* 4) Change password - manual users only */}
+      {/* Change password - manual users only */}
       {isManualUser && (
         <div className="bg-white card-bevel rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-2">
@@ -246,6 +242,16 @@ export default function Profile() {
           </div>
 
           <div className="space-y-3">
+            {/* Hidden username field — tells browser/Google PM to use email not phone */}
+            <input
+              type="text"
+              autoComplete="username"
+              value={profile?.email || ''}
+              readOnly
+              aria-hidden="true"
+              style={{ display: 'none' }}
+            />
+
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">كلمة المرور الحالية</label>
               <input
@@ -255,6 +261,7 @@ export default function Profile() {
                 className="w-full px-3 py-2 rounded-xl border border-border text-sm focus:outline-none"
                 placeholder="••••••••"
                 dir="ltr"
+                autoComplete="current-password"
               />
             </div>
 
@@ -267,6 +274,7 @@ export default function Profile() {
                 className="w-full px-3 py-2 rounded-xl border border-border text-sm focus:outline-none"
                 placeholder="••••••••"
                 dir="ltr"
+                autoComplete="new-password"
               />
             </div>
 
@@ -279,6 +287,7 @@ export default function Profile() {
                 className="w-full px-3 py-2 rounded-xl border border-border text-sm focus:outline-none"
                 placeholder="••••••••"
                 dir="ltr"
+                autoComplete="new-password"
               />
             </div>
 
