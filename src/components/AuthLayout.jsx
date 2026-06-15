@@ -5,7 +5,9 @@ const styles = `
   @keyframes mt-spin { to{transform:rotate(360deg)} }
   @keyframes mt-glow { 0%,100%{opacity:.5;transform:scale(.96)} 50%{opacity:.9;transform:scale(1.06)} }
   @keyframes mt-aurora { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(3%,-3%) scale(1.08)} }
-  input, input:focus { color: #ffffff !important; }
+  input, input:focus { color: #ffffff !important; background-color: rgba(255,255,255,0.05) !important; border-color: rgba(46,76,140,0.6) !important; }
+  input::placeholder { color: #6b7a99 !important; }
+  input:focus { border-color: rgba(46,76,140,1) !important; box-shadow: 0 0 0 3px rgba(46,76,140,0.3) !important; }
 `;
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
@@ -26,7 +28,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
         color: '#EEF2F8',
       }}>
 
-        {/* Grid overlay */}
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: 'linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px)',
@@ -36,7 +37,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           pointerEvents: 'none',
         }} />
 
-        {/* Gold glow top */}
         <div style={{
           position: 'absolute', top: '-14%', left: '50%', transform: 'translateX(-50%)',
           width: 680, height: 680, borderRadius: '50%',
@@ -46,7 +46,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           pointerEvents: 'none',
         }} />
 
-        {/* Blue glow bottom */}
         <div style={{
           position: 'absolute', bottom: '-20%', left: '50%', transform: 'translateX(-50%)',
           width: 620, height: 620, borderRadius: '50%',
@@ -56,7 +55,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           pointerEvents: 'none',
         }} />
 
-        {/* Outer ring */}
         <div style={{
           position: 'absolute', top: '34%', left: '50%',
           width: 720, height: 720, margin: '-360px 0 0 -360px',
@@ -64,7 +62,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           pointerEvents: 'none',
         }} />
 
-        {/* Spinning dashed ring */}
         <div style={{
           position: 'absolute', top: '34%', left: '50%',
           width: 540, height: 540, margin: '-270px 0 0 -270px',
@@ -73,10 +70,8 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           pointerEvents: 'none',
         }} />
 
-        {/* Card */}
         <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 420 }}>
 
-          {/* Logo */}
           <div style={{ position: 'relative', marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
             <div style={{
               position: 'absolute', inset: '-14% -8%', borderRadius: '50%',
@@ -98,13 +93,11 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
             />
           </div>
 
-          {/* Title */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 800, color: '#F4F7FB' }}>{title}</h1>
             {subtitle && <p style={{ margin: 0, fontSize: 14, color: '#9aa5b8' }}>{subtitle}</p>}
           </div>
 
-          {/* Content box */}
           <div style={{
             background: 'rgba(255,255,255,.04)',
             border: '1px solid rgba(255,255,255,.10)',
@@ -115,7 +108,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
             {children}
           </div>
 
-          {/* Footer */}
           {footer && (
             <p style={{ textAlign: 'center', fontSize: 13, marginTop: 20, color: 'rgba(255,255,255,.6)' }}>
               {footer}
