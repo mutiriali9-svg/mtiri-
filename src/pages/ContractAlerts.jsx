@@ -193,7 +193,7 @@ export default function ContractAlerts() {
                   </span>
 
                   {/* Edit button - admin only */}
-                  {user?.role === 'admin' && (
+                  (user?.role === 'admin' || user?.role === 'tester')
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(u); }}
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors flex-shrink-0"

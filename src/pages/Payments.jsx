@@ -336,7 +336,7 @@ export default function Payments() {
                       {canEdit && (
                         <div className="flex items-center gap-1">
                           <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
-                          {user?.role === 'admin' && (
+                          (user?.role === 'admin' || user?.role === 'tester')
                             <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                           )}
                         </div>
@@ -387,7 +387,7 @@ export default function Payments() {
                     <div className="flex items-center gap-0.5" onPointerDown={ev => ev.stopPropagation()} onClick={ev => ev.stopPropagation()}>
                       <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); openEdit(p); }}
                         className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[36px] min-h-[36px] flex items-center justify-center"><Edit2 size={14} /></button>
-                      {user?.role === 'admin' && (
+                      (user?.role === 'admin' || user?.role === 'tester')
                         <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); handleDelete(p.id); }}
                           className="p-2 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive min-w-[36px] min-h-[36px] flex items-center justify-center"><Trash2 size={14} /></button>
                       )}

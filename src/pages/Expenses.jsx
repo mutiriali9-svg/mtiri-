@@ -295,7 +295,7 @@ export default function Expenses() {
                         <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy">
                           <Edit2 size={14} />
                         </button>
-                        {user?.role === 'admin' && (
+                        (user?.role === 'admin' || user?.role === 'tester')
                           <button onClick={() => handleDelete(e.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                             <Trash2 size={14} />
                           </button>
@@ -347,7 +347,7 @@ export default function Expenses() {
                     <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-muted text-muted-foreground">
                       <Edit2 size={13} />
                     </button>
-                    {user?.role === 'admin' && (
+                    (user?.role === 'admin' || user?.role === 'tester')
                       <button onClick={() => handleDelete(e.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                         <Trash2 size={13} />
                       </button>
