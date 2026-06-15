@@ -500,7 +500,6 @@ export default function Payments() {
 
             {/* Combobox — حقل واحد للوحدة والاسم */}
             <div className="sm:col-span-2 space-y-1.5" ref={comboRef}>
-              <Label>{t('tenantName')} / {t('unitNumber')} *</Label>
               <div className="relative">
                 <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
