@@ -508,15 +508,16 @@ export default function Payments() {
                   onChange={e => {
                     const val = e.target.value;
                     setComboQuery(val);
-                    setComboOpen(val.length > 0);
+                    setComboOpen(true);
                     setForm(p => ({ ...p, tenant_name: val, unit_number: '' }));
                     setUnitAlert(null);
                   }}
-                  onFocus={() => { if (comboQuery.length > 0) setComboOpen(true); }}
+                  onClick={() => setComboOpen(true)}
+                  onFocus={() => {}}
                   placeholder="ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً..."
                   className="w-full pr-9 pl-7 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
-                />
+                  autoFocus={false}
                 {comboQuery && (
                   <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">

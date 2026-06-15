@@ -334,8 +334,9 @@ export default function RePayments() {
                 <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   value={comboQuery}
-                  onChange={e => { setComboQuery(e.target.value); setComboOpen(e.target.value.length > 0); if (!e.target.value) setForm(p => ({ ...p, unit_number: '' })); }}
-                  onFocus={() => { if (comboQuery.length > 0) setComboOpen(true); }}
+                  onChange={e => { setComboQuery(e.target.value); setComboOpen(true); if (!e.target.value) setForm(p => ({ ...p, unit_number: '' })); }}
+                  onClick={() => setComboOpen(true)}
+                  onFocus={() => {}}
                   placeholder="رقم الوحدة أو اسم المستأجر..."
                   className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
