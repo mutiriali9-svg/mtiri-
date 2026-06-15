@@ -5,12 +5,6 @@ const styles = `
   @keyframes mt-spin { to{transform:rotate(360deg)} }
   @keyframes mt-glow { 0%,100%{opacity:.5;transform:scale(.96)} 50%{opacity:.9;transform:scale(1.06)} }
   @keyframes mt-aurora { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(3%,-3%) scale(1.08)} }
-`;
-const styles = `
-  @keyframes mt-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
-  @keyframes mt-spin { to{transform:rotate(360deg)} }
-  @keyframes mt-glow { 0%,100%{opacity:.5;transform:scale(.96)} 50%{opacity:.9;transform:scale(1.06)} }
-  @keyframes mt-aurora { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(3%,-3%) scale(1.08)} }
   input { color: #EEF2F8 !important; font-weight: 500 !important; }
   input::placeholder { color: #6b7280 !important; }
 `;
