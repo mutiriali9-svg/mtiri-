@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { Plus, Search, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 
+
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,9 @@ export default function RePayments() {
   const [viewItem, setViewItem] = useState(null);
   const [inlineError, setInlineError] = useState('');
   const fileRef = useRef();
+  const comboRef = useRef(null);
+  const [comboQuery, setComboQuery] = useState('');
+  const [comboOpen, setComboOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, lang } = useLang();
@@ -77,8 +81,26 @@ export default function RePayments() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const openAdd = () => { setEditItem(null); setForm(emptyPayment); setReceiptUrl(''); setInlineError(''); setDialogOpen(true); };
-  const openEdit = (p) => { setEditItem(p); setForm({ ...emptyPayment, ...p }); setReceiptUrl(p.receipt_image_url || ''); setInlineError(''); setDialogOpen(true); };
+  // Close combobox on outside click
+  useEffect(() => {
+    const handler = (e) => { if (comboRef.current && !comboRef.current.contains(e.target)) setComboOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const sortedUnits = [...units].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0));
+  const filteredComboUnits = comboQuery.trim()
+    ? sortedUnits.filter(u => u.unit_number?.toLowerCase().includes(comboQuery.toLowerCase()) || u.tenant_name?.toLowerCase().includes(comboQuery.toLowerCase()))
+    : sortedUnits;
+
+  const handleUnitComboSelect = (u) => {
+    setComboQuery(`${u.unit_number}${u.tenant_name ? ' — ' + u.tenant_name : ''}`);
+    setComboOpen(false);
+    setForm(p => ({ ...p, unit_number: u.unit_number, tenant_name: u.tenant_name || p.tenant_name }));
+  };
+
+  const openAdd = () => { setEditItem(null); setForm(emptyPayment); setReceiptUrl(''); setInlineError(''); setComboQuery(''); setComboOpen(false); setDialogOpen(true); };
+  const openEdit = (p) => { setEditItem(p); setForm({ ...emptyPayment, ...p }); setReceiptUrl(p.receipt_image_url || ''); setInlineError(''); setComboQuery(p.unit_number ? `${p.unit_number}${p.tenant_name ? ' — ' + p.tenant_name : ''}` : ''); setComboOpen(false); setDialogOpen(true); };
 
   const handleSave = async () => {
     const missing = [];
@@ -306,15 +328,36 @@ export default function RePayments() {
           <DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <div className="space-y-1.5"><Label>{t('tenantName')} *</Label><Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} /></div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" ref={comboRef}>
               <Label>{t('unitNumber')}</Label>
-              <Select value={form.unit_number || 'none'} onValueChange={v => setForm(p => ({ ...p, unit_number: v === 'none' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder={t('unitNumber')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('noneUnit')}</SelectItem>
-                  {[...units].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0)).map(u => <SelectItem key={u.id} value={u.unit_number}>{u.unit_number} — {u.tenant_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  value={comboQuery}
+                  onChange={e => { setComboQuery(e.target.value); setComboOpen(true); if (!e.target.value) setForm(p => ({ ...p, unit_number: '' })); }}
+                  onFocus={() => setComboOpen(true)}
+                  placeholder="رقم الوحدة أو اسم المستأجر..."
+                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  autoComplete="off"
+                />
+                {comboQuery && (
+                  <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, unit_number: '' })); setComboOpen(false); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X size={13} />
+                  </button>
+                )}
+                {comboOpen && filteredComboUnits.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredComboUnits.map(u => (
+                      <button key={u.id} type="button" onClick={() => handleUnitComboSelect(u)}
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center gap-2 transition-colors">
+                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
+                        {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>{t('paymentDate')} *</Label><Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} /></div>
