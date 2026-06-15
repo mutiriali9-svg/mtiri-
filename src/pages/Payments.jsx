@@ -518,7 +518,7 @@ export default function Payments() {
                   className="w-full pr-9 pl-7 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                   autoFocus={false}
-                {comboQuery && (
+                />
                   <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <X size={13} />
