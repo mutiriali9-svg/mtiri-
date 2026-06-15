@@ -84,7 +84,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
               animation: 'mt-glow 5s ease-in-out infinite',
             }} />
             <img
-              src="/assets/emblem-feathered.png"
+              src="https://hhgedebikuqdxzacqxqn.supabase.co/storage/v1/object/public/mtiri/emblem-feathered.png"
               alt="المطيري"
               style={{
                 position: 'relative',
