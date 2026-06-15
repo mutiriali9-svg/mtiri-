@@ -240,7 +240,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
               <h3 className="font-bold text-sm sm:text-base" style={{ color: '#1B2B4B' }}>{t('expiringContracts')}</h3>
-              <p className="text-xs text-muted-foreground">{isAr ? 'عقود منتهية أو قريبة الانتهاء' : 'Expiring or expired contracts'}</p>
+              <p className="text-xs text-muted-foreground">{isAr ? 'عقود قريب الانتهاء' : 'Expiring or expired contracts'}</p>
             </div>
             <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#E63946' }}>
               {expiringContracts.length}
