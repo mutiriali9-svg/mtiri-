@@ -361,7 +361,7 @@ setRegistrationRequestsCount(pendingRequests.length);
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {/* Qarya Villa Section */}
-          (user?.role === 'admin' || user?.role === 'tester')
+          {(isAdmin || isTester) && (
             <div>
               {/* Section Header - Clickable */}
               <button
@@ -419,7 +419,7 @@ setRegistrationRequestsCount(pendingRequests.length);
           )}
 
           {/* Real Estate Section */}
-          (user?.role === 'admin' || user?.role === 'tester')
+          {(isAdmin || isTester) && (
             <div className="mt-2">
               <div className="border-b border-white/10 mb-2" />
               {/* Section Header - Clickable to collapse */}
@@ -478,7 +478,7 @@ setRegistrationRequestsCount(pendingRequests.length);
           )}
 
 {/* Alerts Section - Admin */}
-(user?.role === 'admin' || user?.role === 'tester')
+{(isAdmin || isTester) && (
   <div className="mt-2">
     <div className="border-b border-white/10 mb-2" />
     <button
@@ -521,7 +521,7 @@ setRegistrationRequestsCount(pendingRequests.length);
   </div>
 )}
 {/* User Management - Admin Only */}
-(user?.role === 'admin' || user?.role === 'tester')
+{user?.role === 'admin' && (
   <div className="mt-2">
     <div className="border-b border-white/10 mb-2" />
     <Link
