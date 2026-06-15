@@ -6,10 +6,6 @@ import { PlusCircle, CheckCircle2, CreditCard, Camera, X, ImagePlus, Clock, Aler
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PAYMENT_PLANS } from '@/lib/constants';
-import { getNextDateFromPlan } from '@/lib/dateUtils';
-
-// fallback if not extracted yet
 const PLAN_MONTHS = { monthly: 1, quarterly: 3, biannual: 6, annual: 12 };
 
 function calcSmartArrears(alert, paidNow) {
