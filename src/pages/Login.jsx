@@ -8,8 +8,13 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { LogIn, Mail, Lock, Loader2, Globe } from "lucide-react";
 
-
 const APP_URL = 'https://www.mteiri-bm.com';
+
+const inputStyle = {
+  color: '#EEF2F8',
+  backgroundColor: 'rgba(255,255,255,0.05)',
+  borderColor: 'rgba(255,255,255,0.1)',
+};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -87,16 +92,17 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">{currentLang === 'ar' ? 'البريد الإلكتروني' : 'Email'}</Label>
+          <Label htmlFor="email" style={{ color: '#AEB8C9' }}>{currentLang === 'ar' ? 'البريد الإلكتروني' : 'Email'}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input id="email" type="email" autoComplete="email" autoFocus placeholder="you@example.com"
-              value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 h-12" required />
+              value={email} onChange={(e) => setEmail(e.target.value)}
+              className="pl-10 h-12" style={inputStyle} required />
           </div>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">{currentLang === 'ar' ? 'كلمة المرور' : 'Password'}</Label>
+            <Label htmlFor="password" style={{ color: '#AEB8C9' }}>{currentLang === 'ar' ? 'كلمة المرور' : 'Password'}</Label>
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">
               {currentLang === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
             </Link>
@@ -104,11 +110,11 @@ export default function Login() {
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input id="password" type="password" autoComplete="current-password" placeholder="••••••••"
-              value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 h-12" required />
+              value={password} onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 h-12" style={inputStyle} required />
           </div>
         </div>
 
-        {/* Remember Me */}
         <div className="flex items-center gap-2">
           <input
             id="remember"
@@ -117,7 +123,7 @@ export default function Login() {
             onChange={(e) => setRememberMe(e.target.checked)}
             className="w-4 h-4 rounded border-border cursor-pointer accent-[#C9A84C]"
           />
-          <Label htmlFor="remember" className="text-sm cursor-pointer">
+          <Label htmlFor="remember" className="text-sm cursor-pointer" style={{ color: '#AEB8C9' }}>
             {currentLang === 'ar' ? 'تذكرني' : 'Remember me'}
           </Label>
         </div>
