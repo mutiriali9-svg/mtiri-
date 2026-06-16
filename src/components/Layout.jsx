@@ -251,14 +251,19 @@ export default function Layout() {
       const seenAt = new Date(savedSeenAt || RESET_DATE);
       const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
 
-      const [payments, expenses, notes] = await Promise.all([
+      const [payments, expenses] = await Promise.all([
         base44.entities.Payment.list('-created_at', 100),
         base44.entities.Expense.list('-created_at', 100),
-        base44.entities.Note.list('-created_at', 100),
       ]);
       setNewPaymentsCount(payments.filter(isNew).length);
       setNewExpensesCount(expenses.filter(isNew).length);
-      setNotesCount(notes.filter(isNew).length);
+
+      try {
+        const notes = await base44.entities.Note.list('-created_at', 100);
+        setNotesCount(notes.filter(isNew).length);
+      } catch {
+        setNotesCount(0);
+      }
     };
     loadCounts();
     const interval = setInterval(loadCounts, 30000);
