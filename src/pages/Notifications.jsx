@@ -156,7 +156,7 @@ export default function Notifications() {
       setPayments(pays.filter(p => p.payment_date && p.payment_date >= cutoffStr));
       setExpenses(exps.filter(e => e.expense_date && e.expense_date >= cutoffStr));
       setLoading(false);
-      setTimeout(() => { localStorage.setItem('notifications_seen_at', new Date().toISOString()); }, 1000);
+      
     };
     fetchData();
   }, [user]);
