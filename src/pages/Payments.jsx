@@ -58,6 +58,8 @@ export default function Payments() {
   const { toast } = useToast();
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
+  const isTester = user?.role === 'tester';
+  const maskName = (name) => isTester ? '***' : name;
 
   const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); };
   const canEdit = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'data_entry';
@@ -321,7 +323,7 @@ export default function Payments() {
                 return (
                   <tr key={p.id} onClick={() => setViewItem(p)}
                     className={`border-b border-border/50 transition-colors cursor-pointer ${newRowPulse === p.id ? 'gold-pulse' : i % 2 === 1 ? 'bg-[#F8F9FA]' : ''} hover:bg-surface`}>
-                    <td className="py-3 px-4 font-medium" style={{ color: '#1B2B4B' }}>{p.tenant_name}</td>
+                    <td className="py-3 px-4 font-medium" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</td>
                     <td className="py-3 px-4 text-muted-foreground">{p.unit_number || '-'}</td>
                     <td className="py-3 px-4 font-bold text-lg" style={{ color: '#2A9D8F' }}>
                       {(p.amount || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED</span>
@@ -336,7 +338,7 @@ export default function Payments() {
                       {canEdit && (
                         <div className="flex items-center gap-1">
                           <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
-                          (user?.role === 'admin' || user?.role === 'tester')
+                          {user?.role === 'admin' && (
                             <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                           )}
                         </div>
@@ -369,7 +371,7 @@ export default function Payments() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-sm truncate" style={{ color: '#1B2B4B' }}>{p.tenant_name}</h3>
+                    <h3 className="font-bold text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</h3>
                     <span className="text-xs text-muted-foreground shrink-0">{t('unit')}: {p.unit_number || '-'}</span>
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
@@ -387,7 +389,7 @@ export default function Payments() {
                     <div className="flex items-center gap-0.5" onPointerDown={ev => ev.stopPropagation()} onClick={ev => ev.stopPropagation()}>
                       <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); openEdit(p); }}
                         className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[36px] min-h-[36px] flex items-center justify-center"><Edit2 size={14} /></button>
-                      (user?.role === 'admin' || user?.role === 'tester')
+                      {user?.role === 'admin' && (
                         <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); handleDelete(p.id); }}
                           className="p-2 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive min-w-[36px] min-h-[36px] flex items-center justify-center"><Trash2 size={14} /></button>
                       )}
