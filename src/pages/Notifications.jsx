@@ -146,10 +146,7 @@ export default function Notifications() {
   }, [user]);
 
   // Mark as seen on visit
-  useEffect(() => {
-    localStorage.setItem('notifications_seen_at', new Date().toISOString());
-  }, []);
-
+  
   if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
     return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
   }
