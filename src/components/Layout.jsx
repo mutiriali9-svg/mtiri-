@@ -285,7 +285,15 @@ export default function Layout() {
     setNotesCount(0);
   }
 }, [location.pathname]);
-
+  const isAllowedDataEntry =
+  location.pathname === '/data-entry' ||
+  location.pathname.startsWith('/units') ||
+  location.pathname === '/pending-approvals' ||
+  location.pathname.startsWith('/smart-alerts') ||
+  location.pathname === '/my-payments' ||
+  location.pathname === '/profile' ||
+  location.pathname === '/notes';
+  
   if (user && isDataEntry && !isAllowedDataEntry) {
     return <Navigate to="/data-entry" replace />;
   }
