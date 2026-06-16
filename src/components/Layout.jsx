@@ -137,11 +137,17 @@ export default function Layout() {
   const [newPaymentsCount, setNewPaymentsCount] = useState(0);
   const [newExpensesCount, setNewExpensesCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
-  const seenAtRef = useRef(new Date('2026-06-01T00:00:00.000Z'));
+  const seenAtRef = useRef(new Date());
 
 useEffect(() => {
   const saved = localStorage.getItem('notifications_seen_at');
-  if (saved) seenAtRef.current = new Date(saved);
+  if (saved) {
+    seenAtRef.current = new Date(saved);
+  } else {
+    const now = new Date();
+    localStorage.setItem('notifications_seen_at', now.toISOString());
+    seenAtRef.current = now;
+  }
 }, []);
   // ────────────────────────────────────────────────────────────────────────
 
