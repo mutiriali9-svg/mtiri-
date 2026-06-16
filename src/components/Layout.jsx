@@ -243,7 +243,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   // ── Load notification counts (payments + expenses + notes) ───────────────
-  useEffect(() => {
+ useEffect(() => {
   if (!user?.role) return;
   const loadCounts = async () => {
     const savedSeenAt = localStorage.getItem('notifications_seen_at');
@@ -260,6 +260,15 @@ export default function Layout() {
       base44.entities.Payment.list('-created_at', 100),
       base44.entities.Expense.list('-created_at', 100),
     ]);
+
+    console.log('=== DEBUG ===');
+    console.log('seenAt:', seenAt);
+    console.log('payments count:', payments.length);
+    console.log('first payment created_at:', payments[0]?.created_at);
+    console.log('payments isNew:', payments.filter(isNew).length);
+    console.log('expenses count:', expenses.length);
+    console.log('expenses isNew:', expenses.filter(isNew).length);
+
     setNewPaymentsCount(payments.filter(isNew).length);
     setNewExpensesCount(expenses.filter(isNew).length);
 
@@ -280,11 +289,11 @@ export default function Layout() {
 
   // ── Bell click: zero out all counts + persist seenAt ────────────────────
   const handleBellClick = () => {
-    localStorage.setItem('notifications_seen_at', new Date().toISOString());
-    setNewPaymentsCount(0);
-    setNewExpensesCount(0);
-    setNotesCount(0);
-  };
+  localStorage.setItem('notifications_seen_at', new Date().toISOString());
+  setNewPaymentsCount(0);
+  setNewExpensesCount(0);
+  setNotesCount(0);
+};
   // ────────────────────────────────────────────────────────────────────────
 
   const isTester = user?.role === 'tester';
