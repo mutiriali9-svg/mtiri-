@@ -232,43 +232,29 @@ export default function Layout() {
 
   // Clear badge when visiting /notifications
   useEffect(() => {
-    if (location.pathname === '/notifications') {
-      localStorage.setItem('notifications_seen_at', new Date().toISOString());
-      setNewPaymentsCount(0);
-      setNewExpensesCount(0);
-    }
-    if (location.pathname === '/notes') {
-      setNotesCount(0);
-    }
-  }, [location.pathname]);
+  if (location.pathname === '/notifications') {
+    localStorage.setItem('notifications_seen_at', new Date().toISOString());
+    setNewPaymentsCount(0);
+    setNewExpensesCount(0);
+  }
+  if (location.pathname === '/notes') {
+    setNotesCount(0);
+  }
+}, [location.pathname]);
 
   // ── Load notification counts (payments + expenses + notes) ───────────────
  useEffect(() => {
   if (!user?.role) return;
   const loadCounts = async () => {
+    const RESET_DATE = '2026-06-01T00:00:00.000Z';
     const savedSeenAt = localStorage.getItem('notifications_seen_at');
-    let seenAt;
-    if (savedSeenAt) {
-      seenAt = new Date(savedSeenAt);
-    } else {
-      seenAt = new Date();
-      seenAt.setDate(seenAt.getDate() - 30);
-    }
+    const seenAt = new Date(savedSeenAt || RESET_DATE);
     const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
 
     const [payments, expenses] = await Promise.all([
       base44.entities.Payment.list('-created_at', 100),
       base44.entities.Expense.list('-created_at', 100),
     ]);
-
-    console.log('=== DEBUG ===');
-    console.log('seenAt:', seenAt);
-    console.log('payments count:', payments.length);
-    console.log('first payment created_at:', payments[0]?.created_at);
-    console.log('payments isNew:', payments.filter(isNew).length);
-    console.log('expenses count:', expenses.length);
-    console.log('expenses isNew:', expenses.filter(isNew).length);
-
     setNewPaymentsCount(payments.filter(isNew).length);
     setNewExpensesCount(expenses.filter(isNew).length);
 
