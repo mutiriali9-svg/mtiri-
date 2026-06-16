@@ -240,11 +240,7 @@ useEffect(() => {
   if (!user?.role) return;
   if (user.role !== 'admin' && user.role !== 'investor') return;
   const loadCounts = async () => {
-    const notifs = await base44.entities.Notification.list();
-    console.log('NOTIFS:', notifs);
-    console.log('UNREAD:', notifs.filter(n => n.is_read === false));
-    const unread = notifs.filter(n => n.is_read === false);
-    setNewPaymentsCount(unread.length);
+    console.log('ENTITIES:', Object.keys(base44.entities));
   };
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
