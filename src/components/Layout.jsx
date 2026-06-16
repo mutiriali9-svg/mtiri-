@@ -243,10 +243,7 @@ export default function Layout() {
   const loadCounts = async () => {
     const notifs = await base44.entities.Notification.list('-created_at', 200);
     const unread = notifs.filter(n => n.is_read === false);
-    const payments = unread.filter(n => n.type === 'payment');
-    const expenses = unread.filter(n => n.type === 'expense');
-    setNewPaymentsCount(payments.length);
-    setNewExpensesCount(expenses.length);
+    setNewPaymentsCount(unread.length);
   };
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
