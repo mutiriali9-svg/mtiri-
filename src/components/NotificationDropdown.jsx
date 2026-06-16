@@ -3,8 +3,7 @@ import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList } from 'lucide-r
 import { Link } from 'react-router-dom';
 
 
-export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole }) {
-  const [open, setOpen] = useState(false);
+export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole, onBellClick }) { const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
@@ -72,10 +71,10 @@ if (userRole === 'admin' && registrationRequestsCount > 0) {
     <div className="relative" ref={ref}>
       {/* Bell Button */}
       <button
-        onClick={() => {
-  setOpen(prev => !prev);
-  localStorage.setItem('notifications_seen_at', new Date().toISOString());
-}}
+  onClick={() => {
+    setOpen(prev => !prev);
+    if (onBellClick) onBellClick();
+  }}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
