@@ -217,7 +217,7 @@ const allUnits = [...units, ...reUnits];
   }, [user]);
 
   useEffect(() => {
-    if (user?.role !== 'admin') return;
+    if (!user?.role) return;
     const loadRequests = async () => {
       const requests = await base44.entities.RegistrationRequest.list();
 const pendingRequests = requests.filter(r => r.status === 'pending');
