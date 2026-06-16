@@ -1,22 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList } from 'lucide-react';
+import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList, CreditCard, Receipt, StickyNote } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-
-export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole, onBellClick }) {
+export default function NotificationDropdown({
+  lang, newPaymentsCount, newExpensesCount, urgentAlertsCount,
+  expiredContractsCount, registrationRequestsCount, notesCount, userRole, onBellClick
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-  const [badgeDismissed, setBadgeDismissed] = useState(false);
-const totalCount = badgeDismissed ? 0 : (
-  (newPaymentsCount || 0) + (urgentAlertsCount || 0) +
-  ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
-  (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
-);
+  const combinedFinanceCount = (newPaymentsCount || 0) + (newExpensesCount || 0);
 
-useEffect(() => { 
+  const totalCount =
+    combinedFinanceCount +
+    (urgentAlertsCount || 0) +
+    ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
+    (userRole === 'admin' ? (registrationRequestsCount || 0) : 0) +
+    (notesCount || 0);
 
+  useEffect(() => {
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
@@ -31,39 +34,47 @@ useEffect(() => {
   }, []);
 
   const showSmartAlerts = userRole === 'admin' || userRole === 'data_entry' || userRole === 'investor' || userRole === 'tester';
-  const showNotifications = userRole === 'admin' || userRole === 'investor' || userRole === 'tester';
+  const showFinance = userRole === 'admin' || userRole === 'investor' || userRole === 'tester';
+  const showExpiredContracts = userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester';
 
   const items = [];
+
   if (showSmartAlerts) {
     items.push({
       icon: BellRing,
       label: isRtl ? 'المتأخرات - التنبيهات الذكية' : 'Overdue - Smart Alerts',
       count: urgentAlertsCount || 0,
-      color: urgentAlertsCount > 0 ? '#E63946' : '#6B7280',
+      color: (urgentAlertsCount || 0) > 0 ? '#E63946' : '#6B7280',
       to: '/smart-alerts',
     });
   }
-  if (showNotifications) {
+
+  if (showFinance) {
     items.push({
-      icon: Bell,
+      icon: CreditCard,
       label: isRtl ? 'آخر الدفعات والمصروفات' : 'Recent Payments & Expenses',
-      count: newPaymentsCount || 0,
-      color: newPaymentsCount > 0 ? '#E63946' : '#6B7280',
+      count: combinedFinanceCount,
+      color: combinedFinanceCount > 0 ? '#2A9D8F' : '#6B7280',
+      subLabel: combinedFinanceCount > 0
+        ? (isRtl
+          ? `${newPaymentsCount || 0} دفعة · ${newExpensesCount || 0} مصروف`
+          : `${newPaymentsCount || 0} payment · ${newExpensesCount || 0} expense`)
+        : null,
       to: '/notifications',
     });
   }
 
-  const showExpiredContracts = userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester';
   if (showExpiredContracts) {
     items.push({
       icon: FileWarning,
       label: isRtl ? 'العقود المنتهية' : 'Expired Contracts',
       count: expiredContractsCount || 0,
-      color: expiredContractsCount > 0 ? '#E63946' : '#6B7280',
+      color: (expiredContractsCount || 0) > 0 ? '#E63946' : '#6B7280',
       to: '/units',
     });
   }
-  if (userRole === 'admin' && registrationRequestsCount > 0) {
+
+  if (userRole === 'admin' && (registrationRequestsCount || 0) > 0) {
     items.push({
       icon: ClipboardList,
       label: isRtl ? 'طلبات التسجيل' : 'Registration Requests',
@@ -73,15 +84,22 @@ useEffect(() => {
     });
   }
 
+  items.push({
+    icon: StickyNote,
+    label: isRtl ? 'الملاحظات' : 'Notes',
+    count: notesCount || 0,
+    color: (notesCount || 0) > 0 ? '#A8B2C0' : '#6B7280',
+    to: '/notes',
+    silver: true,
+  });
+
   return (
     <div className="relative" ref={ref}>
-      {/* Bell Button */}
       <button
         onClick={() => {
-  setOpen(prev => !prev);
-  setBadgeDismissed(true);
-  if (onBellClick) onBellClick();
-}}
+          setOpen(prev => !prev);
+          if (onBellClick) onBellClick();
+        }}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
@@ -99,18 +117,11 @@ useEffect(() => {
         )}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
           className="absolute top-12 z-50 bg-white rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in-up"
-          style={{
-            minWidth: '260px',
-            right: isRtl ? '0' : '0',
-            left: 'auto',
-            direction: isRtl ? 'rtl' : 'ltr',
-          }}
+          style={{ minWidth: '270px', right: '0', left: 'auto', direction: isRtl ? 'rtl' : 'ltr' }}
         >
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
               {isRtl ? 'الإشعارات' : 'Notifications'}
@@ -123,10 +134,14 @@ useEffect(() => {
             </button>
           </div>
 
-          {/* Items */}
           <div className="py-2">
             {items.map((item, idx) => {
               const Icon = item.icon;
+              const isNotes = item.silver;
+              const bgColor = item.count > 0
+                ? (isNotes ? 'rgba(168,178,192,0.15)' : 'rgba(230,57,70,0.1)')
+                : '#F3F4F6';
+
               return (
                 <Link
                   key={idx}
@@ -137,24 +152,24 @@ useEffect(() => {
                 >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      backgroundColor: item.count > 0 ? 'rgba(230,57,70,0.1)' : '#F3F4F6',
-                    }}
+                    style={{ backgroundColor: bgColor }}
                   >
                     <Icon size={17} style={{ color: item.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground leading-tight">{item.label}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.count > 0
-                        ? (isRtl ? `${item.count} إشعار` : `${item.count} notification${item.count > 1 ? 's' : ''}`)
-                        : (isRtl ? 'لا توجد إشعارات' : 'No notifications')}
+                      {item.subLabel
+                        ? item.subLabel
+                        : item.count > 0
+                          ? (isRtl ? `${item.count} إشعار` : `${item.count} notification${item.count > 1 ? 's' : ''}`)
+                          : (isRtl ? 'لا توجد إشعارات' : 'No notifications')}
                     </p>
                   </div>
                   {item.count > 0 && (
                     <span
                       className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: '#E63946' }}
+                      style={{ backgroundColor: isNotes ? '#A8B2C0' : '#E63946' }}
                     >
                       {item.count > 99 ? '99+' : item.count}
                     </span>
