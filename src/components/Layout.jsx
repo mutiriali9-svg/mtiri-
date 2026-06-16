@@ -246,30 +246,26 @@ export default function Layout() {
 }, [location.pathname]);
 
   // ── Load notification counts (payments + expenses + notes) ───────────────
- useEffect(() => {
-  if (!user?.role) return;
-  const loadCounts = async () => {
-    const seenAt = seenAtRef.current;
-    const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
+ const loadCounts = async () => {
+  const seenAt = new Date(
+    localStorage.getItem('notifications_seen_at') || '2026-06-01T00:00:00.000Z'
+  );
+  const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
 
-    const [payments, expenses] = await Promise.all([
-      base44.entities.Payment.list('-created_at', 100),
-      base44.entities.Expense.list('-created_at', 100),
-    ]);
-    setNewPaymentsCount(payments.filter(isNew).length);
-    setNewExpensesCount(expenses.filter(isNew).length);
+  const [payments, expenses] = await Promise.all([
+    base44.entities.Payment.list('-created_at', 100),
+    base44.entities.Expense.list('-created_at', 100),
+  ]);
+  setNewPaymentsCount(payments.filter(isNew).length);
+  setNewExpensesCount(expenses.filter(isNew).length);
 
-    try {
-      const notes = await base44.entities.Note.list('-created_at', 100);
-      setNotesCount(notes.filter(isNew).length);
-    } catch {
-      setNotesCount(0);
-    }
-  };
-  loadCounts();
-  const interval = setInterval(loadCounts, 30000);
-  return () => clearInterval(interval);
-}, [user]);
+  try {
+    const notes = await base44.entities.Note.list('-created_at', 100);
+    setNotesCount(notes.filter(isNew).length);
+  } catch {
+    setNotesCount(0);
+  }
+};
   // ────────────────────────────────────────────────────────────────────────
 
   const isAdmin = user?.role === 'admin';
