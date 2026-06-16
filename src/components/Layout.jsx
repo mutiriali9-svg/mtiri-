@@ -233,9 +233,10 @@ export default function Layout() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // Clear badge when visiting /notifications
+
   
-  // ── Load notification counts (payments + expenses + notes) ───────────────
+ // ── Load notification counts (payments + expenses + notes) ───────────────
+
  useEffect(() => {
   if (!user?.role) return;
   const loadCounts = async () => {
