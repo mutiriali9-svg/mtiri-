@@ -2,10 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList, CreditCard, Receipt, StickyNote } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export default function NotificationDropdown({
-  lang, newPaymentsCount, newExpensesCount, urgentAlertsCount,
-  expiredContractsCount, registrationRequestsCount, notesCount, userRole, onBellClick
-}) {
+export default function NotificationDropdown({ lang, newPaymentsCount, newExpensesCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, notesCount, userRole, onBellClick }) {
+  
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
