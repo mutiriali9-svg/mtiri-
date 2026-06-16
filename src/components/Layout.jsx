@@ -266,8 +266,11 @@ setRegistrationRequestsCount(pendingRequests.length);
   const isAdmin = user?.role === 'admin';
   const handleBellClick = () => {
   setNewPaymentsCount(0);
+  setUrgentAlertsCount(0);
+  setExpiredContractsCount(0);
+  setRegistrationRequestsCount(0);
   localStorage.setItem('notifications_seen_at', new Date().toISOString());
-  };
+};
   const isTester = user?.role === 'tester';
   const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
   const isRtl = lang === 'ar';
@@ -743,13 +746,15 @@ setRegistrationRequestsCount(pendingRequests.length);
           <div className="flex items-center gap-2 ml-auto">
             {/* Notification bell */}
             <NotificationDropdown
-              lang={lang}
-              newPaymentsCount={newPaymentsCount}
-              urgentAlertsCount={urgentAlertsCount}
-              expiredContractsCount={expiredContractsCount}
-              registrationRequestsCount={registrationRequestsCount}
-              userRole={user?.role}
-            />
+  lang={lang}
+  newPaymentsCount={newPaymentsCount}
+  urgentAlertsCount={urgentAlertsCount}
+  expiredContractsCount={expiredContractsCount}
+  registrationRequestsCount={registrationRequestsCount}
+  userRole={user?.role}
+  onBellClick={handleBellClick}
+/>
+
             {/* Language toggle (desktop only) */}
             <button
               onClick={toggleLang}
