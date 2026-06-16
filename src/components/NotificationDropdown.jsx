@@ -3,20 +3,23 @@ import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList } from 'lucide-r
 import { Link } from 'react-router-dom';
 
 
-export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole, onBellClick }) { const [open, setOpen] = useState(false);
+export default function NotificationDropdown({ lang, newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, userRole, onBellClick }) {
+  const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-const [badgeCount, setBadgeCount] = useState(0);
-const totalCount = badgeCount;
+  const [badgeCount, setBadgeCount] = useState(0);
+  const totalCount = badgeCount;
 
-useEffect(() => {
-  setBadgeCount(
-    (newPaymentsCount || 0) + (urgentAlertsCount || 0) + 
-    ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
-    (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
-  );
-}, [newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount]);
+  useEffect(() => {
+    setBadgeCount(
+      (newPaymentsCount || 0) + (urgentAlertsCount || 0) +
+      ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
+      (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
+    );
+  }, [newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount]);
+
+  useEffect(() => {
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
@@ -63,24 +66,25 @@ useEffect(() => {
       to: '/units',
     });
   }
-if (userRole === 'admin' && registrationRequestsCount > 0) {
-  items.push({
-    icon: ClipboardList,
-    label: isRtl ? 'طلبات التسجيل' : 'Registration Requests',
-    count: registrationRequestsCount || 0,
-    color: '#E63946',
-    to: '/registration-requests',
-  });
-}
+  if (userRole === 'admin' && registrationRequestsCount > 0) {
+    items.push({
+      icon: ClipboardList,
+      label: isRtl ? 'طلبات التسجيل' : 'Registration Requests',
+      count: registrationRequestsCount || 0,
+      color: '#E63946',
+      to: '/registration-requests',
+    });
+  }
+
   return (
     <div className="relative" ref={ref}>
       {/* Bell Button */}
       <button
-  onClick={() => {
-  setOpen(prev => !prev);
-  setBadgeCount(0);
-  if (onBellClick) onBellClick();
-}}
+        onClick={() => {
+          setOpen(prev => !prev);
+          setBadgeCount(0);
+          if (onBellClick) onBellClick();
+        }}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
