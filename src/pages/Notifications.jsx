@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { base44, uploadFile } from '@/api/base44Client';
+import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Bell, CreditCard, Receipt, ArrowRight, ChevronDown, ChevronLeft, X, Image, FileText, Calendar, Hash, Building2, User } from 'lucide-react';
+import { Bell, CreditCard, Receipt, ArrowRight, ChevronDown, X, Image, FileText, Calendar, Hash, Building2, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const categoryLabels = {
@@ -15,14 +15,15 @@ const paymentMethodLabels = {
   en: { cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque', other: 'Other' },
 };
 
-const PREVIEW_COUNT = 5;
+const PREVIEW_COUNT = 8;
 
-function DetailModal({ item, type, onClose, lang }) {
+function DetailModal({ item, onClose, lang }) {
   if (!item) return null;
-  const isPayment = type === 'payment';
+  const isPayment = item._type === 'payment';
   const isAr = lang === 'ar';
   const catLabels = categoryLabels[lang] || categoryLabels.ar;
   const payLabels = paymentMethodLabels[lang] || paymentMethodLabels.ar;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up" onClick={e => e.stopPropagation()}>
@@ -47,23 +48,23 @@ function DetailModal({ item, type, onClose, lang }) {
           <div className="space-y-3">
             {isPayment ? (
               <>
-                {item.tenant_name && <Row icon={<User size={15} />} label={isAr ? 'المستأجر' : 'Tenant'} value={item.tenant_name} />}
-                {item.unit_number && <Row icon={<Building2 size={15} />} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
-                {item.payment_date && <Row icon={<Calendar size={15} />} label={isAr ? 'تاريخ الدفع' : 'Payment Date'} value={new Date(item.payment_date).toLocaleDateString()} />}
-                {item.due_months && <Row icon={<FileText size={15} />} label={isAr ? 'مستحق لشهر/أشهر' : 'Due Months'} value={item.due_months} />}
-                {item.payment_method && <Row icon={<CreditCard size={15} />} label={isAr ? 'طريقة الدفع' : 'Method'} value={payLabels[item.payment_method] || item.payment_method} />}
-                {item.receipt_number && <Row icon={<Hash size={15} />} label={isAr ? 'رقم الإيصال' : 'Receipt No.'} value={item.receipt_number} />}
-                {item.notes && <Row icon={<FileText size={15} />} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
+                {item.tenant_name && <Row icon={<User size={15}/>} label={isAr ? 'المستأجر' : 'Tenant'} value={item.tenant_name} />}
+                {item.unit_number && <Row icon={<Building2 size={15}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
+                {item.payment_date && <Row icon={<Calendar size={15}/>} label={isAr ? 'تاريخ الدفع' : 'Payment Date'} value={new Date(item.payment_date).toLocaleDateString()} />}
+                {item.due_months && <Row icon={<FileText size={15}/>} label={isAr ? 'مستحق لشهر' : 'Due Months'} value={item.due_months} />}
+                {item.payment_method && <Row icon={<CreditCard size={15}/>} label={isAr ? 'طريقة الدفع' : 'Method'} value={payLabels[item.payment_method] || item.payment_method} />}
+                {item.receipt_number && <Row icon={<Hash size={15}/>} label={isAr ? 'رقم الإيصال' : 'Receipt No.'} value={item.receipt_number} />}
+                {item.notes && <Row icon={<FileText size={15}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
               </>
             ) : (
               <>
-                {item.description && <Row icon={<FileText size={15} />} label={isAr ? 'الوصف' : 'Description'} value={item.description} />}
-                {item.expense_date && <Row icon={<Calendar size={15} />} label={isAr ? 'التاريخ' : 'Date'} value={new Date(item.expense_date).toLocaleDateString()} />}
-                {item.category && <Row icon={<FileText size={15} />} label={isAr ? 'التصنيف' : 'Category'} value={catLabels[item.category] || item.category} />}
-                {item.unit_number && <Row icon={<Building2 size={15} />} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
-                {item.vendor && <Row icon={<User size={15} />} label={isAr ? 'المورد' : 'Vendor'} value={item.vendor} />}
-                {item.invoice_number && <Row icon={<Hash size={15} />} label={isAr ? 'رقم الفاتورة' : 'Invoice No.'} value={item.invoice_number} />}
-                {item.notes && <Row icon={<FileText size={15} />} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
+                {item.description && <Row icon={<FileText size={15}/>} label={isAr ? 'الوصف' : 'Description'} value={item.description} />}
+                {item.expense_date && <Row icon={<Calendar size={15}/>} label={isAr ? 'التاريخ' : 'Date'} value={new Date(item.expense_date).toLocaleDateString()} />}
+                {item.category && <Row icon={<FileText size={15}/>} label={isAr ? 'التصنيف' : 'Category'} value={(categoryLabels[lang]||categoryLabels.ar)[item.category] || item.category} />}
+                {item.unit_number && <Row icon={<Building2 size={15}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
+                {item.vendor && <Row icon={<User size={15}/>} label={isAr ? 'المورد' : 'Vendor'} value={item.vendor} />}
+                {item.invoice_number && <Row icon={<Hash size={15}/>} label={isAr ? 'رقم الفاتورة' : 'Invoice No.'} value={item.invoice_number} />}
+                {item.notes && <Row icon={<FileText size={15}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
               </>
             )}
           </div>
@@ -75,15 +76,11 @@ function DetailModal({ item, type, onClose, lang }) {
               <div className="rounded-xl overflow-hidden border border-border">
                 <img src={isPayment ? item.receipt_image_url : item.invoice_image_url} alt="receipt" className="w-full object-contain max-h-72" onError={e => { e.target.style.display = 'none'; }} />
               </div>
-              <a href={isPayment ? item.receipt_image_url : item.invoice_image_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)', color: isPayment ? '#2A9D8F' : '#E63946' }}>
+              <a href={isPayment ? item.receipt_image_url : item.invoice_image_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
+                style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)', color: isPayment ? '#2A9D8F' : '#E63946' }}>
                 <Image size={15} />{isAr ? 'فتح الصورة بالحجم الكامل' : 'Open Full Size'}
               </a>
-            </div>
-          )}
-          {!(isPayment ? item.receipt_image_url : item.invoice_image_url) && (
-            <div className="rounded-xl border border-dashed border-border p-6 flex flex-col items-center gap-2 text-muted-foreground">
-              <Image size={24} className="opacity-40" />
-              <p className="text-xs">{isPayment ? (isAr ? 'لا يوجد إيصال مرفق' : 'No receipt attached') : (isAr ? 'لا توجد فاتورة مرفقة' : 'No invoice attached')}</p>
             </div>
           )}
         </div>
@@ -101,42 +98,16 @@ function Row({ icon, label, value }) {
   );
 }
 
-function SectionCard({ title, icon, color, bgColor, count, children, showAll, onToggleShowAll, onHeaderClick, showMoreLabel, showLessLabel }) {
-  return (
-    <div className="bg-white card-bevel rounded-2xl overflow-hidden">
-      <div className={`flex items-center justify-between px-4 py-3 border-b border-border ${onHeaderClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : ''}`} onClick={onHeaderClick}>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: bgColor }}>{icon}</div>
-          <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>{title}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: bgColor, color }}>{count}</span>
-          {onHeaderClick && <ChevronLeft size={16} className="text-muted-foreground" />}
-        </div>
-      </div>
-      <div className="divide-y divide-border">{children}</div>
-      {count > PREVIEW_COUNT && (
-        <button onClick={onToggleShowAll} className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-semibold hover:bg-muted/50" style={{ color }}>
-          {showAll ? showLessLabel : `${showMoreLabel} (${count - PREVIEW_COUNT})`}
-          <ChevronDown size={15} className={`transition-transform ${showAll ? 'rotate-180' : ''}`} />
-        </button>
-      )}
-    </div>
-  );
-}
 export default function Notifications() {
   const { user } = useAuth();
   const { lang } = useLang();
   const isAr = lang === 'ar';
   const navigate = useNavigate();
-  const [payments, setPayments] = useState([]);
-  const [expenses, setExpenses] = useState([]);
+  const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAllPayments, setShowAllPayments] = useState(false);
-  const [showAllExpenses, setShowAllExpenses] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [seenAt, setSeenAt] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [selectedType, setSelectedType] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -146,30 +117,50 @@ export default function Notifications() {
       const RESET_DATE = '2026-06-01T00:00:00.000Z';
       const savedSeenAt = localStorage.getItem('notifications_seen_at');
       setSeenAt(new Date(savedSeenAt || RESET_DATE));
+
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 30);
       const cutoffStr = cutoff.toISOString().split('T')[0];
+
       const [pays, exps] = await Promise.all([
         base44.entities.Payment.list('-payment_date', 200),
         base44.entities.Expense.list('-expense_date', 200),
       ]);
-      setPayments(pays.filter(p => p.payment_date && p.payment_date >= cutoffStr));
-      setExpenses(exps.filter(e => e.expense_date && e.expense_date >= cutoffStr));
+
+      const payments = pays
+        .filter(p => p.payment_date && p.payment_date >= cutoffStr)
+        .map(p => ({ ...p, _type: 'payment', _sortDate: p.payment_date }));
+
+      const expenses = exps
+        .filter(e => e.expense_date && e.expense_date >= cutoffStr)
+        .map(e => ({ ...e, _type: 'expense', _sortDate: e.expense_date }));
+
+      const combined = [...payments, ...expenses].sort((a, b) =>
+        b._sortDate.localeCompare(a._sortDate)
+      );
+
+      setFeed(combined);
       setLoading(false);
-      
     };
     fetchData();
   }, [user]);
 
-  if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
-  return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
-}
+  // Mark as seen on visit
+  useEffect(() => {
+    localStorage.setItem('notifications_seen_at', new Date().toISOString());
+  }, []);
 
-  const visiblePayments = showAllPayments ? payments : payments.slice(0, PREVIEW_COUNT);
-  const visibleExpenses = showAllExpenses ? expenses : expenses.slice(0, PREVIEW_COUNT);
+  if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
+    return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
+  }
+
+  const visibleFeed = showAll ? feed : feed.slice(0, PREVIEW_COUNT);
+  const paymentsCount = feed.filter(i => i._type === 'payment').length;
+  const expensesCount = feed.filter(i => i._type === 'expense').length;
 
   return (
     <div className="space-y-5 animate-fade-in-up" dir={isAr ? 'rtl' : 'ltr'}>
+      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/dashboard')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowRight size={18} />
@@ -182,78 +173,114 @@ export default function Notifications() {
           <p className="text-xs text-muted-foreground">{isAr ? 'آخر 30 يوم' : 'Last 30 days'}</p>
         </div>
       </div>
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map(i => (<div key={i} className="bg-white card-bevel rounded-2xl p-5"><div className="h-4 bg-muted rounded animate-pulse mb-2 w-1/3" /><div className="h-3 bg-muted rounded animate-pulse w-1/2" /></div>))}
-        </div>
-      ) : (
-        <div className="space-y-5">
-          <SectionCard
-            title={isAr ? 'الدفعات الحديثة' : 'Recent Payments'}
-            icon={<CreditCard size={16} style={{ color: '#2A9D8F' }} />}
-            color="#2A9D8F" bgColor="rgba(42,157,143,0.1)"
-            count={payments.length} showAll={showAllPayments}
-            onToggleShowAll={() => setShowAllPayments(p => !p)}
-            onHeaderClick={() => navigate('/payments')}
-            showMoreLabel={isAr ? 'عرض المزيد' : 'Show more'}
-            showLessLabel={isAr ? 'عرض أقل' : 'Show less'}
-          >
-            {payments.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">{isAr ? 'لا توجد دفعات خلال آخر 30 يوم' : 'No payments in the last 30 days'}</div>
-            ) : visiblePayments.map(p => {
-              const isNew = seenAt && p.created_at && new Date(p.created_at) > seenAt;
-              return (
-                <div key={p.id} className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors ${isNew ? 'bg-red-50/40' : ''}`} onClick={() => { setSelectedItem(p); setSelectedType('payment'); }}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate" style={{ color: '#1B2B4B' }}>{p.tenant_name}{p.unit_number ? ` — ${isAr ? 'وحدة' : 'Unit'} ${p.unit_number}` : ''}</p>
-                      {isNew && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : ''}{p.due_months ? ` · ${p.due_months}` : ''}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="font-bold text-sm" style={{ color: '#2A9D8F' }}>{(p.amount || 0).toLocaleString()} AED</p>
-                    {p.receipt_image_url && (<span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(42,157,143,0.15)' }}><Image size={11} style={{ color: '#2A9D8F' }} /></span>)}
-                  </div>
-                </div>
-              );
-            })}
-          </SectionCard>
-          <SectionCard
-            title={isAr ? 'المصروفات الحديثة' : 'Recent Expenses'}
-            icon={<Receipt size={16} style={{ color: '#E63946' }} />}
-            color="#E63946" bgColor="rgba(230,57,70,0.1)"
-            count={expenses.length} showAll={showAllExpenses}
-            onToggleShowAll={() => setShowAllExpenses(p => !p)}
-            onHeaderClick={() => navigate('/expenses')}
-            showMoreLabel={isAr ? 'عرض المزيد' : 'Show more'}
-            showLessLabel={isAr ? 'عرض أقل' : 'Show less'}
-          >
-            {expenses.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">{isAr ? 'لا توجد مصروفات خلال آخر 30 يوم' : 'No expenses in the last 30 days'}</div>
-            ) : visibleExpenses.map(e => {
-              const isNew = seenAt && e.created_at && new Date(e.created_at) > seenAt;
-              const catLabels = categoryLabels[lang] || categoryLabels.ar;
-              return (
-                <div key={e.id} className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors ${isNew ? 'bg-red-50/40' : ''}`} onClick={() => { setSelectedItem(e); setSelectedType('expense'); }}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate" style={{ color: '#1B2B4B' }}>{e.description}</p>
-                      {isNew && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{e.expense_date ? new Date(e.expense_date).toLocaleDateString() : ''}{e.category ? ` · ${catLabels[e.category] || e.category}` : ''}{e.unit_number ? ` · ${isAr ? 'وحدة' : 'Unit'} ${e.unit_number}` : ''}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="font-bold text-sm" style={{ color: '#E63946' }}>{(e.amount || 0).toLocaleString()} AED</p>
-                    {e.invoice_image_url && (<span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(230,57,70,0.15)' }}><Image size={11} style={{ color: '#E63946' }} /></span>)}
-                  </div>
-                </div>
-              );
-            })}
-          </SectionCard>
+
+      {/* Stats */}
+      {!loading && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white card-bevel rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(42,157,143,0.1)' }}>
+              <CreditCard size={18} style={{ color: '#2A9D8F' }} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{isAr ? 'الدفعات' : 'Payments'}</p>
+              <p className="text-xl font-bold" style={{ color: '#2A9D8F' }}>{paymentsCount}</p>
+            </div>
+          </div>
+          <div className="bg-white card-bevel rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
+              <Receipt size={18} style={{ color: '#E63946' }} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{isAr ? 'المصروفات' : 'Expenses'}</p>
+              <p className="text-xl font-bold" style={{ color: '#E63946' }}>{expensesCount}</p>
+            </div>
+          </div>
         </div>
       )}
-      {selectedItem && <DetailModal item={selectedItem} type={selectedType} onClose={() => { setSelectedItem(null); setSelectedType(null); }} lang={lang} />}
+
+      {/* Combined Feed */}
+      <div className="bg-white card-bevel rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
+            {isAr ? 'الدفعات والمصروفات الحديثة' : 'Recent Payments & Expenses'}
+          </span>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>{feed.length}</span>
+        </div>
+
+        <div className="divide-y divide-border">
+          {loading ? (
+            [1,2,3,4].map(i => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-9 h-9 rounded-xl bg-muted animate-pulse flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 bg-muted rounded animate-pulse w-1/3" />
+                  <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
+                </div>
+              </div>
+            ))
+          ) : feed.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              {isAr ? 'لا توجد بيانات خلال آخر 30 يوم' : 'No data in the last 30 days'}
+            </div>
+          ) : (
+            visibleFeed.map(item => {
+              const isPayment = item._type === 'payment';
+              const color = isPayment ? '#2A9D8F' : '#E63946';
+              const bgColor = isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)';
+              const Icon = isPayment ? CreditCard : Receipt;
+              const isNew = seenAt && item.created_at && new Date(item.created_at) > seenAt;
+              const date = isPayment ? item.payment_date : item.expense_date;
+              const label = isPayment ? item.tenant_name : item.description;
+              const sub = isPayment
+                ? (item.unit_number ? `${isAr ? 'وحدة' : 'Unit'} ${item.unit_number}` : '')
+                : ((categoryLabels[lang]||categoryLabels.ar)[item.category] || item.category || '');
+
+              return (
+                <div
+                  key={`${item._type}-${item.id}`}
+                  onClick={() => setSelectedItem(item)}
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors ${isNew ? 'bg-amber-50/30' : ''}`}
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bgColor }}>
+                    <Icon size={16} style={{ color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm truncate" style={{ color: '#1B2B4B' }}>{label}</p>
+                      {isNew && <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {date ? new Date(date).toLocaleDateString() : ''}
+                      {sub ? ` · ${sub}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <p className="font-bold text-sm" style={{ color }}>{(item.amount || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED</span></p>
+                    {(isPayment ? item.receipt_image_url : item.invoice_image_url) && (
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: bgColor }}>
+                        <Image size={11} style={{ color }} />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {feed.length > PREVIEW_COUNT && (
+          <button
+            onClick={() => setShowAll(p => !p)}
+            className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-semibold hover:bg-muted/50 transition-colors"
+            style={{ color: '#1B2B4B' }}
+          >
+            {showAll ? (isAr ? 'عرض أقل' : 'Show less') : `${isAr ? 'عرض المزيد' : 'Show more'} (${feed.length - PREVIEW_COUNT})`}
+            <ChevronDown size={15} className={`transition-transform ${showAll ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      </div>
+
+      {selectedItem && <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} lang={lang} />}
     </div>
   );
 }

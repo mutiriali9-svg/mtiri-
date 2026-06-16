@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRef } from 'react';
 import {
   LayoutDashboard, Building2, CreditCard, Receipt,
-  BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft
+  BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft, StickyNote
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { base44, supabase } from '@/api/base44Client';
@@ -22,7 +22,6 @@ const adminNavKeys = [
   { path: '/payments', key: 'payments', icon: CreditCard },
   { path: '/expenses', key: 'expenses', icon: Receipt },
   { path: '/savings', key: 'savings', icon: Wallet },
-  
 ];
 
 const dataEntryNavKeys = [
@@ -64,7 +63,6 @@ const realEstateNavKeys = [
   { path: '/re-savings', key: 'reSavings', icon: Wallet },
 ];
 
-// Nav labels per language
 const navLabels = {
   ar: {
     dashboard: 'لوحة التحكم',
@@ -90,6 +88,7 @@ const navLabels = {
     reSavings: 'الادخار',
     alerts: 'الإشعارات',
     userManagement: 'إدارة الحسابات',
+    notes: 'الملاحظات',
   },
   en: {
     dashboard: 'Dashboard',
@@ -115,15 +114,15 @@ const navLabels = {
     reSavings: 'Savings',
     alerts: 'Notifications',
     userManagement: 'User Management',
+    notes: 'Notes',
   },
 };
 
-// Pages that show a back button in header (desktop + mobile)
 const BACK_BUTTON_ROUTES = [
   '/dashboard', '/units', '/payments', '/expenses', '/reports', '/investors', '/savings',
   '/re-dashboard', '/re-units', '/re-payments', '/re-expenses', '/re-reports', '/re-investors', '/re-savings',
   '/smart-alerts', '/notifications', '/activity-log', '/data-entry', '/my-payments',
-  '/registration-requests', '/pending-approvals',
+  '/registration-requests', '/pending-approvals', '/notes',
 ];
 
 
@@ -133,14 +132,19 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const { lang, setLang } = useLang();
+
+  // ── Notification counts ──────────────────────────────────────────────────
   const [newPaymentsCount, setNewPaymentsCount] = useState(0);
+  const [newExpensesCount, setNewExpensesCount] = useState(0);
+  const [notesCount, setNotesCount] = useState(0);
+  // ────────────────────────────────────────────────────────────────────────
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   const isDataEntry = user?.role === 'data_entry';
   const isInvestor = user?.role === 'investor';
 
-  // Scroll position preservation for main tab pages
   const PRESERVED_ROUTES = ['/dashboard', '/', '/units', '/payments'];
   const mainRef = useRef(null);
   const scrollCache = useRef({});
@@ -148,14 +152,12 @@ export default function Layout() {
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
-    // Restore scroll for this route
     const saved = scrollCache.current[location.pathname];
     if (saved !== undefined) {
       el.scrollTop = saved;
     } else {
       el.scrollTop = 0;
     }
-    // Save scroll on scroll events
     const onScroll = () => {
       if (PRESERVED_ROUTES.includes(location.pathname)) {
         scrollCache.current[location.pathname] = el.scrollTop;
@@ -164,6 +166,7 @@ export default function Layout() {
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
   }, [location.pathname]);
+
   const [qaryaOpen, setQaryaOpen] = useState(() => {
     const saved = localStorage.getItem('sidebar_qarya_open');
     return saved !== null ? saved === 'true' : true;
@@ -189,8 +192,7 @@ export default function Layout() {
   const [urgentAlertsCount, setUrgentAlertsCount] = useState(0);
   const [expiredContractsCount, setExpiredContractsCount] = useState(0);
   const [registrationRequestsCount, setRegistrationRequestsCount] = useState(0);
-  
-  // Load urgent alerts count for all roles
+
   useEffect(() => {
     if (!user?.role) return;
     const loadAlerts = async () => {
@@ -203,10 +205,10 @@ export default function Layout() {
       setUrgentAlertsCount(urgent.length);
 
       const [units, reUnits] = await Promise.all([
-  base44.entities.Unit.list(),
-  base44.entities.ReUnit.list(),
-]);
-const allUnits = [...units, ...reUnits];
+        base44.entities.Unit.list(),
+        base44.entities.ReUnit.list(),
+      ]);
+      const allUnits = [...units, ...reUnits];
       const todayStr = new Date().toISOString().split('T')[0];
       const expired = allUnits.filter(u => u.contract_end && u.contract_end < todayStr);
       setExpiredContractsCount(expired.length);
@@ -220,79 +222,99 @@ const allUnits = [...units, ...reUnits];
     if (!user?.role) return;
     const loadRequests = async () => {
       const requests = await base44.entities.RegistrationRequest.list();
-const pendingRequests = requests.filter(r => r.status === 'pending');
-setRegistrationRequestsCount(pendingRequests.length);
-      
+      const pendingRequests = requests.filter(r => r.status === 'pending');
+      setRegistrationRequestsCount(pendingRequests.length);
     };
     loadRequests();
     const interval = setInterval(loadRequests, 60000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Clear badge immediately
+  // Clear badge when visiting /notifications
   useEffect(() => {
     if (location.pathname === '/notifications') {
       localStorage.setItem('notifications_seen_at', new Date().toISOString());
       setNewPaymentsCount(0);
+      setNewExpensesCount(0);
+    }
+    if (location.pathname === '/notes') {
+      setNotesCount(0);
     }
   }, [location.pathname]);
 
-  // Load notifications count for admin and investor
- useEffect(() => {
-  if (!user?.role) return;
-  const loadCounts = async () => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
+  // ── Load notification counts (payments + expenses + notes) ───────────────
+  useEffect(() => {
+    if (!user?.role) return;
+    const loadCounts = async () => {
+      const RESET_DATE = '2026-06-01T00:00:00.000Z';
+      const savedSeenAt = localStorage.getItem('notifications_seen_at');
+      const seenAt = new Date(savedSeenAt || RESET_DATE);
+      const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
 
-    const [payments, expenses] = await Promise.all([
-      base44.entities.Payment.list('-created_at', 100),
-      base44.entities.Expense.list('-created_at', 100),
-    ]);
+      const [payments, expenses, notes] = await Promise.all([
+        base44.entities.Payment.list('-created_at', 100),
+        base44.entities.Expense.list('-created_at', 100),
+        base44.entities.Note.list('-created_at', 100),
+      ]);
+      setNewPaymentsCount(payments.filter(isNew).length);
+      setNewExpensesCount(expenses.filter(isNew).length);
+      setNotesCount(notes.filter(isNew).length);
+    };
+    loadCounts();
+    const interval = setInterval(loadCounts, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+  // ────────────────────────────────────────────────────────────────────────
 
-    const isRecent = (item) => new Date(item.created_at) > cutoff;
-    setNewPaymentsCount(
-      payments.filter(isRecent).length + expenses.filter(isRecent).length
-    );
+  const isAdmin = user?.role === 'admin';
+
+  // ── Bell click: zero out all counts + persist seenAt ────────────────────
+  const handleBellClick = () => {
+    localStorage.setItem('notifications_seen_at', new Date().toISOString());
+    setNewPaymentsCount(0);
+    setNewExpensesCount(0);
+    setNotesCount(0);
   };
-  loadCounts();
-  const interval = setInterval(loadCounts, 30000);
-  return () => clearInterval(interval);
-}, [user]);
-const isAdmin = user?.role === 'admin';
-const handleBellClick = () => {};
-const isTester = user?.role === 'tester';
-const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
-const isRtl = lang === 'ar';
+  // ────────────────────────────────────────────────────────────────────────
 
-const navLabel = (key) => navLabels[lang]?.[key] || key;
+  const isTester = user?.role === 'tester';
+  const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
+  const isRtl = lang === 'ar';
+  const navLabel = (key) => navLabels[lang]?.[key] || key;
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  // Redirect data_entry users away from restricted pages
-  const isAllowedDataEntry = location.pathname === '/data-entry' || location.pathname.startsWith('/units') || location.pathname === '/pending-approvals' || location.pathname.startsWith('/smart-alerts') || location.pathname === '/my-payments' || location.pathname === '/profile';
+  const isAllowedDataEntry =
+    location.pathname === '/data-entry' ||
+    location.pathname.startsWith('/units') ||
+    location.pathname === '/pending-approvals' ||
+    location.pathname.startsWith('/smart-alerts') ||
+    location.pathname === '/my-payments' ||
+    location.pathname === '/profile' ||
+    location.pathname === '/notes';
+
   if (user && isDataEntry && !isAllowedDataEntry) {
     return <Navigate to="/data-entry" replace />;
   }
 
-  // Redirect investor users to allowed pages only (read-only access to all pages)
   const isAllowedInvestor = [
     '/', '/dashboard', '/units', '/payments', '/expenses', '/reports', '/investors', '/savings',
     '/re-dashboard', '/re-units', '/re-payments', '/re-expenses', '/re-reports', '/re-investors', '/re-savings',
-    '/smart-alerts', '/notifications', '/profile'
+    '/smart-alerts', '/notifications', '/profile', '/notes',
   ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+
   if (user && isInvestor && !isAllowedInvestor) {
     return <Navigate to="/dashboard" replace />;
   }
 
   const handleLogout = async (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  await supabase.auth.signOut();
-  window.location.href = '/login';
-};
+    e.preventDefault();
+    e.stopPropagation();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
@@ -357,15 +379,14 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {/* Qarya Villa Section */}
+
+          {/* ── Admin / Tester: Qarya Villa ── */}
           {(isAdmin || isTester) && (
             <div>
-              {/* Section Header - Clickable */}
               <button
                 onClick={() => setQaryaOpen(prev => !prev)}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
               >
-                {/* Building Logo */}
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                   <Building2 size={16} style={{ color: '#C9A84C' }} />
@@ -378,8 +399,6 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                   : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
                 }
               </button>
-
-              {/* Collapsible Nav Items */}
               <div
                 className="overflow-hidden transition-all duration-300 ease-in-out"
                 style={{ maxHeight: qaryaOpen ? '600px' : '0px', opacity: qaryaOpen ? 1 : 0 }}
@@ -392,13 +411,7 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                       <Link
                         key={item.path}
                         to={item.path}
-                        className={`
-                          flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px]
-                          ${isActive
-                            ? 'bg-white/10 text-white'
-                            : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'
-                          }
-                        `}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'}`}
                         style={{
                           borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
                           borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
@@ -411,15 +424,13 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                   })}
                 </div>
               </div>
-
             </div>
           )}
 
-          {/* Real Estate Section */}
+          {/* ── Admin / Tester: Real Estate ── */}
           {(isAdmin || isTester) && (
             <div className="mt-2">
               <div className="border-b border-white/10 mb-2" />
-              {/* Section Header - Clickable to collapse */}
               <button
                 onClick={() => setReOpen(prev => !prev)}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
@@ -436,8 +447,6 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                   : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
                 }
               </button>
-
-              {/* Collapsible Nav Items */}
               <div
                 className="overflow-hidden transition-all duration-300 ease-in-out"
                 style={{ maxHeight: reOpen ? '600px' : '0px', opacity: reOpen ? 1 : 0 }}
@@ -450,13 +459,7 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                       <Link
                         key={item.path}
                         to={item.path}
-                        className={`
-                          flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px]
-                          ${isActive
-                            ? 'bg-white/10 text-white'
-                            : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'
-                          }
-                        `}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'}`}
                         style={{
                           borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
                           borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
@@ -467,84 +470,88 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                       </Link>
                     );
                   })}
-
-
                 </div>
               </div>
             </div>
           )}
 
-{/* Alerts Section - Admin */}
-{(isAdmin || isTester) && (
-  <div className="mt-2">
-    <div className="border-b border-white/10 mb-2" />
-    <button
-      onClick={() => setAlertsOpen(prev => !prev)}
-      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
-    >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
-        <Bell size={16} style={{ color: '#C9A84C' }} />
-      </div>
-      <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
-      {alertsOpen
-        ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
-        : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
-      }
-    </button>
-    <div className="overflow-hidden transition-all duration-300 ease-in-out"
-      style={{ maxHeight: alertsOpen ? '600px' : '0px', opacity: alertsOpen ? 1 : 0 }}>
-      <div className="space-y-1 mt-1">
-        <Link to="/activity-log"
-          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-          style={{ borderRight: isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
-          <History size={18} style={{ color: location.pathname === '/activity-log' ? '#C9A84C' : '', flexShrink: 0 }} />
-          <span className="text-sm font-medium">{navLabel('activityLog')}</span>
-        </Link>
-        <Link to="/smart-alerts"
-          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-          style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
-          <BellRing size={18} style={{ color: location.pathname === '/smart-alerts' ? '#C9A84C' : '', flexShrink: 0 }} />
-          <span className="text-sm font-medium">{navLabel('smartAlerts')}</span>
-        </Link>
-        <Link to="/registration-requests"
-          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-          style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
-          <ClipboardList size={18} style={{ color: location.pathname === '/registration-requests' ? '#C9A84C' : '', flexShrink: 0 }} />
-          <span className="text-sm font-medium">{navLabel('registrationRequests')}</span>
-        </Link>
-      </div>
-    </div>
-  </div>
-)}
-{/* User Management - Admin Only */}
-{user?.role === 'admin' && (
-  <div className="mt-2">
-    <div className="border-b border-white/10 mb-2" />
-    <Link
-      to="/users"
-      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
-        location.pathname === '/users' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-      }`}
-      style={{
-        borderRight: isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
-        borderLeft: !isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
-      }}
-    >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
-        <Users size={16} style={{ color: '#C9A84C' }} />
-      </div>
-      <div className="flex flex-col">
-        <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>
-          {navLabel('userManagement')}
-        </span>
-      </div>
-    </Link>
-  </div>
-)}
+          {/* ── Admin / Tester: Alerts Section ── */}
+          {(isAdmin || isTester) && (
+            <div className="mt-2">
+              <div className="border-b border-white/10 mb-2" />
+              <button
+                onClick={() => setAlertsOpen(prev => !prev)}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
+                  <Bell size={16} style={{ color: '#C9A84C' }} />
+                </div>
+                <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
+                {alertsOpen
+                  ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
+                  : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
+                }
+              </button>
+              <div className="overflow-hidden transition-all duration-300 ease-in-out"
+                style={{ maxHeight: alertsOpen ? '600px' : '0px', opacity: alertsOpen ? 1 : 0 }}>
+                <div className="space-y-1 mt-1">
+                  <Link to="/activity-log"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    style={{ borderRight: isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
+                    <History size={18} style={{ color: location.pathname === '/activity-log' ? '#C9A84C' : '', flexShrink: 0 }} />
+                    <span className="text-sm font-medium">{navLabel('activityLog')}</span>
+                  </Link>
+                  <Link to="/smart-alerts"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
+                    <BellRing size={18} style={{ color: location.pathname === '/smart-alerts' ? '#C9A84C' : '', flexShrink: 0 }} />
+                    <span className="text-sm font-medium">{navLabel('smartAlerts')}</span>
+                  </Link>
+                  <Link to="/registration-requests"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
+                    <ClipboardList size={18} style={{ color: location.pathname === '/registration-requests' ? '#C9A84C' : '', flexShrink: 0 }} />
+                    <span className="text-sm font-medium">{navLabel('registrationRequests')}</span>
+                  </Link>
+                  {/* Notes link */}
+                  <Link to="/notes"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}>
+                    <StickyNote size={18} style={{ color: location.pathname === '/notes' ? '#A8B2C0' : '', flexShrink: 0 }} />
+                    <span className="text-sm font-medium">{navLabel('notes')}</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Investor: نفس شكل المدير بقسمين */}
+          {/* ── Admin: User Management ── */}
+          {user?.role === 'admin' && (
+            <div className="mt-2">
+              <div className="border-b border-white/10 mb-2" />
+              <Link
+                to="/users"
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/users' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                style={{
+                  borderRight: isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
+                  borderLeft: !isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
+                }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
+                  <Users size={16} style={{ color: '#C9A84C' }} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>
+                    {navLabel('userManagement')}
+                  </span>
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* ── Investor ── */}
           {isInvestor && (
             <>
               <div>
@@ -604,15 +611,12 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                   </div>
                 </div>
               </div>
-
-              {/* Smart Alerts - Investor - مستقل */}
+              {/* Smart Alerts - Investor */}
               <div className="mt-2">
                 <div className="border-b border-white/10 mb-2" />
                 <Link
                   to="/smart-alerts"
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${
-                    location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -624,11 +628,23 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                     <span className="text-[10px]" style={{ color: 'rgba(168,178,192,0.6)' }}>{lang === 'ar' ? 'لتتبع الدفعات' : 'Track Payments'}</span>
                   </div>
                 </Link>
+                {/* Notes - Investor */}
+                <Link
+                  to="/notes"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                  style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
+                    <StickyNote size={16} style={{ color: '#A8B2C0' }} />
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('notes')}</span>
+                </Link>
               </div>
             </>
           )}
 
-
+          {/* ── Data Entry ── */}
           {isDataEntry && (
             <div className="space-y-1">
               {dataEntryNavKeys.map((item) => {
@@ -643,13 +659,28 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                   </Link>
                 );
               })}
+              {/* Notes - Data Entry */}
+              <div className="mt-2">
+                <div className="border-b border-white/10 mb-2" />
+                <Link
+                  to="/notes"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                  style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
+                    <StickyNote size={16} style={{ color: '#A8B2C0' }} />
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('notes')}</span>
+                </Link>
+              </div>
             </div>
           )}
+
         </nav>
 
         {/* Language + User */}
         <div className="border-t border-white/10 p-3 space-y-2 flex-shrink-0">
-          {/* Language Toggle */}
           <button
             onClick={toggleLang}
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 active:bg-white/10 transition-all text-sm min-h-[44px]"
@@ -658,50 +689,38 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
             <span>{lang === 'ar' ? 'English' : 'عربي'}</span>
           </button>
 
-          {/* User + Logout + Delete Account */}
-<div className="flex items-center gap-3 px-3 py-2">
-  {/* رابط البروفايل */}
-  <button 
-    onClick={(e) => {
-      e.stopPropagation();
-      navigate('/profile');
-    }}
-    className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all text-right"
-  >
-    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-      style={{ backgroundColor: '#C9A84C', color: '#0E1A30' }}>
-      {user?.full_name?.[0] || 'م'}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-white text-xs font-medium truncate">{user?.full_name || 'المدير'}</p>
-      <p className="text-white/40 text-xs truncate">{roleLabel}</p>
-    </div>
-  </button>
-  
-  {/* زر تسجيل الخروج */}
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      handleLogout(e);
-    }}
-    className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-all flex-shrink-0"
-    title={lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}
-  >
-    <LogOut size={16} />
-  </button>
-</div>
+          <div className="flex items-center gap-3 px-3 py-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate('/profile'); }}
+              className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all text-right"
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                style={{ backgroundColor: '#C9A84C', color: '#0E1A30' }}>
+                {user?.full_name?.[0] || 'م'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-xs font-medium truncate">{user?.full_name || 'المدير'}</p>
+                <p className="text-white/40 text-xs truncate">{roleLabel}</p>
+              </div>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleLogout(e); }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-all flex-shrink-0"
+              title={lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
 
-{/* Delete Account - for non-admin only */}
-{user?.role !== 'admin' && (
-  <button
-    onClick={() => setShowDeleteConfirm(true)}
-    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all text-sm min-h-[44px]"
-  >
-    <X size={15} style={{ flexShrink: 0 }} />
-    <span>{lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}</span>
-  </button>
-)}
-
+          {user?.role !== 'admin' && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all text-sm min-h-[44px]"
+            >
+              <X size={15} style={{ flexShrink: 0 }} />
+              <span>{lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}</span>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -717,7 +736,6 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
             minHeight: 'calc(56px + env(safe-area-inset-top))',
           }}
         >
-          {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden w-12 h-12 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors -ml-2 relative z-10"
@@ -726,25 +744,22 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
             <Menu size={22} color="#111827" />
           </button>
 
-          {/* Mobile center: logo */}
           <div className="lg:hidden relative flex-1 flex items-center justify-center">
             <span className="font-bold text-lg" style={{ color: '#C9A84C' }}>{lang === 'ar' ? 'المطيري' : 'Al-Mutairi'}</span>
           </div>
 
-          {/* Right side */}
           <div className="flex items-center gap-2 ml-auto">
-            {/* Notification bell */}
             <NotificationDropdown
-  lang={lang}
-  newPaymentsCount={newPaymentsCount}
-  urgentAlertsCount={urgentAlertsCount}
-  expiredContractsCount={expiredContractsCount}
-  registrationRequestsCount={registrationRequestsCount}
-  userRole={user?.role}
-  onBellClick={handleBellClick}
-/>
-
-            {/* Language toggle (desktop only) */}
+              lang={lang}
+              newPaymentsCount={newPaymentsCount}
+              newExpensesCount={newExpensesCount}
+              urgentAlertsCount={urgentAlertsCount}
+              expiredContractsCount={expiredContractsCount}
+              registrationRequestsCount={registrationRequestsCount}
+              notesCount={notesCount}
+              userRole={user?.role}
+              onBellClick={handleBellClick}
+            />
             <button
               onClick={toggleLang}
               className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors min-h-[44px]"
@@ -752,9 +767,7 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
               <Globe size={15} />
               <span>{lang === 'ar' ? 'English' : 'عربي'}</span>
             </button>
-
             <div className="h-6 w-px bg-border hidden lg:block" />
-{/* User avatar */}
             <button
               onClick={() => navigate('/profile')}
               className="flex items-center gap-2 rounded-xl hover:bg-secondary transition-colors px-2 py-2 -mr-2 lg:px-2 lg:py-1.5 min-h-[44px] lg:min-h-0"
@@ -774,7 +787,6 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
           className="flex-1 p-4 lg:p-6 overflow-auto lg:pb-6"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem)' }}
         >
-          {/* Back to dashboard button — shown on all pages except dashboards */}
           {(() => {
             const noDashboardRoutes = ['/', '/dashboard', '/re-dashboard'];
             if (noDashboardRoutes.includes(location.pathname)) return null;
@@ -801,19 +813,17 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav lang={lang} />
-      {/* Delete Account Confirmation Overlay */}
+
+      {/* Delete Account Confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5 animate-fade-in-up"
             dir="rtl"
           >
-            {/* Icon */}
             <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
               <X size={28} style={{ color: '#E63946' }} />
             </div>
-
-            {/* Title */}
             <div className="text-center space-y-1">
               <h2 className="text-xl font-bold" style={{ color: '#1B2B4B' }}>
                 {lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}
@@ -822,15 +832,11 @@ const navLabel = (key) => navLabels[lang]?.[key] || key;
                 {lang === 'ar' ? 'هل أنت متأكد من حذف حسابك؟' : 'Are you sure you want to delete your account?'}
               </p>
             </div>
-
-            {/* Username */}
             <div className="w-full rounded-xl px-4 py-3 text-center" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E2E8F0' }}>
               <p className="text-xs text-muted-foreground mb-0.5">{lang === 'ar' ? 'الحساب المسجل' : 'Registered Account'}</p>
               <p className="font-bold text-base" style={{ color: '#1B2B4B' }}>{user?.full_name || user?.email || '—'}</p>
               <p className="text-xs text-muted-foreground mt-0.5" style={{ direction: 'ltr' }}>{user?.email}</p>
             </div>
-
-            {/* Buttons */}
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
