@@ -7,9 +7,12 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-  const totalCount = (newPaymentsCount || 0) + (urgentAlertsCount || 0) + 
-  ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry') ? (expiredContractsCount || 0) : 0) +
-  (userRole === 'admin' ? (registrationRequestsCount || 0) : 0);
+  const [badgeCount, setBadgeCount] = useState(
+  (newPaymentsCount || 0) + (urgentAlertsCount || 0) + 
+  ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
+  (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
+);
+  const totalCount = badgeCount;
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -72,9 +75,10 @@ if (userRole === 'admin' && registrationRequestsCount > 0) {
       {/* Bell Button */}
       <button
   onClick={() => {
-    setOpen(prev => !prev);
-    if (onBellClick) onBellClick();
-  }}
+  setOpen(prev => !prev);
+  setBadgeCount(0);
+  if (onBellClick) onBellClick();
+}}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
