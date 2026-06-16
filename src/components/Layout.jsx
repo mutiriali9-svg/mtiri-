@@ -141,9 +141,12 @@ export default function Layout() {
 
 useEffect(() => {
   const saved = localStorage.getItem('notifications_seen_at');
-  if (saved) {
+  const OLD_RESET = '2026-06-01T00:00:00.000Z';
+  
+  if (saved && saved !== OLD_RESET) {
     seenAtRef.current = new Date(saved);
   } else {
+    // مفيش قيمة أو القيمة القديمة = حفظ الآن
     const now = new Date();
     localStorage.setItem('notifications_seen_at', now.toISOString());
     seenAtRef.current = now;
