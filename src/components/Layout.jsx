@@ -238,40 +238,41 @@ setRegistrationRequestsCount(pendingRequests.length);
   }, [location.pathname]);
 
   // Load notifications count for admin and investor
-  useEffect(() => {
-    if (!user?.role) return;
-    const loadCounts = async () => {
-      const cutoff = new Date();
-       cutoff.setDate(cutoff.getDate() - 30);
+ useEffect(() => {
+  if (!user?.role) return;
+  const loadCounts = async () => {
+    const RESET_DATE = '2026-06-01T00:00:00.000Z';
+    const seenAt = localStorage.getItem('notifications_seen_at');
+    const cutoff = new Date(seenAt || RESET_DATE);
 
-      const [payments, expenses] = await Promise.all([
-        base44.entities.Payment.list('-created_at', 100),
-        base44.entities.Expense.list('-created_at', 100),
-      ]);
+    const [payments, expenses] = await Promise.all([
+      base44.entities.Payment.list('-created_at', 100),
+      base44.entities.Expense.list('-created_at', 100),
+    ]);
 
-      const isNew = (item) => {
-        const created = new Date(item.created_at);
-        return created > cutoff;
-      };
-
-      const newPays = payments.filter(isNew);
-      const newExpenses = expenses.filter(isNew);
-      setNewPaymentsCount(newPays.length + newExpenses.length);
+    const isNew = (item) => {
+      const created = new Date(item.created_at);
+      return created > cutoff;
     };
-    loadCounts();
-    const interval = setInterval(loadCounts, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
-  const isAdmin = user?.role === 'admin';
-  const handleBellClick = () => {
+
+    const newPays = payments.filter(isNew);
+    const newExpenses = expenses.filter(isNew);
+    setNewPaymentsCount(newPays.length + newExpenses.length);
+  };
+  loadCounts();
+  const interval = setInterval(loadCounts, 30000);
+  return () => clearInterval(interval);
+}, [user]);
+const isAdmin = user?.role === 'admin';
+const handleBellClick = () => {
   setNewPaymentsCount(0);
   localStorage.setItem('notifications_seen_at', new Date().toISOString());
 };
-  const isTester = user?.role === 'tester';
-  const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
-  const isRtl = lang === 'ar';
+const isTester = user?.role === 'tester';
+const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
+const isRtl = lang === 'ar';
 
-  const navLabel = (key) => navLabels[lang]?.[key] || key;
+const navLabel = (key) => navLabels[lang]?.[key] || key;
 
   // Close mobile menu on route change
   useEffect(() => {
