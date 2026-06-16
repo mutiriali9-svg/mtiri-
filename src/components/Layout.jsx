@@ -241,33 +241,25 @@ setRegistrationRequestsCount(pendingRequests.length);
  useEffect(() => {
   if (!user?.role) return;
   const loadCounts = async () => {
-    const RESET_DATE = '2026-06-01T00:00:00.000Z';
-    const seenAt = localStorage.getItem('notifications_seen_at');
-    const cutoff = new Date(seenAt || RESET_DATE);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
 
     const [payments, expenses] = await Promise.all([
       base44.entities.Payment.list('-created_at', 100),
       base44.entities.Expense.list('-created_at', 100),
     ]);
 
-    const isNew = (item) => {
-      const created = new Date(item.created_at);
-      return created > cutoff;
-    };
-
-    const newPays = payments.filter(isNew);
-    const newExpenses = expenses.filter(isNew);
-    setNewPaymentsCount(newPays.length + newExpenses.length);
+    const isRecent = (item) => new Date(item.created_at) > cutoff;
+    setNewPaymentsCount(
+      payments.filter(isRecent).length + expenses.filter(isRecent).length
+    );
   };
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
   return () => clearInterval(interval);
 }, [user]);
 const isAdmin = user?.role === 'admin';
-const handleBellClick = () => {
-  setNewPaymentsCount(0);
-  localStorage.setItem('notifications_seen_at', new Date().toISOString());
-};
+const handleBellClick = () => {};
 const isTester = user?.role === 'tester';
 const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
 const isRtl = lang === 'ar';

@@ -8,18 +8,15 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-  const [badgeCount, setBadgeCount] = useState(0);
-  const totalCount = badgeCount;
+  const [badgeDismissed, setBadgeDismissed] = useState(false);
+const totalCount = badgeDismissed ? 0 : (
+  (newPaymentsCount || 0) + (urgentAlertsCount || 0) +
+  ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
+  (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
+);
 
-  useEffect(() => {
-    setBadgeCount(
-      (newPaymentsCount || 0) + (urgentAlertsCount || 0) +
-      ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
-      (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
-    );
-  }, [newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount]);
+useEffect(() => { 
 
-  useEffect(() => {
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
@@ -81,10 +78,10 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
       {/* Bell Button */}
       <button
         onClick={() => {
-          setOpen(prev => !prev);
-          setBadgeCount(0);
-          if (onBellClick) onBellClick();
-        }}
+  setOpen(prev => !prev);
+  setBadgeDismissed(true);
+  if (onBellClick) onBellClick();
+}}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
