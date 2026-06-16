@@ -139,9 +139,17 @@ export default function Layout() {
   const [notesCount, setNotesCount] = useState(0);
   const seenAtRef = useRef(new Date());
 
-useEffect(() => {
+const seenAtRef = useRef(null);
+if (seenAtRef.current === null) {
   const saved = localStorage.getItem('notifications_seen_at');
-  const OLD_RESET = '2026-06-01T00:00:00.000Z';
+  if (saved) {
+    seenAtRef.current = new Date(saved);
+  } else {
+    const now = new Date();
+    localStorage.setItem('notifications_seen_at', now.toISOString());
+    seenAtRef.current = now;
+  }
+}
   
   if (saved && saved !== OLD_RESET) {
     seenAtRef.current = new Date(saved);
