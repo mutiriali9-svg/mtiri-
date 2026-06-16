@@ -41,7 +41,7 @@ import ActivityLogPage from '@/pages/ActivityLog';
 import MyPayments from '@/pages/MyPayments';
 import Profile from '@/pages/Profile';
 import Users from '@/pages/Users';
-
+import Notes from '@/pages/Notes';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, isAuthenticated, authChecked } = useAuth();
@@ -95,6 +95,7 @@ if (user?.role === 'delete_request') {
       <Route element={<Layout />}>
       <Route path="/users" element={<Users />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/notes" element={<Notes />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/contracts" element={<ContractAlerts />} />
