@@ -246,10 +246,17 @@ export default function Layout() {
  useEffect(() => {
   if (!user?.role) return;
   const loadCounts = async () => {
-    const RESET_DATE = '2026-06-01T00:00:00.000Z';
     const savedSeenAt = localStorage.getItem('notifications_seen_at');
-    const seenAt = new Date(savedSeenAt || RESET_DATE);
-    const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const seenAt = savedSeenAt ? new Date(savedSeenAt) : cutoff;
+
+    // item جديد = في آخر 30 يوم + بعد آخر مشاهدة
+    const isNew = (item) => {
+      if (!item.created_at) return false;
+      const d = new Date(item.created_at);
+      return d > cutoff && d > seenAt;
+    };
 
     const [payments, expenses] = await Promise.all([
       base44.entities.Payment.list('-created_at', 100),
