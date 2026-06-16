@@ -137,29 +137,9 @@ export default function Layout() {
   const [newPaymentsCount, setNewPaymentsCount] = useState(0);
   const [newExpensesCount, setNewExpensesCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
-  const seenAtRef = useRef(new Date());
-
-const seenAtRef = useRef(null);
-if (seenAtRef.current === null) {
-  const saved = localStorage.getItem('notifications_seen_at');
-  if (saved) {
-    seenAtRef.current = new Date(saved);
-  } else {
-    const now = new Date();
-    localStorage.setItem('notifications_seen_at', now.toISOString());
-    seenAtRef.current = now;
-  }
-}
-  
-  if (saved && saved !== OLD_RESET) {
-    seenAtRef.current = new Date(saved);
-  } else {
-    // مفيش قيمة أو القيمة القديمة = حفظ الآن
-    const now = new Date();
-    localStorage.setItem('notifications_seen_at', now.toISOString());
-    seenAtRef.current = now;
-  }
-}, []);
+  const seenAtRef = useRef(
+  new Date(localStorage.getItem('notifications_seen_at') || '2024-01-01T00:00:00.000Z')
+);
   // ────────────────────────────────────────────────────────────────────────
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
