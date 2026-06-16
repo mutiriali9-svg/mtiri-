@@ -137,6 +137,12 @@ export default function Layout() {
   const [newPaymentsCount, setNewPaymentsCount] = useState(0);
   const [newExpensesCount, setNewExpensesCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
+  const seenAtRef = useRef(new Date('2026-06-01T00:00:00.000Z'));
+
+useEffect(() => {
+  const saved = localStorage.getItem('notifications_seen_at');
+  if (saved) seenAtRef.current = new Date(saved);
+}, []);
   // ────────────────────────────────────────────────────────────────────────
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -246,17 +252,8 @@ export default function Layout() {
  useEffect(() => {
   if (!user?.role) return;
   const loadCounts = async () => {
-    const savedSeenAt = localStorage.getItem('notifications_seen_at');
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    const seenAt = savedSeenAt ? new Date(savedSeenAt) : cutoff;
-
-    // item جديد = في آخر 30 يوم + بعد آخر مشاهدة
-    const isNew = (item) => {
-      if (!item.created_at) return false;
-      const d = new Date(item.created_at);
-      return d > cutoff && d > seenAt;
-    };
+    const seenAt = seenAtRef.current;
+    const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
 
     const [payments, expenses] = await Promise.all([
       base44.entities.Payment.list('-created_at', 100),
@@ -282,7 +279,9 @@ export default function Layout() {
 
   // ── Bell click: zero out all counts + persist seenAt ────────────────────
   const handleBellClick = () => {
-  localStorage.setItem('notifications_seen_at', new Date().toISOString());
+  const now = new Date();
+  localStorage.setItem('notifications_seen_at', now.toISOString());
+  seenAtRef.current = now;
   setNewPaymentsCount(0);
   setNewExpensesCount(0);
   setNotesCount(0);
