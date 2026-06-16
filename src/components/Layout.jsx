@@ -239,25 +239,14 @@ export default function Layout() {
 
  useEffect(() => {
   if (!user?.role) return;
+  if (user.role !== 'admin' && user.role !== 'investor') return;
   const loadCounts = async () => {
-    const seenAt = new Date(
-      localStorage.getItem('notifications_seen_at') || '2026-06-01T00:00:00.000Z'
-    );
-    const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
-
-    const [payments, expenses] = await Promise.all([
-      base44.entities.Payment.list('-created_at', 100),
-      base44.entities.Expense.list('-created_at', 100),
-    ]);
-    setNewPaymentsCount(payments.filter(isNew).length);
-    setNewExpensesCount(expenses.filter(isNew).length);
-
-    try {
-      const notes = await base44.entities.Note.list('-created_at', 100);
-      setNotesCount(notes.filter(isNew).length);
-    } catch {
-      setNotesCount(0);
-    }
+    const notifs = await base44.entities.Notification.list('-created_at', 200);
+    const unread = notifs.filter(n => n.is_read === false);
+    const payments = unread.filter(n => n.type === 'payment');
+    const expenses = unread.filter(n => n.type === 'expense');
+    setNewPaymentsCount(payments.length);
+    setNewExpensesCount(expenses.length);
   };
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
@@ -285,8 +274,8 @@ export default function Layout() {
     const now = new Date();
     localStorage.setItem('notifications_seen_at', now.toISOString());
     seenAtRef.current = now; // ← الإصلاح الحاسم: sync الـ ref مع localStorage
-    setNewPaymentsCount(0);
-    setNewExpensesCount(0);
+    
+    
   }
   if (location.pathname === '/notes') {
     setNotesCount(0);
