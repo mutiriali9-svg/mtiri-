@@ -26,8 +26,8 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
     };
   }, []);
 
-  const showSmartAlerts = userRole === 'admin' || userRole === 'data_entry' || userRole === 'investor';
-  const showNotifications = userRole === 'admin' || userRole === 'investor';
+  const showSmartAlerts = userRole === 'admin' || userRole === 'data_entry' || userRole === 'investor' || userRole === 'tester';
+  const showNotifications = userRole === 'admin' || userRole === 'investor' || userRole === 'tester';
 
   const items = [];
   if (showSmartAlerts) {
@@ -49,7 +49,7 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
     });
   }
 
-  const showExpiredContracts = userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry';
+  const showExpiredContracts = userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester';
   if (showExpiredContracts) {
     items.push({
       icon: FileWarning,
@@ -72,7 +72,10 @@ if (userRole === 'admin' && registrationRequestsCount > 0) {
     <div className="relative" ref={ref}>
       {/* Bell Button */}
       <button
-        onClick={() => setOpen(prev => !prev)}
+        onClick={() => {
+  setOpen(prev => !prev);
+  localStorage.setItem('notifications_seen_at', new Date().toISOString());
+}}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
