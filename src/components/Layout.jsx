@@ -244,31 +244,36 @@ export default function Layout() {
 
   // ── Load notification counts (payments + expenses + notes) ───────────────
   useEffect(() => {
-    if (!user?.role) return;
-    const loadCounts = async () => {
-      const RESET_DATE = '2026-06-01T00:00:00.000Z';
-      const savedSeenAt = localStorage.getItem('notifications_seen_at');
-      const seenAt = new Date(savedSeenAt || RESET_DATE);
-      const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
+  if (!user?.role) return;
+  const loadCounts = async () => {
+    const savedSeenAt = localStorage.getItem('notifications_seen_at');
+    let seenAt;
+    if (savedSeenAt) {
+      seenAt = new Date(savedSeenAt);
+    } else {
+      seenAt = new Date();
+      seenAt.setDate(seenAt.getDate() - 30);
+    }
+    const isNew = (item) => item.created_at && new Date(item.created_at) > seenAt;
 
-      const [payments, expenses] = await Promise.all([
-        base44.entities.Payment.list('-created_at', 100),
-        base44.entities.Expense.list('-created_at', 100),
-      ]);
-      setNewPaymentsCount(payments.filter(isNew).length);
-      setNewExpensesCount(expenses.filter(isNew).length);
+    const [payments, expenses] = await Promise.all([
+      base44.entities.Payment.list('-created_at', 100),
+      base44.entities.Expense.list('-created_at', 100),
+    ]);
+    setNewPaymentsCount(payments.filter(isNew).length);
+    setNewExpensesCount(expenses.filter(isNew).length);
 
-      try {
-        const notes = await base44.entities.Note.list('-created_at', 100);
-        setNotesCount(notes.filter(isNew).length);
-      } catch {
-        setNotesCount(0);
-      }
-    };
-    loadCounts();
-    const interval = setInterval(loadCounts, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+    try {
+      const notes = await base44.entities.Note.list('-created_at', 100);
+      setNotesCount(notes.filter(isNew).length);
+    } catch {
+      setNotesCount(0);
+    }
+  };
+  loadCounts();
+  const interval = setInterval(loadCounts, 30000);
+  return () => clearInterval(interval);
+}, [user]);
   // ────────────────────────────────────────────────────────────────────────
 
   const isAdmin = user?.role === 'admin';
