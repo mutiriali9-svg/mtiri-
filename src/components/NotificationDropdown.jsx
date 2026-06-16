@@ -7,14 +7,16 @@ export default function NotificationDropdown({ lang, newPaymentsCount, urgentAle
   const ref = useRef(null);
   const isRtl = lang === 'ar';
 
-  const [badgeCount, setBadgeCount] = useState(
-  (newPaymentsCount || 0) + (urgentAlertsCount || 0) + 
-  ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
-  (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
-);
-  const totalCount = badgeCount;
+const [badgeCount, setBadgeCount] = useState(0);
+const totalCount = badgeCount;
 
-  useEffect(() => {
+useEffect(() => {
+  setBadgeCount(
+    (newPaymentsCount || 0) + (urgentAlertsCount || 0) + 
+    ((userRole === 'admin' || userRole === 'investor' || userRole === 'data_entry' || userRole === 'tester') ? (expiredContractsCount || 0) : 0) +
+    (userRole === 'admin' ? (registrationRequestsCount || 0) : 0)
+  );
+}, [newPaymentsCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount]);
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
