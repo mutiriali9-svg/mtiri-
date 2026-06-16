@@ -264,7 +264,10 @@ setRegistrationRequestsCount(pendingRequests.length);
     return () => clearInterval(interval);
   }, [user]);
   const isAdmin = user?.role === 'admin';
-  const handleBellClick = () => {};
+  const handleBellClick = () => {
+  setNewPaymentsCount(0);
+  localStorage.setItem('notifications_seen_at', new Date().toISOString());
+};
   const isTester = user?.role === 'tester';
   const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
   const isRtl = lang === 'ar';
