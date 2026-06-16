@@ -234,17 +234,7 @@ export default function Layout() {
   }, [user]);
 
   // Clear badge when visiting /notifications
-  useEffect(() => {
-  if (location.pathname === '/notifications') {
-    localStorage.setItem('notifications_seen_at', new Date().toISOString());
-    setNewPaymentsCount(0);
-    setNewExpensesCount(0);
-  }
-  if (location.pathname === '/notes') {
-    setNotesCount(0);
-  }
-}, [location.pathname]);
-
+  
   // ── Load notification counts (payments + expenses + notes) ───────────────
  const loadCounts = async () => {
   const seenAt = new Date(
@@ -270,11 +260,12 @@ export default function Layout() {
 
   const isAdmin = user?.role === 'admin';
 
-  // ── Bell click: zero out all counts + persist seenAt ────────────────────
+  // ── Bell click: persist seenAt ────────────────────────────────────────────
   const handleBellClick = () => {
-  const now = new Date();
-  localStorage.setItem('notifications_seen_at', now.toISOString());
-  seenAtRef.current = now;
+    const now = new Date();
+    localStorage.setItem('notifications_seen_at', now.toISOString());
+    seenAtRef.current = now;
+  };
   // ────────────────────────────────────────────────────────────────────────
 
   const isTester = user?.role === 'tester';
