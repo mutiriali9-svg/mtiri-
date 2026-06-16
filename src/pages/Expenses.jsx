@@ -120,6 +120,15 @@ export default function Expenses() {
     } else {
       const created = await base44.entities.Expense.create(data);
       logActivity('create', { ...data, id: created?.id }, null, data);
+      // إنشاء إشعار
+base44.entities.Notification.create({
+  type: 'expense',
+  title: `مصروف جديد — ${data.description}`,
+  amount: data.amount,
+  reference_id: created?.id || '',
+  reference_data: data,
+  is_read: false,
+}).catch(() => {});
       toast({ description: t('expenseAdded') });
     }
     setSaving(false);
@@ -295,7 +304,7 @@ export default function Expenses() {
                         <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy">
                           <Edit2 size={14} />
                         </button>
-                        (user?.role === 'admin' || user?.role === 'tester')
+                        {user?.role === 'admin' && (
                           <button onClick={() => handleDelete(e.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                             <Trash2 size={14} />
                           </button>
@@ -347,7 +356,7 @@ export default function Expenses() {
                     <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-muted text-muted-foreground">
                       <Edit2 size={13} />
                     </button>
-                    (user?.role === 'admin' || user?.role === 'tester')
+                    {user?.role === 'admin' && (
                       <button onClick={() => handleDelete(e.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                         <Trash2 size={13} />
                       </button>

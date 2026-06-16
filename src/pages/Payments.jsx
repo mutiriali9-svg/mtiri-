@@ -180,6 +180,14 @@ export default function Payments() {
       setDialogOpen(false); setSaving(false);
       const created = await base44.entities.Payment.create(data);
       const newPayment = { ...data, ...(created || {}), id: created?.id || `temp_${Date.now()}` };
+      base44.entities.Notification.create({
+  type: 'payment',
+  title: `دفعة جديدة — ${data.tenant_name}`,
+  amount: data.amount,
+  reference_id: created?.id || '',
+  reference_data: data,
+  is_read: false,
+}).catch(() => {});
       setPayments(prev => [newPayment, ...prev]);
       setNewRowPulse(newPayment.id);
       setTimeout(() => setNewRowPulse(null), 1200);
