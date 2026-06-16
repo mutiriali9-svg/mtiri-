@@ -279,10 +279,6 @@ export default function Layout() {
   const now = new Date();
   localStorage.setItem('notifications_seen_at', now.toISOString());
   seenAtRef.current = now;
-  setNewPaymentsCount(0);
-  setNewExpensesCount(0);
-  setNotesCount(0);
-};
   // ────────────────────────────────────────────────────────────────────────
 
   const isTester = user?.role === 'tester';
@@ -291,17 +287,17 @@ export default function Layout() {
   const navLabel = (key) => navLabels[lang]?.[key] || key;
 
   useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
-
-  const isAllowedDataEntry =
-    location.pathname === '/data-entry' ||
-    location.pathname.startsWith('/units') ||
-    location.pathname === '/pending-approvals' ||
-    location.pathname.startsWith('/smart-alerts') ||
-    location.pathname === '/my-payments' ||
-    location.pathname === '/profile' ||
-    location.pathname === '/notes';
+  if (location.pathname === '/notifications') {
+    const now = new Date();
+    localStorage.setItem('notifications_seen_at', now.toISOString());
+    seenAtRef.current = now; // ← الإصلاح الحاسم: sync الـ ref مع localStorage
+    setNewPaymentsCount(0);
+    setNewExpensesCount(0);
+  }
+  if (location.pathname === '/notes') {
+    setNotesCount(0);
+  }
+}, [location.pathname]);
 
   if (user && isDataEntry && !isAllowedDataEntry) {
     return <Navigate to="/data-entry" replace />;

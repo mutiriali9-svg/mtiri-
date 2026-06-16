@@ -97,9 +97,10 @@ export default function NotificationDropdown({
     <div className="relative" ref={ref}>
       <button
         onClick={() => {
-          setOpen(prev => !prev);
-          if (onBellClick) onBellClick();
-        }}
+  const willOpen = !open;
+  setOpen(willOpen);
+  if (willOpen && onBellClick) onBellClick();
+}}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
         {totalCount > 0 ? (
