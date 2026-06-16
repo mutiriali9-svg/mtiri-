@@ -239,7 +239,7 @@ setRegistrationRequestsCount(pendingRequests.length);
 
   // Load notifications count for admin and investor
   useEffect(() => {
-    if (user?.role !== 'admin' && user?.role !== 'investor') return;
+    if (!user?.role) return;
     const loadCounts = async () => {
       const RESET_DATE = '2026-06-01T00:00:00.000Z';
       const seenAt = localStorage.getItem('notifications_seen_at');

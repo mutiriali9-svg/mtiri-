@@ -140,7 +140,7 @@ export default function Notifications() {
 
   useEffect(() => {
     if (!user) return;
-    if (user.role !== 'admin' && user.role !== 'investor') { setLoading(false); return; }
+    if (user.role !== 'admin' && user.role !== 'investor' && user.role !== 'tester') { setLoading(false); return; }
     const fetchData = async () => {
       setLoading(true);
       const RESET_DATE = '2026-06-01T00:00:00.000Z';
@@ -161,9 +161,9 @@ export default function Notifications() {
     fetchData();
   }, [user]);
 
-  if (user?.role !== 'admin' && user?.role !== 'investor') {
-    return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
-  }
+  if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
+  return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
+}
 
   const visiblePayments = showAllPayments ? payments : payments.slice(0, PREVIEW_COUNT);
   const visibleExpenses = showAllExpenses ? expenses : expenses.slice(0, PREVIEW_COUNT);
