@@ -241,9 +241,8 @@ setRegistrationRequestsCount(pendingRequests.length);
   useEffect(() => {
     if (!user?.role) return;
     const loadCounts = async () => {
-      const RESET_DATE = '2026-06-01T00:00:00.000Z';
-      const seenAt = localStorage.getItem('notifications_seen_at');
-      const cutoff = new Date(seenAt || RESET_DATE);
+      const cutoff = new Date();
+       cutoff.setDate(cutoff.getDate() - 30);
 
       const [payments, expenses] = await Promise.all([
         base44.entities.Payment.list('-created_at', 100),
