@@ -73,6 +73,9 @@ export default function Units() {
   setLoading(false);
 }, []);
 
+useEffect(() => { fetchUnits(); }, []);
+const refreshing = usePullToRefresh(fetchUnits);
+
   const handleSave = async () => {
     setSaving(true);
     const data = { ...form, annual_rent: parseFloat(form.annual_rent) || 0 };
