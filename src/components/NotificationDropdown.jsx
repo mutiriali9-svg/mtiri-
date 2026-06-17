@@ -7,6 +7,7 @@ export default function NotificationDropdown({ lang, newPaymentsCount, newExpens
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
+  const [seenCount, setSeenCount] = useState(() => Number(localStorage.getItem('bell_seen_count') || 0));
 
   const combinedFinanceCount = (newPaymentsCount || 0) + (newExpensesCount || 0);
 
@@ -96,21 +97,25 @@ export default function NotificationDropdown({ lang, newPaymentsCount, newExpens
         onClick={() => {
   const willOpen = !open;
   setOpen(willOpen);
-  if (willOpen && onBellClick) onBellClick();
+  if (willOpen) {
+    setSeenCount(totalCount);
+    localStorage.setItem('bell_seen_count', String(totalCount));
+    if (onBellClick) onBellClick();
+  }
 }}
         className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-secondary transition-colors"
       >
-        {totalCount > 0 ? (
+        {(totalCount - seenCount) > 0 ? (
           <BellDot size={20} style={{ color: '#E63946' }} />
         ) : (
           <Bell size={20} className="text-muted-foreground" />
         )}
-        {totalCount > 0 && (
+        {(totalCount - seenCount) > 0 && (
           <span
             className="absolute -top-0.5 w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold"
             style={{ backgroundColor: '#E63946', right: '-2px' }}
           >
-            {totalCount > 99 ? '99+' : totalCount}
+            {(totalCount - seenCount) > 99 ? '99+' : (totalCount - seenCount)}
           </span>
         )}
       </button>
