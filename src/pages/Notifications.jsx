@@ -117,9 +117,20 @@ export default function Notifications() {
   }, [user]);
 
   const openNotif = async (notif) => {
+  console.log('CLICKED notif.id:', notif.id, typeof notif.id);
+  console.log('BEFORE filter, count:', notifs.length);
   setSelected(notif);
-  setNotifs(prev => prev.filter(n => n.id !== notif.id));
-  await base44.entities.Notification.update(notif.id, { is_read: true }).catch(() => {});
+  setNotifs(prev => {
+    const after = prev.filter(n => n.id !== notif.id);
+    console.log('AFTER filter, count:', after.length);
+    return after;
+  });
+  try {
+    const r = await base44.entities.Notification.update(notif.id, { is_read: true });
+    console.log('UPDATE SUCCESS:', r);
+  } catch (e) {
+    console.log('UPDATE FAILED:', e);
+  }
   window.dispatchEvent(new Event('notifications-updated'));
 };
 
