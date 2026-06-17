@@ -109,29 +109,25 @@ export default function Notifications() {
     if (user.role !== 'admin' && user.role !== 'investor' && user.role !== 'tester') { setLoading(false); return; }
     const fetchData = async () => {
       setLoading(true);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
       const data = await base44.entities.Notification.list('-created_at', 200);
-      setNotifs(data.filter(n => n.is_read === false));
+      const recent = data.filter(n => n.created_at && new Date(n.created_at) >= cutoff);
+      setNotifs(recent);
       setLoading(false);
+
+      // علّم كل غير المقروء كمقروء تلقائياً
+      const unread = recent.filter(n => n.is_read === false);
+      for (const n of unread) {
+        base44.entities.Notification.update(n.id, { is_read: true }).catch(() => {});
+      }
+      window.dispatchEvent(new Event('notifications-updated'));
     };
     fetchData();
   }, [user]);
 
-  const openNotif = async (notif) => {
-  console.log('CLICKED notif.id:', notif.id, typeof notif.id);
-  console.log('BEFORE filter, count:', notifs.length);
+  const openNotif = (notif) => {
   setSelected(notif);
-  setNotifs(prev => {
-    const after = prev.filter(n => n.id !== notif.id);
-    console.log('AFTER filter, count:', after.length);
-    return after;
-  });
-  try {
-    const r = await base44.entities.Notification.update(notif.id, { is_read: true });
-    console.log('UPDATE SUCCESS:', r);
-  } catch (e) {
-    console.log('UPDATE FAILED:', e);
-  }
-  window.dispatchEvent(new Event('notifications-updated'));
 };
 
   if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
