@@ -126,8 +126,7 @@ export default function Notifications() {
     return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
   }
 
-  const payments = notifs.filter(n => n.type === 'payment');
-  const expenses = notifs.filter(n => n.type === 'expense');
+  
 
   return (
     <div className="space-y-5 animate-fade-in-up" dir={isAr ? 'rtl' : 'ltr'}>
