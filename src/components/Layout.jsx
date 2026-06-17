@@ -25,10 +25,9 @@ const adminNavKeys = [
 ];
 
 const dataEntryNavKeys = [
-  { path: '/data-entry', key: 'dataEntry', icon: PlusCircle },
-  { path: '/my-payments', key: 'myPayments', icon: CreditCard },
-  { path: '/units', key: 'units', icon: Building2 },
   { path: '/smart-alerts', key: 'smartAlerts', icon: BellRing },
+  { path: '/units', key: 'units', icon: Building2 },
+  { path: '/my-payments', key: 'myPayments', icon: CreditCard },
 ];
 
 const investorQaryaNavKeys = [
@@ -287,7 +286,7 @@ useEffect(() => {
   location.pathname === '/notes';
 
   if (user && isDataEntry && !isAllowedDataEntry) {
-    return <Navigate to="/data-entry" replace />;
+    return <Navigate to="/smart-alerts" replace />;
   }
 
   const isAllowedInvestor = [
