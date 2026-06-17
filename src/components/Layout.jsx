@@ -230,6 +230,11 @@ export default function Layout() {
   const notifs = await base44.entities.Notification.list('-created_at', 200);
   const unread = notifs.filter(n => n.is_read === false);
   setNewPaymentsCount(unread.length);
+
+  const seenNotesAt = new Date(localStorage.getItem('notes_seen_at') || '2024-01-01T00:00:00.000Z');
+  const notes = await base44.entities.Note.list('-created_at', 200);
+  const newNotes = notes.filter(n => n.created_at && new Date(n.created_at) > seenNotesAt);
+  setNotesCount(newNotes.length);
 };
 
 useEffect(() => {
@@ -268,6 +273,7 @@ useEffect(() => {
     setTimeout(loadCounts, 2000);
   }
   if (location.pathname === '/notes') {
+    localStorage.setItem('notes_seen_at', new Date().toISOString());
     setNotesCount(0);
   }
 }, [location.pathname]);
