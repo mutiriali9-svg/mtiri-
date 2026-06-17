@@ -235,7 +235,11 @@ export default function Layout() {
 useEffect(() => {
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
-  return () => clearInterval(interval);
+  window.addEventListener('notifications-updated', loadCounts);
+  return () => {
+    clearInterval(interval);
+    window.removeEventListener('notifications-updated', loadCounts);
+  };
 }, [user]);
 
 

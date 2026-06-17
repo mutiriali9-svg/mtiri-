@@ -119,12 +119,8 @@ export default function Notifications() {
   const openNotif = async (notif) => {
   setSelected(notif);
   setNotifs(prev => prev.filter(n => n.id !== notif.id));
-  try {
-    const r = await base44.entities.Notification.update(notif.id, { is_read: true });
-    console.log('UPDATE OK:', r);
-  } catch (e) {
-    console.log('UPDATE ERROR:', e);
-  }
+  await base44.entities.Notification.update(notif.id, { is_read: true }).catch(() => {});
+  window.dispatchEvent(new Event('notifications-updated'));
 };
 
   if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
