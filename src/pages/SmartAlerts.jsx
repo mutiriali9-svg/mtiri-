@@ -280,73 +280,109 @@ export default function SmartAlerts() {
 };
 
   const handleDataEntryPaid = async () => {
-    const alert = paymentModal;
-    if (!alert || !paymentInput.amount) return;
-    // التحقق من الحقول الإجبارية
-    if (!paymentInput.due_months?.trim()) {
-      setPaymentError(t('يرجى تحديد الشهر المستحق *', 'Please enter the due month *'));
-      return;
-    }
-    if (!paymentInput.receipt_url) {
-      setPaymentError(t('يرجى رفع صورة الإيصال *', 'Please upload a receipt image *'));
-      return;
-    }
-    setPaymentError('');
-    setPaymentSaving(true);
-    const paidAmount = Number(paymentInput.amount);
-    const monthly = Number(alert.original_amount || 0);
-    const currentBalance = Number(alert.remaining_balance || monthly);
-    const newBalance = Math.max(0, currentBalance - paidAmount);
+  const alert = paymentModal;
+  if (!alert || !paymentInput.amount) return;
+  if (!paymentInput.due_months?.trim()) {
+    setPaymentError(t('يرجى تحديد الشهر المستحق *', 'Please enter the due month *'));
+    return;
+  }
+  if (!paymentInput.receipt_url) {
+    setPaymentError(t('يرجى رفع صورة الإيصال *', 'Please upload a receipt image *'));
+    return;
+  }
+  setPaymentError('');
+  setPaymentSaving(true);
 
-    await base44.entities.Payment.create({
-  tenant_name: alert.tenant_name,
-  unit_number: alert.unit_number,
-  amount: paidAmount,
-  payment_date: today,
-  due_months: paymentInput.due_months || '',
-  status: 'paid',
-  notes: paymentInput.notes || '',
-  receipt_image_url: paymentInput.receipt_url || '',
-  created_by: user?.id || '',
-});
+  const paidAmount   = Number(paymentInput.amount);
+  const monthly      = Number(alert.original_amount || 0);
+  const currentBalance = Number(alert.remaining_balance || monthly);
+  const alertDate    = alert.alert_date || today;
+  const plan         = alert.payment_plan || 'monthly';
+  const planObj      = PAYMENT_PLANS.find(p => p.value === plan);
+  const planLabel    = planObj?.label[lang] || planObj?.label.ar || 'شهري';
 
-    const planObj = PAYMENT_PLANS.find(p => p.value === (alert.payment_plan || 'monthly'));
-    const planLabel = planObj?.label[lang] || planObj?.label.ar || 'شهري';
-    const alertDate = alert.alert_date || today;
-    const isPaidEarly = today < alertDate;
-    const nextDate = getNextDateFromPlan(alertDate, alert.payment_plan || 'monthly');
+  // Save payment record
+  await base44.entities.Payment.create({
+    tenant_name:       alert.tenant_name,
+    unit_number:       alert.unit_number,
+    amount:            paidAmount,
+    payment_date:      today,
+    due_months:        paymentInput.due_months || '',
+    status:            'paid',
+    notes:             paymentInput.notes || '',
+    receipt_image_url: paymentInput.receipt_url || '',
+    created_by:        user?.id || '',
+  });
 
-    if (newBalance === 0) {
-      // سداد كامل → جدول للدورة القادمة بمبلغ شهري
-      const nextStatus = nextDate > today ? 'active' : 'overdue';
-      await base44.entities.PaymentAlert.update(alert.id, {
-        remaining_balance: monthly,
-        last_paid_date: today,
-        last_paid_amount: paidAmount,
-        alert_date: nextDate,
-        next_alert_date: nextDate,
-        status: nextStatus,
-      });
-      setJustPaid({ unit_number: alert.unit_number, tenant_name: alert.tenant_name, next_date: nextDate, plan: planLabel, paid: paidAmount, remaining: 0 });
-    } else {
-      // دفع جزئي → اخصم فقط، ابق على نفس تاريخ الاستحقاق
-      // active إذا لم يحن الموعد بعد، overdue إذا تجاوزناه
-      const partialStatus = isPaidEarly ? 'active' : 'overdue';
-      await base44.entities.PaymentAlert.update(alert.id, {
-        remaining_balance: newBalance,
-        last_paid_date: today,
-        last_paid_amount: paidAmount,
-        status: partialStatus,
-      });
-      setJustPaid({ unit_number: alert.unit_number, tenant_name: alert.tenant_name, next_date: alertDate, plan: planLabel, paid: paidAmount, remaining: newBalance });
+  let newDate, newBalance, nextStatus, periodsAdvanced;
+
+  if (paidAmount >= currentBalance) {
+    // ─── تسويه كاملة + احتساب ما زاد ───────────────────────────
+    const creditAfterCurrent   = paidAmount - currentBalance;
+    const additionalPeriods    = monthly > 0 ? Math.floor(creditAfterCurrent / monthly) : 0;
+    const partialCredit        = monthly > 0 ? creditAfterCurrent % monthly : 0;
+    periodsAdvanced            = 1 + additionalPeriods;
+
+    // تقدّم التاريخ بعدد الدورات
+    newDate = alertDate;
+    for (let i = 0; i < periodsAdvanced; i++) {
+      newDate = getNextDateFromPlan(newDate, plan);
     }
 
-    setTimeout(() => setJustPaid(null), 4000);
-    setPaymentSaving(false);
-    setReceiptUploaded(false);
-    setPaymentModal(null);
-    load();
-  };
+    // الرصيد القادم: إذا فيه كريديت جزئي يُخصم من الدورة الجديدة
+    newBalance  = partialCredit > 0 ? monthly - partialCredit : monthly;
+    nextStatus  = newDate > today ? 'active' : 'overdue';
+
+    await base44.entities.PaymentAlert.update(alert.id, {
+      remaining_balance: newBalance,
+      last_paid_date:    today,
+      last_paid_amount:  paidAmount,
+      alert_date:        newDate,
+      next_alert_date:   newDate,
+      status:            nextStatus,
+    });
+
+    setJustPaid({
+      unit_number:  alert.unit_number,
+      tenant_name:  alert.tenant_name,
+      next_date:    newDate,
+      plan:         planLabel,
+      paid:         paidAmount,
+      remaining:    partialCredit > 0 ? newBalance : 0,
+      periods:      periodsAdvanced,
+    });
+
+  } else {
+    // ─── دفع جزئي على الرصيد الحالي ─────────────────────────────
+    newBalance     = currentBalance - paidAmount;
+    newDate        = alertDate;
+    periodsAdvanced = 0;
+    nextStatus     = today < alertDate ? 'active' : 'overdue';
+
+    await base44.entities.PaymentAlert.update(alert.id, {
+      remaining_balance: newBalance,
+      last_paid_date:    today,
+      last_paid_amount:  paidAmount,
+      status:            nextStatus,
+    });
+
+    setJustPaid({
+      unit_number: alert.unit_number,
+      tenant_name: alert.tenant_name,
+      next_date:   newDate,
+      plan:        planLabel,
+      paid:        paidAmount,
+      remaining:   newBalance,
+      periods:     0,
+    });
+  }
+
+  setTimeout(() => setJustPaid(null), 5000);
+  setPaymentSaving(false);
+  setReceiptUploaded(false);
+  setPaymentModal(null);
+  load();
+};
 
   const handleSendWhatsapp = async (alert) => {
     setWhatsappLoading(alert.id);
@@ -966,35 +1002,66 @@ export default function SmartAlerts() {
                   />
                 </div>
 
-                {/* معاينة بعد الدفع */}
-                {paidNow > 0 && (
-                  <div className="rounded-xl p-3 space-y-1.5" style={{
-                    backgroundColor: isFullyPaid ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.05)',
-                    border: `1px solid ${isFullyPaid ? '#2A9D8F' : '#E63946'}33`
-                  }}>
-                    <p className="text-xs font-bold" style={{ color: isFullyPaid ? '#2A9D8F' : '#E63946' }}>
-                      {isFullyPaid ? t('✅ سيتم تسوية الكامل', '✅ Full payment') : t('⚠️ دفعة جزئية', '⚠️ Partial payment')}
-                    </p>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{t('المدفوع', 'Paid')}</span>
-                      <span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} {t('د.إ', 'AED')}</span>
-                    </div>
-                    {!isFullyPaid && (
-                      <>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">{t('المتبقي بعد الدفع', 'Remaining after payment')}</span>
-                          <span className="font-bold" style={{ color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>{afterPay.toLocaleString()} {t('د.إ', 'AED')}</span>
-                        </div>
-                      </>
-                    )}
-                    {isFullyPaid && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">{t('الدفعة القادمة', 'Next payment')}</span>
-                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{monthly.toLocaleString()} {t('د.إ', 'AED')}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* معاينة ذكية بعد الدفع */}
+{paidNow > 0 && (() => {
+  const creditAfterCurrent = paidNow >= currentTotal
+    ? paidNow - currentTotal : 0;
+  const additionalPeriods  = monthly > 0 && creditAfterCurrent > 0
+    ? Math.floor(creditAfterCurrent / monthly) : 0;
+  const partialCredit      = monthly > 0 && creditAfterCurrent > 0
+    ? creditAfterCurrent % monthly : 0;
+  const periodsToAdvance   = paidNow >= currentTotal ? 1 + additionalPeriods : 0;
+
+  let previewNextDate = alertDate;
+  for (let i = 0; i < periodsToAdvance; i++) {
+    previewNextDate = getNextDateFromPlan(previewNextDate, paymentModal.payment_plan || 'monthly');
+  }
+
+  const previewNextBalance = paidNow >= currentTotal
+    ? (partialCredit > 0 ? monthly - partialCredit : monthly)
+    : currentTotal - paidNow;
+
+  const isFullPay     = paidNow >= currentTotal;
+  const isMultiPeriod = additionalPeriods > 0;
+
+  return (
+    <div className="rounded-xl p-3 space-y-1.5" style={{
+      backgroundColor: isFullPay ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.05)',
+      border: `1px solid ${isFullPay ? '#2A9D8F' : '#E63946'}33`
+    }}>
+      <p className="text-xs font-bold" style={{ color: isFullPay ? '#2A9D8F' : '#E63946' }}>
+        {isFullPay
+          ? isMultiPeriod
+            ? t(`✅ تسويه كاملة + تقدّم ${periodsToAdvance} دورات`, `✅ Full + ${periodsToAdvance} periods advanced`)
+            : t('✅ تسويه كاملة', '✅ Full settlement')
+          : t('⚠️ دفعة جزئية', '⚠️ Partial payment')}
+      </p>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">{t('المدفوع', 'Paid')}</span>
+        <span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} {t('د.إ', 'AED')}</span>
+      </div>
+      {isFullPay && (
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">{t('الدورات المغطاة', 'Periods covered')}</span>
+          <span className="font-bold" style={{ color: '#1B2B4B' }}>{periodsToAdvance}</span>
+        </div>
+      )}
+      <div className="flex justify-between text-xs border-t pt-1">
+        <span className="text-muted-foreground">{t('تاريخ الاستحقاق القادم', 'Next due date')}</span>
+        <span className="font-bold" style={{ color: '#1B2B4B' }}>{previewNextDate}</span>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">{t('الرصيد القادم', 'Next balance')}</span>
+        <span className="font-bold" style={{
+          color: previewNextBalance < monthly ? '#E63946' : '#2A9D8F'
+        }}>
+          {previewNextBalance.toLocaleString()} {t('د.إ', 'AED')}
+          {previewNextBalance < monthly && t(' (جزئي)', ' (partial)')}
+        </span>
+      </div>
+    </div>
+  );
+})()}
 
                 {/* رفع الإيصال - إجباري */}
 <div className="space-y-1.5">
