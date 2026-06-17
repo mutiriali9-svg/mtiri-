@@ -134,6 +134,7 @@ export default function Layout() {
   const { lang, setLang } = useLang();
 
   // ── Notification counts ──────────────────────────────────────────────────
+  
   const [newPaymentsCount, setNewPaymentsCount] = useState(0);
   const [newExpensesCount, setNewExpensesCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
@@ -221,32 +222,23 @@ export default function Layout() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // ── Load notification counts ───────────────
+
   useEffect(() => {
-    if (!user?.role) return;
-    const loadRequests = async () => {
-      const requests = await base44.entities.RegistrationRequest.list();
-      const pendingRequests = requests.filter(r => r.status === 'pending');
-      setRegistrationRequestsCount(pendingRequests.length);
-    };
-    loadRequests();
-    const interval = setInterval(loadRequests, 60000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-
-  
- // ── Load notification counts (payments + expenses + notes) ───────────────
-useEffect(() => {
   if (!user?.role) return;
   if (user.role !== 'admin' && user.role !== 'investor') return;
   const loadCounts = async () => {
-    console.log('ENTITIES:', Object.keys(base44.entities));
+    const notifs = await base44.entities.Notification.list('-created_at', 200);
+    const unread = notifs.filter(n => n.is_read === false);
+    setNewPaymentsCount(unread.length);
   };
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
   return () => clearInterval(interval);
 }, [user]);
-  // ────────────────────────────────────────────────────────────────────────
+
+
+
 
   const isAdmin = user?.role === 'admin';
 

@@ -109,6 +109,7 @@ export const base44 = {
     RePayment: makeEntity('re_payments'),
     ReInvestor: makeEntity('re_investors'),
     ReExpense: makeEntity('re_expenses'),
+    Notification: makeEntity('notifications'),
   },
   functions: {
     invoke: async (name, data) => {
