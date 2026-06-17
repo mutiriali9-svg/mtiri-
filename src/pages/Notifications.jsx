@@ -2,26 +2,32 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Bell, CreditCard, Receipt, ArrowRight, ChevronDown, X, Image, FileText, Calendar, Hash, Building2, User } from 'lucide-react';
+import { Bell, CreditCard, Receipt, ArrowRight, X, Image, FileText, Calendar, Hash, Building2, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const categoryLabels = {
   ar: { maintenance: 'صيانة', salary: 'رواتب', utilities: 'مرافق', equipment: 'معدات', cleaning: 'نظافة', admin: 'إدارة', marketing: 'تسويق', insurance: 'تأمين', savings: 'ادخار', other: 'أخرى' },
   en: { maintenance: 'Maintenance', salary: 'Salary', utilities: 'Utilities', equipment: 'Equipment', cleaning: 'Cleaning', admin: 'Admin', marketing: 'Marketing', insurance: 'Insurance', savings: 'Savings', other: 'Other' },
 };
-
 const paymentMethodLabels = {
   ar: { cash: 'نقداً', bank_transfer: 'تحويل بنكي', cheque: 'شيك', other: 'أخرى' },
   en: { cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque', other: 'Other' },
 };
 
-const PREVIEW_COUNT = 8;
+function Row({ icon, label, value }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0">
+      <span className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="text-muted-foreground/60">{icon}</span>{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
 
-function DetailModal({ item, onClose, lang }) {
-  if (!item) return null;
-  const isPayment = item._type === 'payment';
+function DetailModal({ notif, onClose, lang }) {
+  if (!notif) return null;
+  const item = notif.reference_data || {};
+  const isPayment = notif.type === 'payment';
   const isAr = lang === 'ar';
-  const catLabels = categoryLabels[lang] || categoryLabels.ar;
   const payLabels = paymentMethodLabels[lang] || paymentMethodLabels.ar;
 
   return (
@@ -42,7 +48,7 @@ function DetailModal({ item, onClose, lang }) {
           <div className="rounded-2xl p-4 text-center" style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.08)' : 'rgba(230,57,70,0.08)' }}>
             <p className="text-xs text-muted-foreground mb-1">{isPayment ? (isAr ? 'المبلغ المدفوع' : 'Amount Paid') : (isAr ? 'المبلغ' : 'Amount')}</p>
             <p className="text-3xl font-bold" style={{ color: isPayment ? '#2A9D8F' : '#E63946' }}>
-              {(item.amount || 0).toLocaleString()}<span className="text-lg mr-1">AED</span>
+              {(notif.amount || 0).toLocaleString()}<span className="text-lg mr-1">AED</span>
             </p>
           </div>
           <div className="space-y-3">
@@ -89,75 +95,42 @@ function DetailModal({ item, onClose, lang }) {
   );
 }
 
-function Row({ icon, label, value }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0">
-      <span className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="text-muted-foreground/60">{icon}</span>{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
-    </div>
-  );
-}
-
 export default function Notifications() {
   const { user } = useAuth();
   const { lang } = useLang();
   const isAr = lang === 'ar';
   const navigate = useNavigate();
-  const [feed, setFeed] = useState([]);
+  const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
-  const [seenAt, setSeenAt] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     if (!user) return;
     if (user.role !== 'admin' && user.role !== 'investor' && user.role !== 'tester') { setLoading(false); return; }
     const fetchData = async () => {
       setLoading(true);
-      const RESET_DATE = '2026-06-01T00:00:00.000Z';
-      const savedSeenAt = localStorage.getItem('notifications_seen_at');
-      setSeenAt(new Date(savedSeenAt || RESET_DATE));
-
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 30);
-      const cutoffStr = cutoff.toISOString().split('T')[0];
-
-      const [pays, exps] = await Promise.all([
-        base44.entities.Payment.list('-payment_date', 200),
-        base44.entities.Expense.list('-expense_date', 200),
-      ]);
-
-      const payments = pays
-        .filter(p => p.payment_date && p.payment_date >= cutoffStr)
-        .map(p => ({ ...p, _type: 'payment', _sortDate: p.payment_date }));
-
-      const expenses = exps
-        .filter(e => e.expense_date && e.expense_date >= cutoffStr)
-        .map(e => ({ ...e, _type: 'expense', _sortDate: e.expense_date }));
-
-      const combined = [...payments, ...expenses].sort((a, b) =>
-        b._sortDate.localeCompare(a._sortDate)
-      );
-
-      setFeed(combined);
+      const data = await base44.entities.Notification.list('-created_at', 200);
+      setNotifs(data.filter(n => n.is_read === false));
       setLoading(false);
     };
     fetchData();
   }, [user]);
 
-  // Mark as seen on visit
-  
+  const openNotif = async (notif) => {
+    setSelected(notif);
+    setNotifs(prev => prev.filter(n => n.id !== notif.id));
+    base44.entities.Notification.update(notif.id, { is_read: true }).catch(() => {});
+  };
+
   if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
     return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
   }
 
-  const visibleFeed = showAll ? feed : feed.slice(0, PREVIEW_COUNT);
-  const paymentsCount = feed.filter(i => i._type === 'payment').length;
-  const expensesCount = feed.filter(i => i._type === 'expense').length;
+  const payments = notifs.filter(n => n.type === 'payment');
+  const expenses = notifs.filter(n => n.type === 'expense');
 
   return (
     <div className="space-y-5 animate-fade-in-up" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/dashboard')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowRight size={18} />
@@ -167,76 +140,48 @@ export default function Notifications() {
         </div>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{isAr ? 'الإشعارات' : 'Notifications'}</h1>
-          <p className="text-xs text-muted-foreground">{isAr ? 'آخر 30 يوم' : 'Last 30 days'}</p>
+          <p className="text-xs text-muted-foreground">{notifs.length > 0 ? `${notifs.length} ${isAr ? 'إشعار جديد' : 'new'}` : (isAr ? 'لا توجد إشعارات جديدة' : 'No new notifications')}</p>
         </div>
       </div>
 
-      {/* Stats */}
-      {!loading && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white card-bevel rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(42,157,143,0.1)' }}>
-              <CreditCard size={18} style={{ color: '#2A9D8F' }} />
+      {loading ? (
+        <div className="space-y-3">
+          {[1,2].map(i => (
+            <div key={i} className="bg-white card-bevel rounded-2xl p-5">
+              <div className="h-4 bg-muted rounded animate-pulse mb-2 w-1/3" />
+              <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{isAr ? 'الدفعات' : 'Payments'}</p>
-              <p className="text-xl font-bold" style={{ color: '#2A9D8F' }}>{paymentsCount}</p>
-            </div>
-          </div>
-          <div className="bg-white card-bevel rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
-              <Receipt size={18} style={{ color: '#E63946' }} />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{isAr ? 'المصروفات' : 'Expenses'}</p>
-              <p className="text-xl font-bold" style={{ color: '#E63946' }}>{expensesCount}</p>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
-
-      {/* Combined Feed */}
-      <div className="bg-white card-bevel rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
-            {isAr ? 'الدفعات والمصروفات الحديثة' : 'Recent Payments & Expenses'}
-          </span>
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>{feed.length}</span>
+      ) : notifs.length === 0 ? (
+        <div className="bg-white card-bevel rounded-2xl p-12 flex flex-col items-center gap-3 text-muted-foreground">
+          <Bell size={40} className="opacity-20" />
+          <p className="text-sm">{isAr ? 'لا توجد إشعارات جديدة' : 'No new notifications'}</p>
         </div>
-
-        <div className="divide-y divide-border">
-          {loading ? (
-            [1,2,3,4].map(i => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3">
-                <div className="w-9 h-9 rounded-xl bg-muted animate-pulse flex-shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3.5 bg-muted rounded animate-pulse w-1/3" />
-                  <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
-                </div>
-              </div>
-            ))
-          ) : feed.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              {isAr ? 'لا توجد بيانات خلال آخر 30 يوم' : 'No data in the last 30 days'}
-            </div>
-          ) : (
-            visibleFeed.map(item => {
-              const isPayment = item._type === 'payment';
+      ) : (
+        <div className="bg-white card-bevel rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
+              {isAr ? 'الدفعات والمصروفات الجديدة' : 'New Payments & Expenses'}
+            </span>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>{notifs.length}</span>
+          </div>
+          <div className="divide-y divide-border">
+            {notifs.map(n => {
+              const isPayment = n.type === 'payment';
               const color = isPayment ? '#2A9D8F' : '#E63946';
               const bgColor = isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)';
               const Icon = isPayment ? CreditCard : Receipt;
-              const isNew = seenAt && item.created_at && new Date(item.created_at) > seenAt;
+              const item = n.reference_data || {};
               const date = isPayment ? item.payment_date : item.expense_date;
-              const label = isPayment ? item.tenant_name : item.description;
-              const sub = isPayment
-                ? (item.unit_number ? `${isAr ? 'وحدة' : 'Unit'} ${item.unit_number}` : '')
-                : ((categoryLabels[lang]||categoryLabels.ar)[item.category] || item.category || '');
+              const label = isPayment ? (item.tenant_name || n.title) : (item.description || n.title);
 
               return (
                 <div
-                  key={`${item._type}-${item.id}`}
-                  onClick={() => setSelectedItem(item)}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors ${isNew ? 'bg-amber-50/30' : ''}`}
+                  key={n.id}
+                  onClick={() => openNotif(n)}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors"
+                  style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.04)' : 'rgba(230,57,70,0.04)' }}
                 >
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bgColor }}>
                     <Icon size={16} style={{ color }} />
@@ -244,40 +189,19 @@ export default function Notifications() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm truncate" style={{ color: '#1B2B4B' }}>{label}</p>
-                      {isNew && <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />}
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {date ? new Date(date).toLocaleDateString() : ''}
-                      {sub ? ` · ${sub}` : ''}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{date ? new Date(date).toLocaleDateString() : ''}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="font-bold text-sm" style={{ color }}>{(item.amount || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED</span></p>
-                    {(isPayment ? item.receipt_image_url : item.invoice_image_url) && (
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: bgColor }}>
-                        <Image size={11} style={{ color }} />
-                      </span>
-                    )}
-                  </div>
+                  <p className="font-bold text-sm shrink-0" style={{ color }}>{(n.amount || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED</span></p>
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
         </div>
+      )}
 
-        {feed.length > PREVIEW_COUNT && (
-          <button
-            onClick={() => setShowAll(p => !p)}
-            className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-semibold hover:bg-muted/50 transition-colors"
-            style={{ color: '#1B2B4B' }}
-          >
-            {showAll ? (isAr ? 'عرض أقل' : 'Show less') : `${isAr ? 'عرض المزيد' : 'Show more'} (${feed.length - PREVIEW_COUNT})`}
-            <ChevronDown size={15} className={`transition-transform ${showAll ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-      </div>
-
-      {selectedItem && <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} lang={lang} />}
+      {selected && <DetailModal notif={selected} onClose={() => setSelected(null)} lang={lang} />}
     </div>
   );
 }
