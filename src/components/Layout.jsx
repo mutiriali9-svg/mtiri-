@@ -751,6 +751,7 @@ useEffect(() => {
           <div className="flex items-center gap-2 ml-auto">
             <NotificationDropdown
               lang={lang}
+              userId={user?.id}
               newPaymentsCount={newPaymentsCount}
               newExpensesCount={newExpensesCount}
               urgentAlertsCount={urgentAlertsCount}

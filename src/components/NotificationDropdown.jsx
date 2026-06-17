@@ -2,12 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList, CreditCard, Receipt, StickyNote } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export default function NotificationDropdown({ lang, newPaymentsCount, newExpensesCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, notesCount, userRole, onBellClick }) {
+export default function NotificationDropdown({ lang, userId, newPaymentsCount, newExpensesCount, urgentAlertsCount, expiredContractsCount, registrationRequestsCount, notesCount, userRole, onBellClick }) {
   
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isRtl = lang === 'ar';
-  const [seenCount, setSeenCount] = useState(() => Number(localStorage.getItem('bell_seen_count') || 0));
+  const [seenCount, setSeenCount] = useState(() => Number(localStorage.getItem(`bell_seen_count_${userId}`) || 0));
 
   const combinedFinanceCount = (newPaymentsCount || 0) + (newExpensesCount || 0);
 
@@ -99,7 +99,7 @@ export default function NotificationDropdown({ lang, newPaymentsCount, newExpens
   setOpen(willOpen);
   if (willOpen) {
     setSeenCount(totalCount);
-    localStorage.setItem('bell_seen_count', String(totalCount));
+    localStorage.setItem(`bell_seen_count_${userId}`, String(totalCount));
     if (onBellClick) onBellClick();
   }
 }}
