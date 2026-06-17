@@ -3,7 +3,7 @@ import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Plus, Search, Edit2, Trash2, Building2, Home, Phone, Upload, X, FileImage, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Building2, Phone, Upload, X, FileImage, Loader2 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -297,7 +297,7 @@ export default function Units() {
                 const sc = statusConfig[u.status] || statusConfig.vacant;
                 const expTag = getExpiryTag(u.contract_end);
                 const isExpired = u.contract_end && differenceInDays(parseISO(u.contract_end), new Date()) < 0;
-                const TypeIcon = u._type === 're' ? Home : Building2;
+                const TypeIcon = Building2;
                 return (
                   <tr key={`${u._type}-${u.id}`} onClick={() => setViewUnit(u)}
                     className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer"
@@ -362,7 +362,7 @@ export default function Units() {
           const sc = statusConfig[u.status] || statusConfig.vacant;
           const expTag = getExpiryTag(u.contract_end);
           const isExpired = u.contract_end && differenceInDays(parseISO(u.contract_end), new Date()) < 0;
-          const TypeIcon = u._type === 're' ? Home : Building2;
+          const TypeIcon = Building2;
           return (
             <div key={`${u._type}-${u.id}`} onClick={() => setViewUnit(u)}
               className="card-bevel rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer active:bg-muted/30"
