@@ -117,10 +117,15 @@ export default function Notifications() {
   }, [user]);
 
   const openNotif = async (notif) => {
-    setSelected(notif);
-    setNotifs(prev => prev.filter(n => n.id !== notif.id));
-    base44.entities.Notification.update(notif.id, { is_read: true }).catch(() => {});
-  };
+  setSelected(notif);
+  setNotifs(prev => prev.filter(n => n.id !== notif.id));
+  try {
+    const r = await base44.entities.Notification.update(notif.id, { is_read: true });
+    console.log('UPDATE OK:', r);
+  } catch (e) {
+    console.log('UPDATE ERROR:', e);
+  }
+};
 
   if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
     return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
