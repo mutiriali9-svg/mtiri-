@@ -316,15 +316,16 @@ export default function SmartAlerts() {
 
 base44.entities.Notification.create({
     type: 'payment',
-    title: `دفعة ${alert.tenant_name} - وحدة ${alert.unit_number || ''}`,
+    title: `دفعة جديدة — ${alert.tenant_name}`,
     amount: paidAmount,
-    is_read: false,
+    reference_id: '',
     reference_data: {
       tenant_name: alert.tenant_name,
       unit_number: alert.unit_number,
       amount: paidAmount,
       payment_date: today,
       due_months: paymentInput.due_months || '',
+      notes: paymentInput.notes || '',
       receipt_image_url: paymentInput.receipt_url || '',
     },
   }).catch(() => {});
