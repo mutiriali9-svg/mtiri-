@@ -86,9 +86,8 @@ export default function NotificationDropdown({ lang, newPaymentsCount, newExpens
     icon: StickyNote,
     label: isRtl ? 'الملاحظات' : 'Notes',
     count: notesCount || 0,
-    color: (notesCount || 0) > 0 ? '#A8B2C0' : '#6B7280',
+    color: (notesCount || 0) > 0 ? '#E63946' : '#6B7280',
     to: '/notes',
-    silver: true,
   });
 
   return (
