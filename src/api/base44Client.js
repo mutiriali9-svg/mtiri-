@@ -97,6 +97,7 @@ export const base44 = {
   entities: {
     User: makeEntity('users'),
     Unit: makeEntity('units_masked'),
+    UnitWrite: makeEntity('units'),
     Payment: makeEntity('payments'),
     Investor: makeEntity('investors'),
     Expense: makeEntity('expenses'),

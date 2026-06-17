@@ -93,7 +93,7 @@ export default function Units() {
       setUnits(prev => prev.map(u => u.id === editUnit.id ? { ...u, ...data } : u));
       setDialogOpen(false);
       setSaving(false);
-      await base44.entities.Unit.update(editUnit.id, data);
+      await base44.entities.UnitWrite.update(editUnit.id, data);
       logActivity('update', { ...editUnit, ...data }, editUnit, data);
       toast({ description: t('unitUpdated') });
       fetchUnits();
@@ -102,7 +102,7 @@ export default function Units() {
       setUnits(prev => [{ ...data, id: tempId }, ...prev]);
       setDialogOpen(false);
       setSaving(false);
-      const created = await base44.entities.Unit.create(data);
+      const created = await base44.entities.UnitWrite.create(data);
       logActivity('create', { ...data, id: created?.id }, null, data);
       toast({ description: t('unitAdded') });
       fetchUnits();
@@ -114,7 +114,7 @@ export default function Units() {
     setConfirmDelete({ message: 'هل تريد حذف هذه الوحدة؟', onConfirm: async () => {
       setUnits(prev => prev.filter(u => u.id !== id));
       setConfirmDelete(null);
-      await base44.entities.Unit.delete(id);
+      await base44.entities.UnitWrite.delete(id);
       logActivity('delete', { ...unit, id }, unit, null);
       toast({ description: t('unitDeleted') });
       fetchUnits();
