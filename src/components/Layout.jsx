@@ -226,8 +226,18 @@ export default function Layout() {
   const loadCounts = async () => {
   if (!user?.role) return;
   if (user.role !== 'admin' && user.role !== 'investor') return;
-  const notifs = await base44.entities.Notification.list('-created_at', 200);
-  const unread = notifs.filter(n => n.is_read === false);
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+
+  const [notifs, myReads] = await Promise.all([
+    base44.entities.Notification.list('-created_at', 200),
+    base44.entities.NotificationRead.filter({ user_id: user.id }),
+  ]);
+  const readIds = new Set(myReads.map(r => r.notification_id));
+  const unread = notifs.filter(n =>
+    n.created_at && new Date(n.created_at) >= cutoff && !readIds.has(n.id)
+  );
   setNewPaymentsCount(unread.length);
 
   const seenNotesAt = new Date(localStorage.getItem('notes_seen_at') || '2024-01-01T00:00:00.000Z');

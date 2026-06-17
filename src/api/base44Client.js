@@ -111,6 +111,7 @@ export const base44 = {
     ReInvestor: makeEntity('re_investors'),
     ReExpense: makeEntity('re_expenses'),
     Notification: makeEntity('notifications'),
+    NotificationRead: makeEntity('notification_reads'),
     Note: makeEntity('notes'),
     
   },

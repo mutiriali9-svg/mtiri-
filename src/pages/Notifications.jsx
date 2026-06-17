@@ -116,10 +116,19 @@ export default function Notifications() {
       setNotifs(recent);
       setLoading(false);
 
-      // علّم كل غير المقروء كمقروء تلقائياً
-      const unread = recent.filter(n => n.is_read === false);
-      for (const n of unread) {
-        base44.entities.Notification.update(n.id, { is_read: true }).catch(() => {});
+      // علّم كل إشعار كمقروء لهذا اليوزر فقط (في جدول notification_reads)
+      try {
+        const myReads = await base44.entities.NotificationRead.filter({ user_id: user.id });
+        const readIds = new Set(myReads.map(r => r.notification_id));
+        const toMark = recent.filter(n => !readIds.has(n.id));
+        for (const n of toMark) {
+          base44.entities.NotificationRead.create({
+            user_id: user.id,
+            notification_id: n.id,
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.log('reads error:', e);
       }
       window.dispatchEvent(new Event('notifications-updated'));
     };
