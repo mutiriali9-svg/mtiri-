@@ -62,19 +62,34 @@ export default function Units() {
   };
 
   const fetchUnits = useCallback(async () => {
-  setLoading(true);
-  try {
-    const data = await base44.entities.Unit.list();
-    console.log('fetchUnits result:', data?.length, data);
-    setUnits(data || []);
-  } catch (err) {
-    console.error('fetchUnits ERROR:', err);
-  }
-  setLoading(false);
-}, []);
+    setLoading(true);
+    try {
+      const data = await base44.entities.Unit.list();
+      console.log('fetchUnits result:', data?.length, data);
+      setUnits(data || []);
+    } catch (err) {
+      console.error('fetchUnits ERROR:', err);
+    }
+    setLoading(false);
+  }, []);
 
-useEffect(() => { fetchUnits(); }, []);
-const refreshing = usePullToRefresh(fetchUnits);
+  useEffect(() => { fetchUnits(); }, []);
+  const refreshing = usePullToRefresh(fetchUnits);
+
+  const openAdd = () => { setEditUnit(null); setForm(emptyUnit); setDialogOpen(true); };
+  const openEdit = (u) => { setEditUnit(u); setForm({ ...emptyUnit, ...u }); setDialogOpen(true); };
+
+  const logActivity = (action, unit, oldData = null, newData = null) => {
+    base44.functions.invoke('logActivity', {
+      action,
+      entity_type: 'Unit',
+      entity_id: unit?.id || '',
+      entity_label: `وحدة ${unit?.unit_number || ''} - ${unit?.tenant_name || ''}`,
+      changes_summary: action === 'create' ? `إضافة وحدة ${unit?.unit_number}` : action === 'update' ? `تعديل وحدة ${unit?.unit_number}` : `حذف وحدة ${unit?.unit_number}`,
+      old_data: oldData,
+      new_data: newData,
+    }).catch(() => {});
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -110,7 +125,6 @@ const refreshing = usePullToRefresh(fetchUnits);
       fetchUnits();
     }});
   };
-
   const getExpiryTag = (contract_end) => {
     if (!contract_end) return null;
     const d = parseISO(contract_end);
@@ -137,7 +151,6 @@ const refreshing = usePullToRefresh(fetchUnits);
     return a.unit_number.localeCompare(b.unit_number);
   });
 
-  // Investors can view units but not edit
   const canViewUnits = isAdmin || user?.role === 'data_entry' || isInvestor;
 
   return (
@@ -154,7 +167,6 @@ const refreshing = usePullToRefresh(fetchUnits);
         )}
       />
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-52">
           <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
@@ -178,7 +190,6 @@ const refreshing = usePullToRefresh(fetchUnits);
         </Select>
       </div>
 
-      {/* Summary Pills + Year Filter */}
       <div className="flex gap-3 flex-wrap items-center">
         {Object.entries(statusConfig).map(([k, v]) => {
           const count = units.filter(u => u.status === k).length;
@@ -229,8 +240,9 @@ const refreshing = usePullToRefresh(fetchUnits);
                 const expTag = getExpiryTag(u.contract_end);
                 const isExpired = u.contract_end && differenceInDays(parseISO(u.contract_end), new Date()) < 0;
                 return (
-                <tr key={u.id} onClick={() => setViewUnit(u)} className={`border-b border-border/50 hover:bg-surface transition-colors cursor-pointer`}
-                  style={{ backgroundColor: isExpired ? 'rgba(230,57,70,0.07)' : i % 2 === 1 ? '#F8F9FA' : undefined }}>
+                  <tr key={u.id} onClick={() => setViewUnit(u)}
+                    className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer"
+                    style={{ backgroundColor: isExpired ? 'rgba(230,57,70,0.07)' : i % 2 === 1 ? '#F8F9FA' : undefined }}>
                     <td className="py-3 px-4 font-bold">
                       <div className="flex items-center gap-2 font-bold" style={{ color: '#1B2B4B' }}>
                         <Building2 size={14} className="text-muted-foreground" />
@@ -238,9 +250,7 @@ const refreshing = usePullToRefresh(fetchUnits);
                       </div>
                     </td>
                     <td className="py-3 px-4 font-medium max-w-40">
-                      <div className="truncate font-semibold" style={{ color: '#1B2B4B' }}>
-                        {u.tenant_name || '-'}
-                      </div>
+                      <div className="truncate font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</div>
                       {u.owner_phone && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Phone size={10} />{u.owner_phone}
@@ -274,14 +284,17 @@ const refreshing = usePullToRefresh(fetchUnits);
                     <td className="py-3 px-4" onClick={ev => ev.stopPropagation()}>
                       {canEdit && (
                         <div className="flex items-center gap-1">
-                          <button onClick={() => navigate(`/units/${encodeURIComponent(u.unit_number)}`)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy" title="عرض التفاصيل">
+                          <button onClick={() => navigate(`/units/${encodeURIComponent(u.unit_number)}`)}
+                            className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy">
                             <Building2 size={14} />
                           </button>
-                          <button onClick={() => openEdit(u)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy">
+                          <button onClick={() => openEdit(u)}
+                            className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy">
                             <Edit2 size={14} />
                           </button>
                           {isAdmin && (
-                            <button onClick={() => handleDelete(u.id)} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                            <button onClick={() => handleDelete(u.id)}
+                              className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
                               <Trash2 size={14} />
                             </button>
                           )}
@@ -312,7 +325,8 @@ const refreshing = usePullToRefresh(fetchUnits);
           const expTag = getExpiryTag(u.contract_end);
           const isExpired = u.contract_end && differenceInDays(parseISO(u.contract_end), new Date()) < 0;
           return (
-            <div key={u.id} onClick={() => setViewUnit(u)} className="card-bevel rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer active:bg-muted/30"
+            <div key={u.id} onClick={() => setViewUnit(u)}
+              className="card-bevel rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer active:bg-muted/30"
               style={{ backgroundColor: isExpired ? 'rgba(230,57,70,0.07)' : '#ffffff', border: isExpired ? '1px solid rgba(230,57,70,0.25)' : undefined }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -324,36 +338,30 @@ const refreshing = usePullToRefresh(fetchUnits);
                   {sc.label}
                 </span>
               </div>
-              
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('tenantName')}</span>
                   <span className="text-sm font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</span>
                 </div>
-                
                 {u.owner_phone && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Phone size={12} />{u.owner_phone}
                   </div>
                 )}
-                
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('nationality')}</span>
                   <span className="text-sm">{u.nationality || '-'}</span>
                 </div>
-                
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('annualRent')}</span>
                   <span className="text-sm font-semibold" style={{ color: '#1B2B4B' }}>
                     {u.annual_rent ? `${u.annual_rent.toLocaleString()} AED` : '-'}
                   </span>
                 </div>
-                
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('paymentPlan')}</span>
                   <span className="text-xs text-muted-foreground">{u.payment_plan || '-'}</span>
                 </div>
-                
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('contractEnd')}</span>
                   <div className="flex items-center gap-2">
@@ -367,19 +375,18 @@ const refreshing = usePullToRefresh(fetchUnits);
                   </div>
                 </div>
               </div>
-              
               {canEdit && (
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border" onClick={ev => ev.stopPropagation()}>
                   <button onClick={() => navigate(`/units/${encodeURIComponent(u.unit_number)}`)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-muted transition-colors text-sm">
                     <Building2 size={14} /> {t('details') || 'التفاصيل'}
                   </button>
-                  <button onClick={() => openEdit(u)} 
+                  <button onClick={() => openEdit(u)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-muted transition-colors text-sm">
                     <Edit2 size={14} />{t('edit')}
                   </button>
                   {isAdmin && (
-                    <button onClick={() => handleDelete(u.id)} 
+                    <button onClick={() => handleDelete(u.id)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-destructive/10 transition-colors text-sm text-destructive">
                       <Trash2 size={14} />{t('delete')}
                     </button>
@@ -425,7 +432,8 @@ const refreshing = usePullToRefresh(fetchUnits);
                     <span className="font-medium text-sm" style={{ color: '#1B2B4B' }}>
                       {row.value}
                       {row.label === 'نهاية العقد' && expTag && (
-                        <span className="mr-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: expTag.bg, color: expTag.color }}>{expTag.label}</span>
+                        <span className="mr-2 text-xs font-bold px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: expTag.bg, color: expTag.color }}>{expTag.label}</span>
                       )}
                     </span>
                   </div>
@@ -452,7 +460,7 @@ const refreshing = usePullToRefresh(fetchUnits);
         </DialogContent>
       </Dialog>
 
-      {/* Dialog */}
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto font-cairo">
           <DialogHeader>
@@ -496,7 +504,6 @@ const refreshing = usePullToRefresh(fetchUnits);
               <Label className="text-sm">{t('notes')}</Label>
               <Input value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
-
             <div className="sm:col-span-2 space-y-1.5">
               <Label className="text-sm">{t('contractImage')}</Label>
               <div className="flex items-center gap-3">
@@ -507,14 +514,9 @@ const refreshing = usePullToRefresh(fetchUnits);
                   className="hidden"
                   onChange={e => handleContractUpload(e.target.files[0])}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                <Button type="button" variant="outline" size="sm"
                   onClick={() => contractFileRef.current?.click()}
-                  disabled={uploadingContract}
-                  className="gap-2"
-                >
+                  disabled={uploadingContract} className="gap-2">
                   {uploadingContract ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                   {uploadingContract ? t('uploading') : t('uploadContract')}
                 </Button>
@@ -522,8 +524,7 @@ const refreshing = usePullToRefresh(fetchUnits);
                   <div className="flex items-center gap-2">
                     <a href={form.contract_image_url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs hover:underline" style={{ color: '#1B2B4B' }}>
-                      <FileImage size={14} />
-                      {t('viewContract')}
+                      <FileImage size={14} />{t('viewContract')}
                     </a>
                     <button type="button" onClick={() => setForm(p => ({ ...p, contract_image_url: '' }))}
                       className="text-destructive hover:opacity-70">
