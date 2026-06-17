@@ -224,14 +224,15 @@ export default function Layout() {
 
   // ── Load notification counts ───────────────
 
-  useEffect(() => {
+  const loadCounts = async () => {
   if (!user?.role) return;
   if (user.role !== 'admin' && user.role !== 'investor') return;
-  const loadCounts = async () => {
-    const notifs = await base44.entities.Notification.list('-created_at', 200);
-    const unread = notifs.filter(n => n.is_read === false);
-    setNewPaymentsCount(unread.length);
-  };
+  const notifs = await base44.entities.Notification.list('-created_at', 200);
+  const unread = notifs.filter(n => n.is_read === false);
+  setNewPaymentsCount(unread.length);
+};
+
+useEffect(() => {
   loadCounts();
   const interval = setInterval(loadCounts, 30000);
   return () => clearInterval(interval);
@@ -255,13 +256,12 @@ export default function Layout() {
   const isRtl = lang === 'ar';
   const navLabel = (key) => navLabels[lang]?.[key] || key;
 
-  useEffect(() => {
+ useEffect(() => {
   if (location.pathname === '/notifications') {
     const now = new Date();
     localStorage.setItem('notifications_seen_at', now.toISOString());
-    seenAtRef.current = now; // ← الإصلاح الحاسم: sync الـ ref مع localStorage
-    
-    
+    seenAtRef.current = now;
+    setTimeout(loadCounts, 2000);
   }
   if (location.pathname === '/notes') {
     setNotesCount(0);

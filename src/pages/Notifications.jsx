@@ -104,17 +104,19 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
-    if (!user) return;
-    if (user.role !== 'admin' && user.role !== 'investor' && user.role !== 'tester') { setLoading(false); return; }
-    const fetchData = async () => {
-      setLoading(true);
-      const data = await base44.entities.Notification.list('-created_at', 200);
-      setNotifs(data.filter(n => n.is_read === false));
-      setLoading(false);
-    };
-    fetchData();
-  }, [user]);
+  const loadCounts = async () => {
+  if (!user?.role) return;
+  if (user.role !== 'admin' && user.role !== 'investor') return;
+  const notifs = await base44.entities.Notification.list('-created_at', 200);
+  const unread = notifs.filter(n => n.is_read === false);
+  setNewPaymentsCount(unread.length);
+};
+
+useEffect(() => {
+  loadCounts();
+  const interval = setInterval(loadCounts, 30000);
+  return () => clearInterval(interval);
+}, [user]);
 
   const openNotif = async (notif) => {
     setSelected(notif);
