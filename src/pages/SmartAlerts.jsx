@@ -1021,42 +1021,82 @@ export default function SmartAlerts() {
     ? (partialCredit > 0 ? monthly - partialCredit : monthly)
     : currentTotal - paidNow;
 
-  const isFullPay     = paidNow >= currentTotal;
-  const isMultiPeriod = additionalPeriods > 0;
+  const isFullPay      = paidNow >= currentTotal;
+  const hasCredit      = isFullPay && partialCredit > 0;
+  const isPartialPay   = !isFullPay;
+
+  // لون الرصيد القادم
+  const balanceColor = hasCredit
+    ? '#C9A84C'           // أصفر — كريديت متبقي
+    : isPartialPay
+      ? '#E63946'         // أحمر — متأخر فعلي
+      : '#2A9D8F';        // أخضر — كامل طبيعي
+
+  // عنوان الحالة
+  const statusLabel = isPartialPay
+    ? t('⚠️ دفعة جزئية', '⚠️ Partial payment')
+    : hasCredit
+      ? t('✅ تسوية + جزئي للدورة القادمة', '✅ Settlement + Partial next cycle')
+      : additionalPeriods > 0
+        ? t(`✅ تسوية + ${periodsToAdvance} دورات`, `✅ Settlement + ${periodsToAdvance} periods`)
+        : t('✅ تسوية كاملة', '✅ Full settlement');
+
+  const statusColor = isPartialPay ? '#E63946' : '#2A9D8F';
+
+  // مبلغ الدورة حسب الخطة
+  const planObj2 = PAYMENT_PLANS.find(p => p.value === (paymentModal.payment_plan || 'monthly'));
+  const planLabel2 = planObj2?.label[lang] || planObj2?.label.ar || '';
+  const periodAmount = monthly;
 
   return (
     <div className="rounded-xl p-3 space-y-1.5" style={{
       backgroundColor: isFullPay ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.05)',
       border: `1px solid ${isFullPay ? '#2A9D8F' : '#E63946'}33`
     }}>
-      <p className="text-xs font-bold" style={{ color: isFullPay ? '#2A9D8F' : '#E63946' }}>
-        {isFullPay
-          ? isMultiPeriod
-            ? t(`✅ تسويه كاملة + تقدّم ${periodsToAdvance} دورات`, `✅ Full + ${periodsToAdvance} periods advanced`)
-            : t('✅ تسويه كاملة', '✅ Full settlement')
-          : t('⚠️ دفعة جزئية', '⚠️ Partial payment')}
+      {/* العنوان */}
+      <p className="text-xs font-bold" style={{ color: statusColor }}>
+        {statusLabel}
       </p>
+
+      {/* المدفوع */}
       <div className="flex justify-between text-xs">
         <span className="text-muted-foreground">{t('المدفوع', 'Paid')}</span>
-        <span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} {t('د.إ', 'AED')}</span>
+        <span className="font-bold" style={{ color: '#2A9D8F' }}>
+          {paidNow.toLocaleString()} {t('د.إ', 'AED')}
+        </span>
       </div>
+
+      {/* مبلغ الدورة */}
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">
+          {t(`الدورة (${planLabel2})`, `Cycle (${planLabel2})`)}
+        </span>
+        <span className="font-bold" style={{ color: '#1B2B4B' }}>
+          {periodAmount.toLocaleString()} {t('د.إ', 'AED')}
+        </span>
+      </div>
+
+      {/* الدورات المغطاة */}
       {isFullPay && (
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">{t('الدورات المغطاة', 'Periods covered')}</span>
           <span className="font-bold" style={{ color: '#1B2B4B' }}>{periodsToAdvance}</span>
         </div>
       )}
+
+      {/* تاريخ الاستحقاق القادم */}
       <div className="flex justify-between text-xs border-t pt-1">
         <span className="text-muted-foreground">{t('تاريخ الاستحقاق القادم', 'Next due date')}</span>
         <span className="font-bold" style={{ color: '#1B2B4B' }}>{previewNextDate}</span>
       </div>
+
+      {/* الرصيد القادم */}
       <div className="flex justify-between text-xs">
         <span className="text-muted-foreground">{t('الرصيد القادم', 'Next balance')}</span>
-        <span className="font-bold" style={{
-          color: previewNextBalance < monthly ? '#E63946' : '#2A9D8F'
-        }}>
+        <span className="font-bold" style={{ color: balanceColor }}>
           {previewNextBalance.toLocaleString()} {t('د.إ', 'AED')}
-          {previewNextBalance < monthly && t(' (جزئي)', ' (partial)')}
+          {hasCredit && t(' (كريديت)', ' (credit)')}
+          {isPartialPay && t(' (متأخر)', ' (overdue)')}
         </span>
       </div>
     </div>
