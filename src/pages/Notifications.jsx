@@ -26,7 +26,7 @@ function Row({ icon, label, value }) {
 function DetailModal({ notif, onClose, lang }) {
   if (!notif) return null;
   const item = notif.reference_data || {};
-  const isPayment = notif.type === 'payment';
+  const isPayment = notif.type === 'payment' || notif.type === 're_payment';
   const isAr = lang === 'ar';
   const payLabels = paymentMethodLabels[lang] || paymentMethodLabels.ar;
 
@@ -176,13 +176,15 @@ export default function Notifications() {
           </div>
           <div className="divide-y divide-border">
             {notifs.map(n => {
-              const isPayment = n.type === 'payment';
+              const isPayment = n.type === 'payment' || n.type === 're_payment';
+              const isRe = n.type === 're_payment' || n.type === 're_expense';
               const color = isPayment ? '#2A9D8F' : '#E63946';
               const bgColor = isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)';
               const Icon = isPayment ? CreditCard : Receipt;
               const item = n.reference_data || {};
               const date = isPayment ? item.payment_date : item.expense_date;
               const label = isPayment ? (item.tenant_name || n.title) : (item.description || n.title);
+              const tag = isRe ? (isAr ? 'عقارات' : 'RE') : (isAr ? 'القرية' : 'Qarya');
 
               return (
                 <div
@@ -197,6 +199,7 @@ export default function Notifications() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm truncate" style={{ color: '#1B2B4B' }}>{label}</p>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: isRe ? 'rgba(201,168,76,0.15)' : 'rgba(168,178,192,0.15)', color: isRe ? '#C9A84C' : '#6B7280' }}>{tag}</span>
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                     </div>
                     <p className="text-xs text-muted-foreground">{date ? new Date(date).toLocaleDateString() : ''}</p>

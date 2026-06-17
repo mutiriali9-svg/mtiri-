@@ -121,6 +121,14 @@ export default function RePayments() {
       const created = await base44.entities.RePayment.create(data);
       setNewRowPulse(created.id);
       setTimeout(() => setNewRowPulse(null), 1200);
+      base44.entities.Notification.create({
+        type: 're_payment',
+        title: `دفعة عقارات — ${data.tenant_name}`,
+        amount: data.amount,
+        reference_id: created?.id || '',
+        reference_data: data,
+        is_read: false,
+      }).catch(() => {});
       toast({ description: t('paymentAdded') });
     }
     setSaving(false);

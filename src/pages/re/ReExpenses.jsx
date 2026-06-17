@@ -73,7 +73,15 @@ export default function ReExpenses() {
       await base44.entities.ReExpense.update(editItem.id, data);
       toast({ description: t('expenseUpdated') });
     } else {
-      await base44.entities.ReExpense.create(data);
+      const created = await base44.entities.ReExpense.create(data);
+      base44.entities.Notification.create({
+        type: 're_expense',
+        title: `مصروف عقارات — ${data.description}`,
+        amount: data.amount,
+        reference_id: created?.id || '',
+        reference_data: data,
+        is_read: false,
+      }).catch(() => {});
       toast({ description: t('expenseAdded') });
     }
     setSaving(false);
