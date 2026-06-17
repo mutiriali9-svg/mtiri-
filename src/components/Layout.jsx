@@ -781,7 +781,7 @@ useEffect(() => {
             const noDashboardRoutes = ['/', '/dashboard', '/re-dashboard'];
             if (noDashboardRoutes.includes(location.pathname)) return null;
             const isRePage = location.pathname.startsWith('/re-');
-            const dashTarget = isRePage ? '/re-dashboard' : '/dashboard';
+            const dashTarget = isDataEntry ? '/smart-alerts' : (isRePage ? '/re-dashboard' : '/dashboard');
             const BackIcon = isRtl ? ChevronLeft : ChevronRight;
             return (
               <button
