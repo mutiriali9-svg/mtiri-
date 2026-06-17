@@ -62,29 +62,16 @@ export default function Units() {
   };
 
   const fetchUnits = useCallback(async () => {
-    setLoading(true);
+  setLoading(true);
+  try {
     const data = await base44.entities.Unit.list();
-    setUnits(data);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchUnits(); }, []);
-  const refreshing = usePullToRefresh(fetchUnits);
-
-  const openAdd = () => { setEditUnit(null); setForm(emptyUnit); setDialogOpen(true); };
-  const openEdit = (u) => { setEditUnit(u); setForm({ ...emptyUnit, ...u }); setDialogOpen(true); };
-
-  const logActivity = (action, unit, oldData = null, newData = null) => {
-    base44.functions.invoke('logActivity', {
-      action,
-      entity_type: 'Unit',
-      entity_id: unit?.id || '',
-      entity_label: `وحدة ${unit?.unit_number || ''} - ${unit?.tenant_name || ''}`,
-      changes_summary: action === 'create' ? `إضافة وحدة ${unit?.unit_number}` : action === 'update' ? `تعديل وحدة ${unit?.unit_number}` : `حذف وحدة ${unit?.unit_number}`,
-      old_data: oldData,
-      new_data: newData,
-    }).catch(() => {});
-  };
+    console.log('fetchUnits result:', data?.length, data);
+    setUnits(data || []);
+  } catch (err) {
+    console.error('fetchUnits ERROR:', err);
+  }
+  setLoading(false);
+}, []);
 
   const handleSave = async () => {
     setSaving(true);
