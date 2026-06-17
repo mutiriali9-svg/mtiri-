@@ -314,16 +314,12 @@ export default function SmartAlerts() {
     created_by:        user?.id || '',
   });
 
-  base44.functions.invoke('logActivity', {
-    action: 'create',
-    entity_type: 'Payment',
-    entity_id: '',
-    entity_label: `دفعة ${alert.tenant_name} - وحدة ${alert.unit_number || ''}`,
-    changes_summary: `إضافة دفعة ${paidAmount.toLocaleString()} AED`,
-    performed_by_name: user?.full_name || '',
-    performed_by_id: user?.id || '',
-    performed_by_role: user?.role || '',
-    new_data: {
+base44.entities.Notification.create({
+    type: 'payment',
+    title: `دفعة ${alert.tenant_name} - وحدة ${alert.unit_number || ''}`,
+    amount: paidAmount,
+    is_read: false,
+    reference_data: {
       tenant_name: alert.tenant_name,
       unit_number: alert.unit_number,
       amount: paidAmount,
