@@ -391,7 +391,7 @@ export default function Dashboard() {
                 <p className="font-bold text-base" style={{ color: '#1B2B4B' }}>{maskName(viewPayment.tenant_name)}</p>
               </div>
               <div className="space-y-0.5">
-                <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة' : 'Unit'}</p>
+                <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة او المنزل' : 'Unit'}</p>
                 <p className="font-medium">{viewPayment.unit_number || '-'}</p>
               </div>
               <div className="space-y-0.5">
@@ -467,7 +467,7 @@ export default function Dashboard() {
               )}
               {viewExpense.unit_number && (
                 <div className="space-y-0.5">
-                  <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة' : 'Unit'}</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة او المنزل' : 'Unit'}</p>
                   <p className="font-medium">{viewExpense.unit_number}</p>
                 </div>
               )}

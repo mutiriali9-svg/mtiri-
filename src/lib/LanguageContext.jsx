@@ -47,9 +47,9 @@ export const t_data = {
 
     // Units
     unitsTitle: 'الوحدات السكنية', addUnit: 'إضافة وحدة',
-    unitNumber: 'رقم الشقة', tenantName: 'اسم المستأجر', nationality: 'الجنسية',
+    unitNumber: 'رقم الشقة او المنزل', tenantName: 'اسم المستأجر', nationality: 'الجنسية',
     annualRent: 'الإيجار السنوي', paymentPlan: 'خطة الدفع', contractEnd: 'انتهاء العقد',
-    searchUnits: 'بحث برقم الشقة أو اسم المستأجر...',
+    searchUnits: 'بحث برقم الشقة او المنزل أو اسم المستأجر...',
     allStatuses: 'كل الحالات', editUnit: 'تعديل بيانات الوحدة', addNewUnit: 'إضافة وحدة جديدة',
     floor: 'الطابق', insurance: 'التأمين', ownerPhone: 'رقم المالك',
     contractStart: 'تاريخ بداية العقد', contractEndDate: 'تاريخ انتهاء العقد',
@@ -61,7 +61,7 @@ export const t_data = {
 
     // Payments
     paymentsTitle: 'جدول الدفعات', registerPayment: 'تسجيل دفعة',
-    searchPayments: 'بحث باسم المستأجر أو رقم الشقة...',
+    searchPayments: 'بحث باسم المستأجر أو رقم الشقة او المنزل...',
     totalShown: 'إجمالي المبالغ المعروضة', paymentCount: 'عدد الدفعات',
     dueMonth: 'مستحق لشهر', paymentMethod: 'طريقة الدفع',
     receiptNumber: 'رقم الإيصال', receiptImage: 'صورة الإيصال *',
@@ -83,7 +83,7 @@ export const t_data = {
     deleteExpenseConfirm: 'هل أنت متأكد من حذف هذا المصروف؟',
     expenseUpdated: 'تم تحديث المصروف', expenseAdded: 'تمت إضافة المصروف بنجاح',
     expenseDeleted: 'تم حذف المصروف', allCategories: 'كل التصنيفات',
-    optionalUnit: 'رقم الشقة (اختياري)',
+    optionalUnit: 'رقم الشقة او المنزل (اختياري)',
 
     // Reports
     reportsTitle: 'التقارير المالية', reportsSubTitle: 'تحليل مالي شامل للمحفظة العقارية',
