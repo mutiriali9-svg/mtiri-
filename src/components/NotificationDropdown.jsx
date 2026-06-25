@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList, CreditCard, Receipt, StickyNote, ChevronDown, Home, Building2 } from 'lucide-react';
+import { Bell, BellRing, X, BellDot, FileWarning, ClipboardList, CreditCard, Receipt, StickyNote, ChevronLeft, Home, Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function NotificationDropdown({
@@ -139,137 +139,139 @@ export default function NotificationDropdown({
       </button>
 
       {open && (
+  <div
+    className="absolute top-12 z-50"
+    style={{ right: '0' }}
+  >
+    <div className="flex items-start" style={{ flexDirection: 'row' }}>
+
+      {/* الخانة الفرعية - دائمًا فيزيائيًا على يسار القائمة الرئيسية */}
+      {expiredOpen && (
         <div
-          className="absolute top-12 z-50 flex animate-fade-in-up"
-          style={{ right: '0', left: 'auto', direction: isRtl ? 'rtl' : 'ltr' }}
+          className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in-up"
+          style={{ minWidth: '190px', marginRight: '8px', order: 1 }}
+          dir={isRtl ? 'rtl' : 'ltr'}
         >
-          {/* الخانة الفرعية على اليسار - تظهر فقط لما expiredOpen=true */}
-          {expiredOpen && (
-            <div
-              className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden self-start"
-              style={{ minWidth: '190px', marginInlineEnd: '8px' }}
-              dir={isRtl ? 'rtl' : 'ltr'}
-            >
-              <div className="px-4 py-3 border-b border-border">
-                <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
-                  {isRtl ? 'العقود المنتهية' : 'Expired Contracts'}
-                </span>
-              </div>
-              <Link
-                to="/units"
-                onClick={() => { setOpen(false); setExpiredOpen(false); }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
-                  <Home size={15} style={{ color: '#E63946' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{isRtl ? 'القرية' : 'Qarya'}</p>
-                </div>
-                <span className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#E63946' }}>
-                  {qaryaExpired > 99 ? '99+' : qaryaExpired}
-                </span>
-              </Link>
-              <Link
-                to="/re-units"
-                onClick={() => { setOpen(false); setExpiredOpen(false); }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
-                  <Building2 size={15} style={{ color: '#E63946' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{isRtl ? 'العقارات' : 'Real Estate'}</p>
-                </div>
-                <span className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#E63946' }}>
-                  {reExpired > 99 ? '99+' : reExpired}
-                </span>
-              </Link>
-            </div>
-          )}
-
-          <div
-            className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden self-start"
-            style={{ minWidth: '270px' }}
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
-                {isRtl ? 'الإشعارات' : 'Notifications'}
-              </span>
-              <button
-                onClick={() => { setOpen(false); setExpiredOpen(false); }}
-                className="w-6 h-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <div className="py-2">
-              {items.map((item) => {
-                const Icon = item.icon;
-                const bgColor = item.count > 0 ? 'rgba(230,57,70,0.1)' : '#F3F4F6';
-
-                const rowContent = (
-                  <>
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: bgColor }}
-                    >
-                      <Icon size={17} style={{ color: item.color }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground leading-tight">{item.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {item.subLabel
-                          ? item.subLabel
-                          : item.count > 0
-                            ? (isRtl ? `${item.count} إشعار` : `${item.count} notification${item.count > 1 ? 's' : ''}`)
-                            : (isRtl ? 'لا توجد إشعارات' : 'No notifications')}
-                      </p>
-                    </div>
-                    {item.count > 0 && (
-                      <span
-                        className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
-                        style={{ backgroundColor: '#E63946' }}
-                      >
-                        {item.count > 99 ? '99+' : item.count}
-                      </span>
-                    )}
-                    {item.expandable && (
-                      <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" style={{ transform: expiredOpen ? 'rotate(180deg)' : 'none' }} />
-                    )}
-                  </>
-                );
-
-                if (item.expandable) {
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => setExpiredOpen(v => !v)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
-                      dir={isRtl ? 'rtl' : 'ltr'}
-                    >
-                      {rowContent}
-                    </button>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.key}
-                    to={item.to}
-                    onClick={() => { setOpen(false); setExpiredOpen(false); }}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
-                    dir={isRtl ? 'rtl' : 'ltr'}
-                  >
-                    {rowContent}
-                  </Link>
-                );
-              })}
-            </div>
+          <div className="px-4 py-3 border-b border-border">
+            <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
+              {isRtl ? 'العقود المنتهية' : 'Expired Contracts'}
+            </span>
           </div>
+          <Link
+            to="/units"
+            onClick={() => { setOpen(false); setExpiredOpen(false); }}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
+              <Home size={15} style={{ color: '#E63946' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{isRtl ? 'القرية' : 'Qarya'}</p>
+            </div>
+            <span className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#E63946' }}>
+              {qaryaExpired > 99 ? '99+' : qaryaExpired}
+            </span>
+          </Link>
+          <Link
+            to="/re-units"
+            onClick={() => { setOpen(false); setExpiredOpen(false); }}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
+              <Building2 size={15} style={{ color: '#E63946' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{isRtl ? 'العقارات' : 'Real Estate'}</p>
+            </div>
+            <span className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#E63946' }}>
+              {reExpired > 99 ? '99+' : reExpired}
+            </span>
+          </Link>
         </div>
       )}
+
+      {/* القائمة الرئيسية - تبقى ثابتة بمكانها دائمًا */}
+      <div
+        className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in-up"
+        style={{ minWidth: '270px', order: 2 }}
+        dir={isRtl ? 'rtl' : 'ltr'}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
+            {isRtl ? 'الإشعارات' : 'Notifications'}
+          </span>
+          <button
+            onClick={() => { setOpen(false); setExpiredOpen(false); }}
+            className="w-6 h-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="py-2">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const bgColor = item.count > 0 ? 'rgba(230,57,70,0.1)' : '#F3F4F6';
+
+            const rowContent = (
+              <>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: bgColor }}
+                >
+                  <Icon size={17} style={{ color: item.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground leading-tight">{item.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {item.subLabel
+                      ? item.subLabel
+                      : item.count > 0
+                        ? (isRtl ? `${item.count} إشعار` : `${item.count} notification${item.count > 1 ? 's' : ''}`)
+                        : (isRtl ? 'لا توجد إشعارات' : 'No notifications')}
+                  </p>
+                </div>
+                {item.count > 0 && (
+                  <span
+                    className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: '#E63946' }}
+                  >
+                    {item.count > 99 ? '99+' : item.count}
+                  </span>
+                )}
+                {item.expandable && (
+  <ChevronLeft size={14} className="text-muted-foreground flex-shrink-0" style={{ transform: expiredOpen ? 'rotate(180deg)' : 'none' }} />
+)}
+              </>
+            );
+
+            if (item.expandable) {
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setExpiredOpen(v => !v)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
+                  dir={isRtl ? 'rtl' : 'ltr'}
+                >
+                  {rowContent}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.key}
+                to={item.to}
+                onClick={() => { setOpen(false); setExpiredOpen(false); }}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors"
+                dir={isRtl ? 'rtl' : 'ltr'}
+              >
+                {rowContent}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </div>
-  );
-}
+  </div>
+)}
