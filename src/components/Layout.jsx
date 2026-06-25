@@ -193,33 +193,33 @@ export default function Layout() {
   }, [reOpen]);
 
   const [urgentAlertsCount, setUrgentAlertsCount] = useState(0);
-  const [expiredContractsCount, setExpiredContractsCount] = useState(0);
-  const [registrationRequestsCount, setRegistrationRequestsCount] = useState(0);
+const [expiredQaryaCount, setExpiredQaryaCount] = useState(0);
+const [expiredReCount, setExpiredReCount] = useState(0);
+const [registrationRequestsCount, setRegistrationRequestsCount] = useState(0);
 
-  useEffect(() => {
-    if (!user?.role) return;
-    const loadAlerts = async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const alerts = await base44.entities.PaymentAlert.list('-alert_date', 200);
-      const urgent = alerts.filter(a =>
-        a.status !== 'paid' &&
-        a.alert_date && a.alert_date <= today
-      );
-      setUrgentAlertsCount(urgent.length);
+useEffect(() => {
+  if (!user?.role) return;
+  const loadAlerts = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const alerts = await base44.entities.PaymentAlert.list('-alert_date', 200);
+    const urgent = alerts.filter(a =>
+      a.status !== 'paid' &&
+      a.alert_date && a.alert_date <= today
+    );
+    setUrgentAlertsCount(urgent.length);
 
-      const [units, reUnits] = await Promise.all([
-        base44.entities.Unit.list(),
-        base44.entities.ReUnit.list(),
-      ]);
-      const allUnits = [...units, ...reUnits];
-      const todayStr = new Date().toISOString().split('T')[0];
-      const expired = allUnits.filter(u => u.contract_end && u.contract_end < todayStr);
-      setExpiredContractsCount(expired.length);
-    };
-    loadAlerts();
-    const interval = setInterval(loadAlerts, 60000);
-    return () => clearInterval(interval);
-  }, [user]);
+    const [units, reUnits] = await Promise.all([
+      base44.entities.Unit.list(),
+      base44.entities.ReUnit.list(),
+    ]);
+    const todayStr = new Date().toISOString().split('T')[0];
+    setExpiredQaryaCount(units.filter(u => u.contract_end && u.contract_end < todayStr).length);
+    setExpiredReCount(reUnits.filter(u => u.contract_end && u.contract_end < todayStr).length);
+  };
+  loadAlerts();
+  const interval = setInterval(loadAlerts, 60000);
+  return () => clearInterval(interval);
+}, [user]);
 
   // ── Load notification counts ───────────────
 
@@ -750,17 +750,18 @@ useEffect(() => {
 
           <div className="flex items-center gap-2 ml-auto">
             <NotificationDropdown
-              lang={lang}
-              userId={user?.id}
-              newPaymentsCount={newPaymentsCount}
-              newExpensesCount={newExpensesCount}
-              urgentAlertsCount={urgentAlertsCount}
-              expiredContractsCount={expiredContractsCount}
-              registrationRequestsCount={registrationRequestsCount}
-              notesCount={notesCount}
-              userRole={user?.role}
-              onBellClick={handleBellClick}
-            />
+  lang={lang}
+  userId={user?.id}
+  newPaymentsCount={newPaymentsCount}
+  newExpensesCount={newExpensesCount}
+  urgentAlertsCount={urgentAlertsCount}
+  expiredQaryaCount={expiredQaryaCount}
+  expiredReCount={expiredReCount}
+  registrationRequestsCount={registrationRequestsCount}
+  notesCount={notesCount}
+  userRole={user?.role}
+  onBellClick={handleBellClick}
+/>
             <button
               onClick={toggleLang}
               className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors min-h-[44px]"
