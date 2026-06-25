@@ -16,7 +16,6 @@ export default function NotificationDropdown({
 
   const combinedFinanceCount = (newPaymentsCount || 0) + (newExpensesCount || 0);
 
-  // إذا ما توصل أرقام مقسّمة، نستخدم الرقم القديم كله على القرية (توافق عكسي)
   const qaryaExpired = expiredQaryaCount ?? expiredContractsCount ?? 0;
   const reExpired = expiredReCount ?? 0;
   const totalExpired = qaryaExpired + reExpired;
@@ -76,7 +75,6 @@ export default function NotificationDropdown({
     });
   }
 
-  // العقود المنتهية أصبح عنصر "قابل للفتح" مش رابط مباشر
   if (showExpiredContracts) {
     items.push({
       key: 'expired',
@@ -143,9 +141,8 @@ export default function NotificationDropdown({
     className="absolute top-12 z-50"
     style={{ right: '0' }}
   >
-    <div className="flex items-start" style={{ flexDirection: 'row' }}>
+    <div className="flex items-start" style={{ flexDirection: 'row', direction: 'ltr' }}>
 
-      {/* الخانة الفرعية - دائمًا فيزيائيًا على يسار القائمة الرئيسية */}
       {expiredOpen && (
         <div
           className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in-up"
@@ -190,7 +187,6 @@ export default function NotificationDropdown({
         </div>
       )}
 
-      {/* القائمة الرئيسية - تبقى ثابتة بمكانها دائمًا */}
       <div
         className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in-up"
         style={{ minWidth: '270px', order: 2 }}
@@ -275,3 +271,6 @@ export default function NotificationDropdown({
     </div>
   </div>
 )}
+    </div>
+  );
+}
