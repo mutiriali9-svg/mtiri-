@@ -43,14 +43,13 @@ export default function ActivityLogPage() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const data = await base44.supabase
-        .from('activity_log')
-        .select('*')
-        .order('created_date', { ascending: false })
-        .limit(200)
-        .then(res => res.data || [])
-        .catch(err => { console.error(err); return []; });
-      setLogs(data);
+      try {
+        const data = await base44.entities.ActivityLog.list('-created_date', 200);
+        setLogs(data || []);
+      } catch (err) {
+        console.error('Error loading activity logs:', err);
+        setLogs([]);
+      }
       setLoading(false);
     };
     load();
