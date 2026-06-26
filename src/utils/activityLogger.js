@@ -13,7 +13,7 @@ export const logActivity = async (entityType, action, entityLabel, oldData, newD
       new_data: newData || null,
       changes_summary: changesSummary || null,
       performed_by_id: user?.id,
-      performed_by_name: user?.name || 'Unknown',
+      performed_by_name: user?.email || user?.name || 'Unknown',
       performed_by_role: user?.role,
     });
   } catch (e) {
