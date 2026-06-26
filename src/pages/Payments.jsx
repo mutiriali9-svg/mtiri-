@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import PullRefreshIndicator from '@/components/PullRefreshIndicator';
 import { addMonths, format, parseISO } from 'date-fns';
+import { logActivity, getChangeSummary } from '@/utils/activityLogger';
 
 function getNextAlertDate(dateStr, plan) {
   const months = { monthly: 1, quarterly: 3, biannual: 6, annual: 12 }[plan] || 1;
@@ -147,13 +148,14 @@ export default function Payments() {
     } catch {}
   };
 
-  const logActivity = (action, payment, oldData = null, newData = null) => {
-    base44.functions.invoke('logActivity', {
-      action, entity_type: 'Payment', entity_id: payment?.id || '',
-      entity_label: `دفعة ${payment?.tenant_name || ''} - وحدة ${payment?.unit_number || ''}`,
-      changes_summary: action === 'create' ? `إضافة دفعة ${payment?.amount?.toLocaleString()} AED` : action === 'update' ? `تعديل دفعة ${payment?.tenant_name}` : `حذف دفعة ${payment?.tenant_name}`,
-      old_data: oldData, new_data: newData,
-    }).catch(() => {});
+  const handleLogActivity = async (action, payment, oldData = null, newData = null) => {
+    const summary = action === 'create' 
+      ? `إضافة دفعة ${payment?.amount?.toLocaleString()} AED`
+      : action === 'update'
+      ? `تعديل دفعة ${payment?.tenant_name}`
+      : `حذف دفعة ${payment?.tenant_name}`;
+    
+    await logActivity('Payment', action, `${payment?.tenant_name} - وحدة ${payment?.unit_number}`, oldData, newData, summary, user);
   };
 
   const handleSave = async () => {
@@ -173,13 +175,14 @@ export default function Payments() {
     if (editItem) {
       setDialogOpen(false); setSaving(false);
       await base44.entities.Payment.update(editItem.id, data);
+      await handleLogActivity('update', { ...editItem, ...data }, editItem, data);
       setPayments(prev => prev.map(p => p.id === editItem.id ? { ...p, ...data } : p));
-      logActivity('update', { ...editItem, ...data }, editItem, data);
       showSuccess(t('paymentUpdated'));
     } else {
       setDialogOpen(false); setSaving(false);
       const created = await base44.entities.Payment.create(data);
       const newPayment = { ...data, ...(created || {}), id: created?.id || `temp_${Date.now()}` };
+      await handleLogActivity('create', newPayment, null, data);
       base44.entities.Notification.create({
   type: 'payment',
   title: `دفعة جديدة — ${data.tenant_name}`,
@@ -191,7 +194,6 @@ export default function Payments() {
       setPayments(prev => [newPayment, ...prev]);
       setNewRowPulse(newPayment.id);
       setTimeout(() => setNewRowPulse(null), 1200);
-      logActivity('create', { ...data, id: created?.id }, null, data);
 
       if (unitAlert) {
         const paidAmount = parseFloat(data.amount) || 0;
@@ -224,7 +226,7 @@ export default function Payments() {
       setPayments(prev => prev.filter(p => p.id !== id));
       setConfirmDelete(null);
       await base44.entities.Payment.delete(id);
-      logActivity('delete', { ...payment, id }, payment, null);
+      await handleLogActivity('delete', { ...payment, id }, payment, null);
       showSuccess(t('paymentDeleted'));
     }});
   };
@@ -414,7 +416,7 @@ export default function Payments() {
 
       {/* View Dialog */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
-        <DialogContent className="max-w-md font-cairo">
+        <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
           <DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>
           {viewItem && (() => {
             const sc = statusConfig[viewItem.status] || statusConfig.paid;
@@ -455,7 +457,7 @@ export default function Payments() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md font-cairo" style={{ maxHeight: '90vh', overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
+        <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
           <div style={{ overflowY: 'auto', flex: 1, padding: '0 0 8px' }}>
           <DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader>
 
