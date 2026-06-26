@@ -158,7 +158,7 @@ export default function Notifications() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in-up" dir={isAr ? 'rtl' : 'ltr'}>
+    <div className="space-y-5 animate-fade-in-up overflow-x-hidden" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/dashboard')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
           <ArrowRight size={18} />
@@ -187,7 +187,7 @@ export default function Notifications() {
           <p className="text-sm">{isAr ? 'لا توجد إشعارات جديدة' : 'No new notifications'}</p>
         </div>
       ) : (
-        <div className="bg-white card-bevel rounded-2xl overflow-hidden">
+        <div className="bg-white card-bevel rounded-2xl overflow-hidden" style={{ maxWidth: '100%' }}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
               {isAr ? 'الدفعات والمصروفات الجديدة' : 'New Payments & Expenses'}
@@ -210,21 +210,20 @@ export default function Notifications() {
                 <div
                   key={n.id}
                   onClick={() => openNotif(n)}
-                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors"
                   style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.04)' : 'rgba(230,57,70,0.04)' }}
                 >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bgColor }}>
-                    <Icon size={16} style={{ color }} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bgColor }}>
+                    <Icon size={14} style={{ color }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate" style={{ color: '#1B2B4B' }}>{label}</p>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: isRe ? 'rgba(201,168,76,0.15)' : 'rgba(168,178,192,0.15)', color: isRe ? '#C9A84C' : '#6B7280' }}>{tag}</span>
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold text-xs truncate" style={{ color: '#1B2B4B' }}>{label}</p>
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0" style={{ backgroundColor: isRe ? 'rgba(201,168,76,0.15)' : 'rgba(168,178,192,0.15)', color: isRe ? '#C9A84C' : '#6B7280' }}>{tag}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{date ? new Date(date).toLocaleDateString() : ''}</p>
+                    <p className="text-[11px] text-muted-foreground">{date ? new Date(date).toLocaleDateString() : ''}</p>
                   </div>
-                  <p className="font-bold text-sm shrink-0" style={{ color }}>{(n.amount || 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED</span></p>
+                  <p className="font-bold text-xs shrink-0 whitespace-nowrap" style={{ color }}>{(n.amount || 0).toLocaleString()} <span className="text-[10px] font-normal text-muted-foreground">AED</span></p>
                 </div>
               );
             })}
