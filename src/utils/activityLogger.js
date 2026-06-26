@@ -1,6 +1,5 @@
 export const logActivity = async (entityType, action, entityLabel, oldData, newData, changesSummary, user) => {
   try {
-    // استخدم fetch بدل base44 مباشرة
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/activity_log`,
       {
@@ -10,8 +9,7 @@ export const logActivity = async (entityType, action, entityLabel, oldData, newD
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Prefer': 'return=minimal',
         },
-        const response = await fetch(
-  `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/activity_log`,
+        body: JSON.stringify({
           entity_type: entityType,
           action: action,
           entity_label: entityLabel,

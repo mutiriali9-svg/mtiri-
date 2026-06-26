@@ -44,12 +44,12 @@ export default function ActivityLogPage() {
     const load = async () => {
       setLoading(true);
       const data = await base44.supabase
-  .from('activity_logs')
-  .select('*')
-  .order('created_date', { ascending: false })
-  .limit(200)
-  .then(res => res.data || [])
-  .catch(err => { console.error(err); return []; });
+        .from('activity_log')
+        .select('*')
+        .order('created_date', { ascending: false })
+        .limit(200)
+        .then(res => res.data || [])
+        .catch(err => { console.error(err); return []; });
       setLogs(data);
       setLoading(false);
     };
