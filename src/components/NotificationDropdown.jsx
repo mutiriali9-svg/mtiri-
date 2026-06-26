@@ -288,10 +288,10 @@ export default function NotificationDropdown({
 
       {open && (
         <div
-          className="absolute top-12 z-50"
+          className="z-50"
           style={isMobile
-            ? { left: '50%', transform: 'translateX(-50%)', width: '85vw', maxWidth: '320px' }
-            : { right: '0' }
+            ? { position: 'fixed', top: '60px', right: '12px', left: '12px' }
+            : { position: 'absolute', top: '48px', right: '0' }
           }
         >
           {isMobile ? (
