@@ -44,7 +44,7 @@ export default function ActivityLogPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const data = await base44.entities.ActivityLog.list('-created_date', 200);
+        const data = await base44.entities.ActivityLog.list('-created_at', 200);
         setLogs(data || []);
       } catch (err) {
         console.error('Error loading activity logs:', err);
@@ -164,7 +164,7 @@ export default function ActivityLogPage() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                     <Clock className="w-3 h-3" />
-                    {log.created_date ? format(new Date(log.created_date), 'dd/MM/yyyy HH:mm') : '-'}
+                    {log.created_at ? format(new Date(log.created_at), 'dd/MM/yyyy HH:mm') : '-'}
                   </div>
                 </div>
 
