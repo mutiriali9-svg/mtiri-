@@ -29,63 +29,78 @@ function DetailModal({ notif, onClose, lang }) {
   const isPayment = notif.type === 'payment' || notif.type === 're_payment';
   const isAr = lang === 'ar';
   const payLabels = paymentMethodLabels[lang] || paymentMethodLabels.ar;
+  const color = isPayment ? '#2A9D8F' : '#E63946';
+  const bgTint = isPayment ? 'rgba(42,157,143,0.08)' : 'rgba(230,57,70,0.08)';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border" dir={isAr ? 'rtl' : 'ltr'}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)' }}>
-              {isPayment ? <CreditCard size={18} style={{ color: '#2A9D8F' }} /> : <Receipt size={18} style={{ color: '#E63946' }} />}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div
+        className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border" dir={isAr ? 'rtl' : 'ltr'}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: bgTint }}>
+              {isPayment ? <CreditCard size={16} style={{ color }} /> : <Receipt size={16} style={{ color }} />}
             </div>
-            <span className="font-bold text-base" style={{ color: '#1B2B4B' }}>
+            <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
               {isPayment ? (isAr ? 'تفاصيل الدفعة' : 'Payment Details') : (isAr ? 'تفاصيل المصروف' : 'Expense Details')}
             </span>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"><X size={16} className="text-muted-foreground" /></button>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors">
+            <X size={14} className="text-muted-foreground" />
+          </button>
         </div>
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto" dir={isAr ? 'rtl' : 'ltr'}>
-          <div className="rounded-2xl p-4 text-center" style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.08)' : 'rgba(230,57,70,0.08)' }}>
-            <p className="text-xs text-muted-foreground mb-1">{isPayment ? (isAr ? 'المبلغ المدفوع' : 'Amount Paid') : (isAr ? 'المبلغ' : 'Amount')}</p>
-            <p className="text-3xl font-bold" style={{ color: isPayment ? '#2A9D8F' : '#E63946' }}>
-              {(notif.amount || 0).toLocaleString()}<span className="text-lg mr-1">AED</span>
+
+        {/* Content */}
+        <div className="p-4 max-h-[60vh] overflow-y-auto" dir={isAr ? 'rtl' : 'ltr'}>
+          {/* Amount */}
+          <div className="rounded-xl p-3 text-center mb-3" style={{ backgroundColor: bgTint }}>
+            <p className="text-[11px] text-muted-foreground mb-0.5">{isPayment ? (isAr ? 'المبلغ المدفوع' : 'Amount Paid') : (isAr ? 'المبلغ' : 'Amount')}</p>
+            <p className="text-2xl font-bold" style={{ color }}>
+              {(notif.amount || 0).toLocaleString()} <span className="text-sm">AED</span>
             </p>
           </div>
-          <div className="space-y-3">
+
+          {/* Details */}
+          <div className="space-y-1">
             {isPayment ? (
               <>
-                {item.tenant_name && <Row icon={<User size={15}/>} label={isAr ? 'المستأجر' : 'Tenant'} value={item.tenant_name} />}
-                {item.unit_number && <Row icon={<Building2 size={15}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
-                {item.payment_date && <Row icon={<Calendar size={15}/>} label={isAr ? 'تاريخ الدفع' : 'Payment Date'} value={new Date(item.payment_date).toLocaleDateString()} />}
-                {item.due_months && <Row icon={<FileText size={15}/>} label={isAr ? 'مستحق لشهر' : 'Due Months'} value={item.due_months} />}
-                {item.payment_method && <Row icon={<CreditCard size={15}/>} label={isAr ? 'طريقة الدفع' : 'Method'} value={payLabels[item.payment_method] || item.payment_method} />}
-                {item.receipt_number && <Row icon={<Hash size={15}/>} label={isAr ? 'رقم الإيصال' : 'Receipt No.'} value={item.receipt_number} />}
-                {item.notes && <Row icon={<FileText size={15}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
+                {item.tenant_name && <Row icon={<User size={13}/>} label={isAr ? 'المستأجر' : 'Tenant'} value={item.tenant_name} />}
+                {item.unit_number && <Row icon={<Building2 size={13}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
+                {item.payment_date && <Row icon={<Calendar size={13}/>} label={isAr ? 'تاريخ الدفع' : 'Payment Date'} value={new Date(item.payment_date).toLocaleDateString()} />}
+                {item.due_months && <Row icon={<FileText size={13}/>} label={isAr ? 'مستحق لشهر' : 'Due Months'} value={item.due_months} />}
+                {item.payment_method && <Row icon={<CreditCard size={13}/>} label={isAr ? 'طريقة الدفع' : 'Method'} value={payLabels[item.payment_method] || item.payment_method} />}
+                {item.receipt_number && <Row icon={<Hash size={13}/>} label={isAr ? 'رقم الإيصال' : 'Receipt No.'} value={item.receipt_number} />}
+                {item.notes && <Row icon={<FileText size={13}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
               </>
             ) : (
               <>
-                {item.description && <Row icon={<FileText size={15}/>} label={isAr ? 'الوصف' : 'Description'} value={item.description} />}
-                {item.expense_date && <Row icon={<Calendar size={15}/>} label={isAr ? 'التاريخ' : 'Date'} value={new Date(item.expense_date).toLocaleDateString()} />}
-                {item.category && <Row icon={<FileText size={15}/>} label={isAr ? 'التصنيف' : 'Category'} value={(categoryLabels[lang]||categoryLabels.ar)[item.category] || item.category} />}
-                {item.unit_number && <Row icon={<Building2 size={15}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
-                {item.vendor && <Row icon={<User size={15}/>} label={isAr ? 'المورد' : 'Vendor'} value={item.vendor} />}
-                {item.invoice_number && <Row icon={<Hash size={15}/>} label={isAr ? 'رقم الفاتورة' : 'Invoice No.'} value={item.invoice_number} />}
-                {item.notes && <Row icon={<FileText size={15}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
+                {item.description && <Row icon={<FileText size={13}/>} label={isAr ? 'الوصف' : 'Description'} value={item.description} />}
+                {item.expense_date && <Row icon={<Calendar size={13}/>} label={isAr ? 'التاريخ' : 'Date'} value={new Date(item.expense_date).toLocaleDateString()} />}
+                {item.category && <Row icon={<FileText size={13}/>} label={isAr ? 'التصنيف' : 'Category'} value={(categoryLabels[lang]||categoryLabels.ar)[item.category] || item.category} />}
+                {item.unit_number && <Row icon={<Building2 size={13}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
+                {item.vendor && <Row icon={<User size={13}/>} label={isAr ? 'المورد' : 'Vendor'} value={item.vendor} />}
+                {item.invoice_number && <Row icon={<Hash size={13}/>} label={isAr ? 'رقم الفاتورة' : 'Invoice No.'} value={item.invoice_number} />}
+                {item.notes && <Row icon={<FileText size={13}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
               </>
             )}
           </div>
+
+          {/* Receipt/Invoice image */}
           {(isPayment ? item.receipt_image_url : item.invoice_image_url) && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                <Image size={13} />{isPayment ? (isAr ? 'صورة الإيصال' : 'Receipt') : (isAr ? 'صورة الفاتورة' : 'Invoice')}
+            <div className="mt-3 space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                <Image size={12} />{isPayment ? (isAr ? 'صورة الإيصال' : 'Receipt') : (isAr ? 'صورة الفاتورة' : 'Invoice')}
               </p>
-              <div className="rounded-xl overflow-hidden border border-border">
-                <img src={isPayment ? item.receipt_image_url : item.invoice_image_url} alt="receipt" className="w-full object-contain max-h-72" onError={e => { e.target.style.display = 'none'; }} />
+              <div className="rounded-lg overflow-hidden border border-border">
+                <img src={isPayment ? item.receipt_image_url : item.invoice_image_url} alt="receipt" className="w-full object-contain max-h-48" onError={e => { e.target.style.display = 'none'; }} />
               </div>
               <a href={isPayment ? item.receipt_image_url : item.invoice_image_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)', color: isPayment ? '#2A9D8F' : '#E63946' }}>
-                <Image size={15} />{isAr ? 'فتح الصورة بالحجم الكامل' : 'Open Full Size'}
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-xs font-semibold"
+                style={{ backgroundColor: bgTint, color }}>
+                <Image size={13} />{isAr ? 'فتح بالحجم الكامل' : 'Open Full Size'}
               </a>
             </div>
           )}
@@ -116,7 +131,6 @@ export default function Notifications() {
       setNotifs(recent);
       setLoading(false);
 
-      // علّم كل إشعار كمقروء لهذا اليوزر فقط (في جدول notification_reads)
       try {
         const myReads = await base44.entities.NotificationRead.filter({ user_id: user.id });
         const readIds = new Set(myReads.map(r => r.notification_id));
@@ -136,15 +150,12 @@ export default function Notifications() {
   }, [user]);
 
   const openNotif = (notif) => {
-  setSelected(notif);
-};
+    setSelected(notif);
+  };
 
   if (user?.role !== 'admin' && user?.role !== 'investor' && user?.role !== 'tester') {
     return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
   }
-
-  const payments = notifs.filter(n => n.type === 'payment');
-  const expenses = notifs.filter(n => n.type === 'expense');
 
   return (
     <div className="space-y-5 animate-fade-in-up" dir={isAr ? 'rtl' : 'ltr'}>
