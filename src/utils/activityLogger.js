@@ -1,31 +1,18 @@
+import { supabase } from '@/api/base44Client';
+
 export const logActivity = async (entityType, action, entityLabel, oldData, newData, changesSummary, user) => {
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/activity_log`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({
-          entity_type: entityType,
-          action: action,
-          entity_label: entityLabel,
-          old_data: oldData || null,
-          new_data: newData || null,
-          changes_summary: changesSummary || null,
-          performed_by_id: user?.id,
-          performed_by_name: user?.name || 'Unknown',
-          performed_by_role: user?.role,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error('Activity log error:', await response.text());
-    }
+    await supabase.from('activity_log').insert({
+      entity_type: entityType,
+      action: action,
+      entity_label: entityLabel,
+      old_data: oldData || null,
+      new_data: newData || null,
+      changes_summary: changesSummary || null,
+      performed_by_id: user?.id,
+      performed_by_name: user?.name || 'Unknown',
+      performed_by_role: user?.role,
+    });
   } catch (e) {
     console.error('Activity log error:', e);
   }
