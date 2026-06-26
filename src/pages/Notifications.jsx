@@ -35,11 +35,11 @@ function DetailModal({ notif, onClose, lang }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
+        className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[85vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border" dir={isAr ? 'rtl' : 'ltr'}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0" dir={isAr ? 'rtl' : 'ltr'}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: bgTint }}>
               {isPayment ? <CreditCard size={16} style={{ color }} /> : <Receipt size={16} style={{ color }} />}
@@ -48,13 +48,13 @@ function DetailModal({ notif, onClose, lang }) {
               {isPayment ? (isAr ? 'تفاصيل الدفعة' : 'Payment Details') : (isAr ? 'تفاصيل المصروف' : 'Expense Details')}
             </span>
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors flex-shrink-0">
             <X size={14} className="text-muted-foreground" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 max-h-[60vh] overflow-y-auto" dir={isAr ? 'rtl' : 'ltr'}>
+        <div className="p-4 overflow-y-auto flex-1 min-h-0" dir={isAr ? 'rtl' : 'ltr'}>
           {/* Amount */}
           <div className="rounded-xl p-3 text-center mb-3" style={{ backgroundColor: bgTint }}>
             <p className="text-[11px] text-muted-foreground mb-0.5">{isPayment ? (isAr ? 'المبلغ المدفوع' : 'Amount Paid') : (isAr ? 'المبلغ' : 'Amount')}</p>
