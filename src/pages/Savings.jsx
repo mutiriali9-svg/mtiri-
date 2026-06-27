@@ -64,7 +64,7 @@ export default function Savings() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in-up ">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

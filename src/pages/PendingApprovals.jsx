@@ -63,7 +63,7 @@ export default function PendingApprovals() {
   const pendingCount = entries.filter(e => e.status === 'pending').length;
 
   return (
-    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in-up ">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#1B2B4B' }}>
