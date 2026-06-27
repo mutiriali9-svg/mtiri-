@@ -312,7 +312,7 @@ export default function Payments() {
         </div>
       </div>
 
-      <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
+      <div className="bg-navy rounded-xl p-4 grid grid-cols-2 gap-4" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
           <p className="text-white/60 text-xs">{t('totalShown')}</p>
           <p className="text-2xl font-bold text-white">{total.toLocaleString()} <span className="text-sm text-white/60">AED</span></p>
