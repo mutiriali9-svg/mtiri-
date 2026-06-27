@@ -487,7 +487,7 @@ export default function UnitDetails() {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto font-cairo" dir="rtl">
+        <DialogContent className=" max-h-[90vh] overflow-y-auto font-cairo" dir="rtl">
           <DialogHeader>
             <DialogTitle>تعديل الوحدة — {unit?.unit_number}</DialogTitle>
           </DialogHeader>

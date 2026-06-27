@@ -127,7 +127,7 @@ export default function ReInvestors() {
       </div>
 
       <Dialog open={modal === 'revenue'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto mx-auto">
+        <DialogContent className=" max-h-[80vh] overflow-y-auto mx-auto">
           <DialogHeader className="mb-4 text-center">
             <DialogTitle className="text-center text-xl" style={{ color: '#1B2B4B' }}>{t('revenueDetails')}</DialogTitle>
             <p className="text-center text-2xl font-bold text-green-700 mt-2">{fmt(totalRevenue)} AED</p>
@@ -164,7 +164,7 @@ export default function ReInvestors() {
       </Dialog>
 
       <Dialog open={modal === 'expenses'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto mx-auto">
+        <DialogContent className=" max-h-[80vh] overflow-y-auto mx-auto">
           <DialogHeader className="mb-4 text-center">
             <DialogTitle className="text-center text-xl" style={{ color: '#1B2B4B' }}>{t('expensesDetails')}</DialogTitle>
             <p className="text-center text-2xl font-bold text-red-600 mt-2">{fmt(totalExpenses)} AED</p>

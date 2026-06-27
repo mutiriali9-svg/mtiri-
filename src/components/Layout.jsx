@@ -786,7 +786,7 @@ useEffect(() => {
         {/* Page Content */}
         <main
           ref={mainRef}
-          className="flex-1 p-4 lg:p-6 overflow-auto lg:pb-6"
+          className="flex-1 p-4 lg:p-6 overflow-auto lg:pb-6  mx-auto w-full"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem)' }}
         >
           {(() => {

@@ -489,7 +489,7 @@ export default function ReUnits() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto font-cairo">
+        <DialogContent className=" max-h-[90vh] overflow-y-auto font-cairo">
           <DialogHeader>
             <DialogTitle>{editUnit ? t('editUnit') : t('addNewUnit')}</DialogTitle>
           </DialogHeader>
