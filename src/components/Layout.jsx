@@ -785,10 +785,9 @@ useEffect(() => {
 
         {/* Page Content */}
         <main
-          ref={mainRef}
-          className="flex-1 p-4 lg:p-6 overflow-auto lg:pb-6 max-w-7xl mx-auto w-full"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem)' }}
-        >
+  ref={mainRef}
+  className="flex-1 p-4 lg:p-6 overflow-auto max-w-7xl mx-auto w-full"
+>
           {(() => {
             const noDashboardRoutes = ['/', '/dashboard', '/re-dashboard'];
             if (noDashboardRoutes.includes(location.pathname)) return null;
