@@ -132,7 +132,7 @@ export default function ReExpenses() {
   })).filter(c => c.count > 0).sort((a, b) => b.total - a.total);
 
   return (
-    <div className="space-y-5 animate-fade-in-up">
+    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
       <PageHeader
         titleAr="المصاريف - العقارات"
         titleEn="RE Expenses"

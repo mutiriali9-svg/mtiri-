@@ -257,7 +257,7 @@ export default function Payments() {
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
-    <div className="space-y-5 animate-fade-in-up">
+    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
       <PullRefreshIndicator refreshing={refreshing} />
       {successMsg && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-semibold animate-fade-in-up"

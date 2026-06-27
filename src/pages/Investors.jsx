@@ -68,7 +68,7 @@ export default function Investors() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>

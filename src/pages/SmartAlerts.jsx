@@ -405,7 +405,7 @@ export default function SmartAlerts() {
     : null;
 
   return (
-    <div className="space-y-6 animate-fade-in-up" dir="rtl">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto" dir="rtl">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

@@ -170,7 +170,7 @@ export default function RePayments() {
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
-    <div className="space-y-5 animate-fade-in-up">
+    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
       <PageHeader
         titleAr="الدفعات - العقارات"
         titleEn="RE Payment Ledger"

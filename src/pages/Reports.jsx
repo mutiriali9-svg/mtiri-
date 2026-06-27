@@ -87,7 +87,7 @@ export default function Reports() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
       <PageHeader
         titleAr="التقارير المالية"
         titleEn="Financial Reports"

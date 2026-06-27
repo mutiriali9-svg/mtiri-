@@ -68,7 +68,7 @@ export default function ReReports() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
       <PageHeader
         titleAr="التقارير المالية - العقارات"
         titleEn="RE Financial Reports"

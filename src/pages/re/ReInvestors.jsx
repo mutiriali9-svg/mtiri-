@@ -56,7 +56,7 @@ export default function ReInvestors() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{t('investorsTitle')} — العقارات</h1>

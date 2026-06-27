@@ -132,7 +132,7 @@ export default function UnitDetails() {
   const BackIcon = lang === 'ar' ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="space-y-5 animate-fade-in-up">
+    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
       {/* Back */}
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-navy transition-colors">
         <BackIcon size={16} /> {t('backToUnits')}

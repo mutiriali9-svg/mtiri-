@@ -151,7 +151,7 @@ export default function Dashboard() {
     return { color: '#C9A84C', bg: 'rgba(201,168,76,0.1)' };
   };
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto">
       <PullRefreshIndicator refreshing={refreshing} />
       <PageHeader
         titleAr="لوحة التحكم"

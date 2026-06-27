@@ -238,7 +238,7 @@ export default function ReUnits() {
   });
 
   return (
-    <div className="space-y-5 animate-fade-in-up">
+    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
       <PullRefreshIndicator refreshing={refreshing} />
       <PageHeader
         titleAr="العقارات"
