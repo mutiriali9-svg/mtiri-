@@ -7,6 +7,7 @@ import {
   Loader2, StickyNote, ArrowRight, Image, User, Phone, Building2, Calendar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { logActivity } from '@/utils/activityLogger';
 
 const NOTE_TYPES = {
   ar: {
@@ -98,18 +99,22 @@ export default function Notes() {
       return;
     }
     setSaving(true);
-    await base44.entities.Note.create({
+    const noteData = {
       ...form,
       image_url: imageUrl,
       created_by_name: user?.full_name || user?.username || '',
-    });
+    };
+    const created = await base44.entities.Note.create(noteData);
+    await logActivity('Note', 'create', `${form.tenant_name} - ${typeLabels[form.note_type]}`, null, noteData, `إضافة ملاحظة: ${form.tenant_name}`, user);
     setSaving(false);
     setDialogOpen(false);
     fetchNotes();
   };
 
   const confirmDeleteNote = async () => {
+    const noteToDelete = notes.find(n => n.id === confirmDelete);
     await base44.entities.Note.delete(confirmDelete);
+    await logActivity('Note', 'delete', `${noteToDelete?.tenant_name || 'Unknown'}`, noteToDelete, null, `حذف ملاحظة: ${noteToDelete?.tenant_name}`, user);
     setConfirmDelete(null);
     setSelectedNote(null);
     fetchNotes();

@@ -17,6 +17,7 @@ import { differenceInDays, parseISO, isValid, addMonths, format } from 'date-fns
 import { useToast } from '@/components/ui/use-toast';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import PullRefreshIndicator from '@/components/PullRefreshIndicator';
+import { logActivity } from '@/utils/activityLogger';
 
 const emptyUnit = {
   unit_number: '', tenant_name: '', nationality: '', annual_rent: '',
@@ -130,19 +131,6 @@ export default function Units() {
   const openAdd = () => { setEditUnit(null); setForm(emptyUnit); setDialogOpen(true); };
   const openEdit = (u) => { setEditUnit(u); setForm({ ...emptyUnit, ...u }); setDialogOpen(true); };
 
-  const logActivity = (action, unit, type, oldData = null, newData = null) => {
-    base44.functions.invoke('logActivity', {
-      action,
-      entity_type: type === 're' ? 'ReUnit' : 'Unit',
-      entity_id: unit?.id || '',
-      entity_label: `وحدة ${unit?.unit_number || ''} - ${unit?.tenant_name || ''}`,
-      changes_summary: action === 'create' ? `إضافة وحدة ${unit?.unit_number} (${type === 're' ? 'عقارات' : 'القرية'})`
-        : action === 'update' ? `تعديل وحدة ${unit?.unit_number}` : `حذف وحدة ${unit?.unit_number}`,
-      old_data: oldData,
-      new_data: newData,
-    }).catch(() => {});
-  };
-
   const handleSave = async () => {
     setSaving(true);
     const type = form._type || 'qarya';
@@ -155,12 +143,12 @@ export default function Units() {
         setUnits(prev => prev.map(u => u.id === editUnit.id ? { ...u, ...data, _type: type } : u));
         setDialogOpen(false);
         await entity.update(editUnit.id, data);
-        logActivity('update', { ...editUnit, ...data }, type, editUnit, data);
+        await logActivity('Unit', 'update', `${form.unit_number} - ${form.tenant_name}`, editUnit, data, null, user);
         toast({ description: t('unitUpdated') });
       } else {
         setDialogOpen(false);
         const created = await entity.create(data);
-        logActivity('create', { ...data, id: created?.id }, type, null, data);
+        await logActivity('Unit', 'create', `${form.unit_number} - ${form.tenant_name}`, null, data, null, user);
         toast({ description: t('unitAdded') });
       }
       fetchUnits();
@@ -182,7 +170,7 @@ export default function Units() {
         setConfirmDelete(null);
         try {
           await entity.delete(unit.id);
-          logActivity('delete', unit, type, unit, null);
+          await logActivity('Unit', 'delete', `${unit.unit_number} - ${unit.tenant_name}`, unit, null, null, user);
           toast({ description: t('unitDeleted') });
         } catch (err) {
           console.error('delete ERROR:', err);
@@ -232,7 +220,7 @@ export default function Units() {
         status: overdue > 0 ? 'overdue' : (alertForm.alert_date <= today ? 'overdue' : 'active'),
       });
 
-      logActivity('create', { ...unit, id: unit.id }, unit._type, null, { alert: true });
+      await logActivity('Unit', 'create', `تنبيه - ${unit.unit_number}`, null, { alert: true }, null, user);
       toast({ description: isAr ? 'تم إنشاء التنبيه ✓' : 'Alert created ✓' });
       setAlertDialog(null);
     } catch (err) {

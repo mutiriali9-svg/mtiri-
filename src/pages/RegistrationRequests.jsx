@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44, supabase } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
+import { logActivity } from '@/utils/activityLogger';
 import { Check, X, User, Phone, Mail, AtSign, Clock, UserCheck, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -72,10 +73,24 @@ export default function RegistrationRequests() {
         role: req.role || 'data_entry',
       });
     }
-    await base44.entities.RegistrationRequest.update(req.id, {
+    
+    const updatePayload = {
       status: 'approved',
       role: req.role || 'data_entry',
-    });
+    };
+
+    await base44.entities.RegistrationRequest.update(req.id, updatePayload);
+    
+    await logActivity(
+      'RegistrationRequest',
+      'update',
+      `قبول طلب - ${req.first_name} ${req.last_name} (${req.email})`,
+      req,
+      updatePayload,
+      `تم قبول الطلب وتعيين الدور: ${roleLabels[req.role || 'data_entry']?.[lang] || req.role || 'data_entry'}`,
+      user
+    );
+
     toast({ description: isAr ? `تم قبول طلب ${req.first_name} ${req.last_name} ✓` : `Approved request for ${req.first_name} ${req.last_name} ✓` });
     fetchData();
   };
@@ -84,7 +99,20 @@ export default function RegistrationRequests() {
     setConfirmReject({
       message: isAr ? `هل تريد رفض طلب ${req.first_name} ${req.last_name}؟` : `Reject request from ${req.first_name} ${req.last_name}?`,
       onConfirm: async () => {
-        await base44.entities.RegistrationRequest.update(req.id, { status: 'rejected' });
+        const updatePayload = { status: 'rejected' };
+        
+        await base44.entities.RegistrationRequest.update(req.id, updatePayload);
+        
+        await logActivity(
+          'RegistrationRequest',
+          'update',
+          `رفض طلب - ${req.first_name} ${req.last_name} (${req.email})`,
+          req,
+          updatePayload,
+          'تم رفض طلب التسجيل',
+          user
+        );
+
         toast({ description: isAr ? `تم رفض الطلب` : `Request rejected` });
         setConfirmReject(null);
         fetchData();
@@ -93,7 +121,21 @@ export default function RegistrationRequests() {
   };
 
   const handleRoleChange = async (req, role) => {
+    const oldData = { ...req };
+    const newData = { ...req, role };
+
     await base44.entities.RegistrationRequest.update(req.id, { role });
+    
+    await logActivity(
+      'RegistrationRequest',
+      'update',
+      `تغيير الدور - ${req.first_name} ${req.last_name}`,
+      oldData,
+      newData,
+      `تم تغيير الدور من ${roleLabels[req.role]?.[lang] || req.role} إلى ${roleLabels[role]?.[lang] || role}`,
+      user
+    );
+
     setRequests(prev => prev.map(r => r.id === req.id ? { ...r, role } : r));
   };
 

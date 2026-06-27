@@ -34,6 +34,7 @@ export default function Payments() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -243,6 +244,16 @@ export default function Payments() {
     return matchQ && matchS && matchFrom && matchTo && matchY;
   });
 
+  const itemsPerPage = 35;
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const paginatedData = filtered.slice(startIdx, startIdx + itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, dateFrom, dateTo, yearFilter]);
+
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
@@ -328,7 +339,7 @@ export default function Payments() {
                 ))
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">{t('noPayments')}</td></tr>
-              ) : filtered.map((p, i) => {
+              ) : paginatedData.map((p, i) => {
                 const sc = statusConfig[p.status] || statusConfig.paid;
                 return (
                   <tr key={p.id} onClick={() => setViewItem(p)}
@@ -373,7 +384,7 @@ export default function Payments() {
           ))
         ) : filtered.length === 0 ? (
           <div className="bg-white card-bevel rounded-xl p-8 text-center text-muted-foreground text-sm">{t('noPayments')}</div>
-        ) : filtered.map((p) => {
+        ) : paginatedData.map((p) => {
           const sc = statusConfig[p.status] || statusConfig.paid;
           return (
             <div key={p.id} onClick={() => setViewItem(p)}
@@ -411,6 +422,64 @@ export default function Payments() {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {filtered.length > itemsPerPage && (
+        <div className="flex items-center justify-center gap-2 py-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="h-9 px-3 text-sm gap-1"
+          >
+            ← السابق
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+              const pageNum = i + 1;
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`h-9 w-9 text-sm font-medium`}
+                  style={currentPage === pageNum ? { backgroundColor: '#1B2B4B', color: 'white' } : {}}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+            {totalPages > 10 && (
+              <>
+                <span className="text-muted-foreground px-2">...</span>
+                <Button
+                  variant={currentPage === totalPages ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  className="h-9 w-9 text-sm font-medium"
+                  style={currentPage === totalPages ? { backgroundColor: '#1B2B4B', color: 'white' } : {}}
+                >
+                  {totalPages}
+                </Button>
+              </>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="h-9 px-3 text-sm gap-1"
+          >
+            التالي →
+          </Button>
+          <div className="text-xs text-muted-foreground ml-4">
+            الصفحة {currentPage} من {totalPages}
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog open={!!confirmDelete} message={confirmDelete?.message} onConfirm={confirmDelete?.onConfirm} onCancel={() => setConfirmDelete(null)} />
 

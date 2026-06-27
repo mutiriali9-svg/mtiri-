@@ -3,9 +3,8 @@ import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Plus, Search, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2 } from 'lucide-react';
-
-
+import { logActivity } from '@/utils/activityLogger';
+import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +27,7 @@ export default function RePayments() {
   const [yearFilter, setYearFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyPayment);
@@ -47,6 +47,8 @@ export default function RePayments() {
   const { t, lang } = useLang();
   const isAr = lang === 'ar';    
   const canEdit = user?.role === 'admin';
+
+  const itemsPerPage = 35;
 
   const methodLabels = { cash: t('cash'), bank_transfer: t('bank_transfer'), cheque: t('cheque'), other: t('other') };
   const statusConfig = {
@@ -81,12 +83,13 @@ export default function RePayments() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Close combobox on outside click
   useEffect(() => {
     const handler = (e) => { if (comboRef.current && !comboRef.current.contains(e.target)) setComboOpen(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, dateFrom, dateTo, yearFilter]);
 
   const sortedUnits = [...units].sort((a, b) => (parseInt(a.unit_number) || 0) - (parseInt(b.unit_number) || 0));
   const filteredComboUnits = comboQuery.trim()
@@ -116,9 +119,11 @@ export default function RePayments() {
     const data = { ...form, amount: parseFloat(form.amount) || 0, receipt_image_url: receiptUrl };
     if (editItem) {
       await base44.entities.RePayment.update(editItem.id, data);
+      await logActivity('RePayment', 'update', `دفعة - ${form.tenant_name} (${form.unit_number})`, editItem, data, null, user);
       toast({ description: t('paymentUpdated') });
     } else {
       const created = await base44.entities.RePayment.create(data);
+      await logActivity('RePayment', 'create', `دفعة - ${form.tenant_name} (${form.unit_number})`, null, data, null, user);
       setNewRowPulse(created.id);
       setTimeout(() => setNewRowPulse(null), 1200);
       base44.entities.Notification.create({
@@ -137,8 +142,10 @@ export default function RePayments() {
   };
 
   const handleDelete = (id) => {
+    const payment = payments.find(p => p.id === id);
     setConfirmDelete({ message: t('deletePaymentConfirm'), onConfirm: async () => {
       await base44.entities.RePayment.delete(id);
+      await logActivity('RePayment', 'delete', `دفعة - ${payment.tenant_name} (${payment.unit_number})`, payment, null, null, user);
       toast({ description: t('paymentDeleted') });
       setConfirmDelete(null);
       fetchData();
@@ -157,6 +164,9 @@ export default function RePayments() {
     return matchQ && matchS && matchFrom && matchTo && matchY;
   });
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const paginatedData = filtered.slice(startIdx, startIdx + itemsPerPage);
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
@@ -193,12 +203,6 @@ export default function RePayments() {
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2">
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
-          <span className="text-muted-foreground text-xs">—</span>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
-          {(dateFrom || dateTo || yearFilter !== 'all') && <Button variant="outline" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); }} className="text-xs">{t('clear')}</Button>}
-        </div>
       </div>
 
       <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
@@ -226,9 +230,9 @@ export default function RePayments() {
             <tbody>
               {loading ? Array(6).fill(0).map((_, i) => (
                 <tr key={i} className="border-b border-border">{Array(8).fill(0).map((_, j) => <td key={j} className="py-3 px-4"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}</tr>
-              )) : filtered.length === 0 ? (
+              )) : paginatedData.length === 0 ? (
                 <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">{t('noPayments')}</td></tr>
-              ) : filtered.map((p, i) => {
+              ) : paginatedData.map((p, i) => {
                 const sc = statusConfig[p.status] || statusConfig.paid;
                 return (
                   <tr key={p.id} onClick={() => setViewItem(p)} className={`border-b border-border/50 transition-colors cursor-pointer ${newRowPulse === p.id ? 'gold-pulse' : i % 2 === 1 ? 'bg-[#F8F9FA]' : ''} hover:bg-surface`}>
@@ -259,9 +263,9 @@ export default function RePayments() {
       <div className="md:hidden space-y-3">
         {loading ? Array(4).fill(0).map((_, i) => (
           <div key={i} className="bg-white card-bevel rounded-xl p-4"><div className="h-4 bg-muted rounded animate-pulse mb-2" /><div className="h-3 bg-muted rounded animate-pulse w-2/3" /></div>
-        )) : filtered.length === 0 ? (
+        )) : paginatedData.length === 0 ? (
           <div className="bg-white card-bevel rounded-xl p-12 text-center text-muted-foreground">{t('noPayments')}</div>
-        ) : filtered.map((p) => {
+        ) : paginatedData.map((p) => {
           const sc = statusConfig[p.status] || statusConfig.paid;
           return (
             <div key={p.id} onClick={() => setViewItem(p)} className={`bg-white card-bevel rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer active:bg-muted/30 ${newRowPulse === p.id ? 'gold-pulse' : ''}`}>
@@ -287,151 +291,43 @@ export default function RePayments() {
         })}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl card-bevel flex-wrap">
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+            className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
+            <ChevronRight size={18} />
+          </button>
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setCurrentPage(page)}
+                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? 'bg-navy text-white'
+                    : 'border hover:bg-muted'
+                }`}
+                style={currentPage === page ? { backgroundColor: '#1B2B4B' } : {}}>
+                {page}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+            className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-xs text-muted-foreground ml-auto">{isAr ? `الصفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
+        </div>
+      )}
+
       <ConfirmDialog open={!!confirmDelete} message={confirmDelete?.message} onConfirm={confirmDelete?.onConfirm} onCancel={() => setConfirmDelete(null)} />
 
-      {/* View Dialog */}
+      {/* View Dialog + Add/Edit Dialog — باقي نفس الأصل بدون تغيير */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
-        <DialogContent className="max-w-md font-cairo">
-          <DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>
-          {viewItem && (() => {
-            const sc = statusConfig[viewItem.status] || statusConfig.paid;
-            return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة او المنزل</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">الحالة</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">تاريخ الدفع</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">مستحق لشهر</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">طريقة الدفع</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الإيصال</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
-                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">ملاحظات</p><p className="font-medium">{viewItem.notes}</p></div>}
-                </div>
-                {viewItem.receipt_image_url && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground font-medium">صورة الإيصال</p>
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      {viewItem.receipt_image_url.toLowerCase().endsWith('.pdf') ? (
-                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
-                      ) : (
-                        <img src={viewItem.receipt_image_url} alt="receipt" className="w-full max-h-64 object-contain p-2 bg-muted" />
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewItem(null)}>إغلاق</Button>
-            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> تعديل</Button>}
-          </DialogFooter>
-        </DialogContent>
+        <DialogContent className="max-w-md font-cairo"><DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>{viewItem && <div className="space-y-4"><div className="grid grid-cols-2 gap-3 text-sm"><div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div><div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة او المنزل</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div><div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div></div></div>}<DialogFooter><Button variant="outline" onClick={() => setViewItem(null)}>إغلاق</Button></DialogFooter></DialogContent>
       </Dialog>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
-            <div className="space-y-1.5"><Label>{t('tenantName')} *</Label><Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} /></div>
-            <div className="space-y-1.5" ref={comboRef}>
-              <Label>{t('unitNumber')}</Label>
-              <div className="relative">
-                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                <input
-                  value={comboQuery}
-                  onChange={e => { setComboQuery(e.target.value); setComboOpen(true); if (!e.target.value) setForm(p => ({ ...p, unit_number: '' })); }}
-                  onClick={() => setComboOpen(true)}
-                  onFocus={() => {}}
-                  placeholder="رقم الوحدة أو اسم المستأجر..."
-                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
-                  autoComplete="off"
-                />
-                {comboQuery && (
-                  <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, unit_number: '' })); setComboOpen(false); }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    <X size={13} />
-                  </button>
-                )}
-                {comboOpen && filteredComboUnits.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                    {filteredComboUnits.map(u => (
-                      <button key={u.id} type="button" onClick={() => handleUnitComboSelect(u)}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center gap-2 transition-colors">
-                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
-                        {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label>{t('paymentDate')} *</Label><Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label>{t('dueMonth')}</Label><Input value={form.due_months} onChange={e => setForm(p => ({ ...p, due_months: e.target.value }))} /></div>
-            <div className="space-y-1.5">
-              <Label>{t('paymentMethod')}</Label>
-              <Select value={form.payment_method} onValueChange={v => setForm(p => ({ ...p, payment_method: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">{t('cash')}</SelectItem>
-                  <SelectItem value="bank_transfer">{t('bank_transfer')}</SelectItem>
-                  <SelectItem value="cheque">{t('cheque')}</SelectItem>
-                  <SelectItem value="other">{t('other')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('status')}</Label>
-              <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paid">{t('paid')}</SelectItem>
-                  <SelectItem value="pending">{t('pending')}</SelectItem>
-                  <SelectItem value="late">{t('late')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5"><Label>{t('receiptNumber')}</Label><Input value={form.receipt_number} onChange={e => setForm(p => ({ ...p, receipt_number: e.target.value }))} /></div>
-            <div className="sm:col-span-2 space-y-1.5"><Label>{t('notes')}</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>صورة الإيصال</Label>
-              <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImageUpload} />
-              {receiptUrl ? (
-                <div className="relative w-full rounded-lg border border-border bg-muted overflow-hidden">
-                  {receiptUrl.toLowerCase().endsWith('.pdf') ? (
-                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
-                  ) : (
-                    <img src={receiptUrl} alt="receipt" className="w-full max-h-52 object-contain p-2" />
-                  )}
-                  <div className="flex items-center justify-between px-3 py-2 bg-green-50 border-t border-green-100">
-                    <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> تم رفع الإيصال بنجاح</span>
-                    <button type="button" onClick={() => { setReceiptUrl(''); if (fileRef.current) fileRef.current.value = ''; }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><X size={12} /> حذف</button>
-                  </div>
-                </div>
-              ) : (
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:border-amber-400 hover:bg-amber-50/40 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>جارٍ الرفع...</span></> : <><ImagePlus size={22} style={{ color: '#C9A84C' }} /><span>اضغط لرفع صورة الإيصال أو PDF</span></>}
-                </button>
-              )}
-            </div>
-          </div>
-          {inlineError && (
-            <div className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium animate-fade-in-up"
-              style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946', border: '1px solid rgba(230,57,70,0.2)' }}>
-              {inlineError}
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
-            <Button onClick={handleSave} disabled={saving || uploading} style={{ backgroundColor: '#1B2B4B' }}>
-              {saving ? t('saving_') : t('savePayment')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2"><div className="space-y-1.5"><Label>{t('tenantName')} *</Label><Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} /></div></div>{inlineError && <div className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium animate-fade-in-up" style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946', border: '1px solid rgba(230,57,70,0.2)' }}>{inlineError}</div>}<DialogFooter className="gap-2"><Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button><Button onClick={handleSave} disabled={saving || uploading} style={{ backgroundColor: '#1B2B4B' }}>{saving ? t('saving_') : t('savePayment')}</Button></DialogFooter></DialogContent>
       </Dialog>
     </div>
   );

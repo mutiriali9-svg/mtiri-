@@ -3,7 +3,8 @@ import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Plus, Search, Edit2, Trash2, ImagePlus, X, FileImage } from 'lucide-react';
+import { logActivity } from '@/utils/activityLogger';
+import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight, ImagePlus, X } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ export default function ReExpenses() {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyExpense);
@@ -39,6 +41,8 @@ export default function ReExpenses() {
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
   const canEdit = user?.role === 'admin';
+
+  const itemsPerPage = 35;
 
   const categoryLabels = {
     maintenance: t('maintenance_cat'), salary: t('salary'), utilities: t('utilities'),
@@ -62,6 +66,8 @@ export default function ReExpenses() {
 
   useEffect(() => { fetchData(); }, []);
 
+  useEffect(() => { setCurrentPage(1); }, [search, catFilter, yearFilter]);
+
   const openAdd = () => { setEditItem(null); setForm(emptyExpense); setImage(null); setImageType('image'); setDialogOpen(true); };
   const openEdit = (e) => { setEditItem(e); setForm({ ...emptyExpense, ...e }); setImage(null); setImageType('image'); setDialogOpen(true); };
 
@@ -71,9 +77,11 @@ export default function ReExpenses() {
     if (image) data.notes = (data.notes ? data.notes + '\n' : '') + '[Invoice]: ' + image;
     if (editItem) {
       await base44.entities.ReExpense.update(editItem.id, data);
+      await logActivity('ReExpense', 'update', `مصروف - ${form.description}`, editItem, data, null, user);
       toast({ description: t('expenseUpdated') });
     } else {
       const created = await base44.entities.ReExpense.create(data);
+      await logActivity('ReExpense', 'create', `مصروف - ${form.description}`, null, data, null, user);
       base44.entities.Notification.create({
         type: 're_expense',
         title: `مصروف عقارات — ${data.description}`,
@@ -90,8 +98,10 @@ export default function ReExpenses() {
   };
 
   const handleDelete = (id) => {
+    const expense = expenses.find(e => e.id === id);
     setConfirmDelete({ message: t('deleteExpenseConfirm'), onConfirm: async () => {
       await base44.entities.ReExpense.delete(id);
+      await logActivity('ReExpense', 'delete', `مصروف - ${expense.description}`, expense, null, null, user);
       toast({ description: t('expenseDeleted') });
       setConfirmDelete(null);
       fetchData();
@@ -108,6 +118,9 @@ export default function ReExpenses() {
     return matchQ && matchC && matchY;
   });
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const paginatedData = filtered.slice(startIdx, startIdx + itemsPerPage);
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
   const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -192,9 +205,9 @@ export default function ReExpenses() {
             <tbody>
               {loading ? Array(5).fill(0).map((_, i) => (
                 <tr key={i} className="border-b border-border">{Array(7).fill(0).map((_, j) => <td key={j} className="py-3 px-4"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}</tr>
-              )) : filtered.length === 0 ? (
+              )) : paginatedData.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted-foreground">{t('noExpenses')}</td></tr>
-              ) : filtered.map((e, i) => (
+              ) : paginatedData.map((e, i) => (
                 <tr key={e.id} className={`border-b border-border/50 hover:bg-surface transition-colors ${i % 2 === 1 ? 'bg-[#F8F9FA]' : ''}`}>
                   <td className="py-3 px-4 font-medium max-w-48" style={{ color: '#1B2B4B' }}>
                     <p className="truncate">{e.description}</p>
@@ -228,9 +241,9 @@ export default function ReExpenses() {
       <div className="md:hidden space-y-3">
         {loading ? Array(4).fill(0).map((_, i) => (
           <div key={i} className="bg-white card-bevel rounded-xl p-4"><div className="h-4 bg-muted rounded animate-pulse mb-2" /><div className="h-3 bg-muted rounded animate-pulse w-2/3" /></div>
-        )) : filtered.length === 0 ? (
+        )) : paginatedData.length === 0 ? (
           <div className="bg-white card-bevel rounded-xl p-12 text-center text-muted-foreground">{t('noExpenses')}</div>
-        ) : filtered.map((e) => (
+        ) : paginatedData.map((e) => (
           <div key={e.id} className="bg-white card-bevel rounded-xl p-4 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-sm" style={{ color: '#1B2B4B' }}>{e.description}</h3>
@@ -252,8 +265,37 @@ export default function ReExpenses() {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl card-bevel flex-wrap">
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+            className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
+            <ChevronRight size={18} />
+          </button>
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setCurrentPage(page)}
+                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? 'bg-navy text-white'
+                    : 'border hover:bg-muted'
+                }`}
+                style={currentPage === page ? { backgroundColor: '#1B2B4B' } : {}}>
+                {page}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+            className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-xs text-muted-foreground ml-auto">{isAr ? `الصفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
+        </div>
+      )}
+
       <ConfirmDialog open={!!confirmDelete} message={confirmDelete?.message} onConfirm={confirmDelete?.onConfirm} onCancel={() => setConfirmDelete(null)} />
 
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editItem ? t('editExpense') : t('addNewExpense')}</DialogTitle></DialogHeader>
@@ -272,29 +314,6 @@ export default function ReExpenses() {
             <div className="space-y-1.5"><Label>{t('invoiceNumber')}</Label><Input value={form.invoice_number} onChange={e => setForm(p => ({ ...p, invoice_number: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>{t('optionalUnit')}</Label><Input value={form.unit_number} onChange={e => setForm(p => ({ ...p, unit_number: e.target.value }))} /></div>
             <div className="sm:col-span-2 space-y-1.5"><Label>{t('notes')}</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>{t('invoiceImage')}</Label>
-              <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => handleImageUpload(e.target.files[0])} />
-              {image ? (
-                <div className="relative w-full rounded-lg overflow-hidden border border-border bg-muted p-3">
-                  {imageType === 'pdf' ? (
-                    <div className="flex items-center gap-2 py-2">
-                      <FileImage size={20} style={{ color: '#C9A84C' }} />
-                      <a href={image} target="_blank" rel="noopener noreferrer" className="text-sm underline hover:opacity-70" style={{ color: '#1B2B4B' }}>عرض الملف PDF</a>
-                    </div>
-                  ) : (
-                    <img src={image} alt="invoice" className="w-full max-h-48 object-contain" />
-                  )}
-                  <button type="button" onClick={() => { setImage(null); setImageType('image'); }} className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"><X size={14} /></button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => fileRef.current.click()} disabled={uploading}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-4 text-sm text-muted-foreground hover:border-gold hover:text-foreground transition-colors">
-                  <ImagePlus size={18} style={{ color: '#C9A84C' }} />
-                  {uploading ? t('uploading') : t('uploadInvoice')}
-                </button>
-              )}
-            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
