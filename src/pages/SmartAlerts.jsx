@@ -6,7 +6,7 @@ import { useLang } from '@/lib/LanguageContext';
 import { logActivity } from '@/utils/activityLogger';
 import {
   Bell, Plus, Trash2, CheckCircle2, AlertTriangle,
-  Building2, Home, Search, X, Edit2, Calendar, RefreshCw, Clock, Upload, MessageCircle, FileImage
+  Building2, Home, Search, X, Edit2, Calendar, RefreshCw, Upload, MessageCircle, FileImage
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,16 +46,6 @@ function getNextDateFromPlan(startDate, plan) {
     return format(next, 'yyyy-MM-dd');
   }
   return format(addMonths(base, planObj.months), 'yyyy-MM-dd');
-}
-
-function getFutureDates(alertDate, plan, count = 4) {
-  const dates = [];
-  let current = alertDate;
-  for (let i = 0; i < count; i++) {
-    current = getNextDateFromPlan(current, plan);
-    dates.push(current);
-  }
-  return dates;
 }
 
 function getDaysLabel(dateStr, lang) {
@@ -111,7 +101,6 @@ export default function SmartAlerts() {
   const [filterProperty, setFilterProperty] = useState(searchParams.get('property') || 'all');
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || 'all');
   const [filterUnit, setFilterUnit] = useState(searchParams.get('unit') || 'all');
-  const [expandedAlert, setExpandedAlert] = useState(null);
   const [whatsappLoading, setWhatsappLoading] = useState(null);
   const [unitDetailModal, setUnitDetailModal] = useState(null);
   const [viewAlert, setViewAlert] = useState(null);
@@ -239,26 +228,6 @@ export default function SmartAlerts() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleMarkPaid = async (alert) => {
-    const nextDate = getNextDateFromPlan(alert.alert_date, alert.payment_plan || 'monthly');
-    const planObj = PAYMENT_PLANS.find(p => p.value === (alert.payment_plan || 'monthly'));
-    const planLabel = planObj?.label[lang] || planObj?.label.ar || 'شهري';
-
-    const updatePayload = {
-      status: 'active',
-      last_paid_date: alert.alert_date,
-      alert_date: nextDate,
-      next_alert_date: nextDate,
-    };
-
-    await base44.entities.PaymentAlert.update(alert.id, updatePayload);
-    await logActivity('PaymentAlert', 'update', `تحديث حالة - ${alert.unit_number} - ${alert.tenant_name}`, alert, updatePayload, 'تم تحديد كمدفوع وتقدم التاريخ', user);
-
-    setJustPaid({ unit_number: alert.unit_number, tenant_name: alert.tenant_name, next_date: nextDate, plan: planLabel });
-    setTimeout(() => setJustPaid(null), 5000);
-    load();
   };
 
   const openPaymentModal = (alert) => {
@@ -682,8 +651,6 @@ export default function SmartAlerts() {
             const isOverdue = alert.status === 'overdue';
             const planObj = PAYMENT_PLANS.find(p => p.value === (alert.payment_plan || 'monthly'));
             const planLabel = planObj?.label[lang] || planObj?.label.ar;
-            const futureDates = getFutureDates(alert.alert_date, alert.payment_plan || 'monthly', 4);
-            const isExpanded = expandedAlert === alert.id;
 
             return (
               <div key={alert.id} onClick={() => setViewAlert(alert)} className="bg-white card-bevel rounded-xl overflow-hidden transition-all cursor-pointer hover:shadow-md"
@@ -753,11 +720,17 @@ export default function SmartAlerts() {
                       {st.label[lang]}
                     </span>
 
-                    <button onClick={() => setExpandedAlert(isExpanded ? null : alert.id)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors"
-                      title={t('الدفعات القادمة', 'Future payments')}>
-                      <Clock size={15} />
-                    </button>
+                    {/* إضافة دفعة — زر احترافي موحّد يفتح نافذة الدفع */}
+                    {(isAdmin || isDataEntry) && alert.status !== 'paid' && (
+                      <Button
+                        size="sm"
+                        onClick={() => openPaymentModal(alert)}
+                        className="h-7 px-2.5 gap-1 text-xs font-semibold rounded-lg shadow-none"
+                        style={{ backgroundColor: '#2A9D8F' }}
+                      >
+                        <Plus size={13} /> {t('إضافة دفعة', 'Add Payment')}
+                      </Button>
+                    )}
 
                     {/* WhatsApp button — visible to admin and data_entry */}
                     {(isAdmin || isDataEntry) && alert.status !== 'paid' && (
@@ -777,13 +750,6 @@ export default function SmartAlerts() {
 
                     {isAdmin && (
                       <>
-                        {alert.status !== 'paid' && (
-                          <button onClick={() => handleMarkPaid(alert)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-green-600 hover:bg-green-50 transition-colors"
-                            title={t('تحديد كمدفوع', 'Mark as paid')}>
-                            <CheckCircle2 size={17} />
-                          </button>
-                        )}
                         <button onClick={() => openForm(alert)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors">
                           <Edit2 size={15} />
@@ -796,34 +762,6 @@ export default function SmartAlerts() {
                     )}
                   </div>
                 </div>
-
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-0" onClick={ev => ev.stopPropagation()}>
-                    <div className="rounded-xl p-3" style={{ backgroundColor: 'rgba(27,43,75,0.04)', border: '1px solid rgba(27,43,75,0.08)' }}>
-                      <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: '#1B2B4B' }}>
-                        <RefreshCw size={12} /> {t('الدفعات القادمة', 'Upcoming Payments')} ({planLabel})
-                      </p>
-                      <div className="space-y-1.5">
-                        {futureDates.map((d, i) => {
-                          const di = getDaysLabel(d, lang);
-                          return (
-                            <div key={i} className="flex items-center gap-3 text-xs">
-                              <span className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-                                style={{ backgroundColor: '#1B2B4B' }}>{i + 1}</span>
-                              <span className="font-medium" style={{ color: '#1B2B4B' }}>{d}</span>
-                              {di && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                                  style={{ backgroundColor: `${di.color}18`, color: di.color }}>
-                                  {di.text}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
