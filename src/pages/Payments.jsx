@@ -275,7 +275,6 @@ export default function Payments() {
         )}
       />
 
-      {/* Filters - Same layout as Expenses */}
       <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div className="relative flex-1 min-w-44">
           <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
@@ -324,7 +323,6 @@ export default function Payments() {
         </div>
       </div>
 
-      {/* Total */}
       <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
           <p className="text-white/60 text-xs">{t('totalShown')}</p>
@@ -440,20 +438,21 @@ export default function Payments() {
         })}
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - RESPONSIVE */}
       {filtered.length > itemsPerPage && (
-        <div className="flex items-center justify-center gap-2 py-6">
+        <div className="flex items-center justify-center gap-2 py-6 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="h-9 px-3 text-sm gap-1"
+            className="h-9 px-3 text-xs md:text-sm gap-1"
           >
             ← السابق
           </Button>
+          
           <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
               const pageNum = i + 1;
               return (
                 <Button
@@ -461,21 +460,21 @@ export default function Payments() {
                   variant={currentPage === pageNum ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`h-9 w-9 text-sm font-medium`}
+                  className="h-9 w-9 text-xs font-medium hidden sm:inline-flex"
                   style={currentPage === pageNum ? { backgroundColor: '#1B2B4B', color: 'white' } : {}}
                 >
                   {pageNum}
                 </Button>
               );
             })}
-            {totalPages > 10 && (
+            {totalPages > 5 && (
               <>
-                <span className="text-muted-foreground px-2">...</span>
+                <span className="text-muted-foreground px-2 hidden sm:inline">...</span>
                 <Button
                   variant={currentPage === totalPages ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setCurrentPage(totalPages)}
-                  className="h-9 w-9 text-sm font-medium"
+                  className="h-9 w-9 text-xs font-medium hidden sm:inline-flex"
                   style={currentPage === totalPages ? { backgroundColor: '#1B2B4B', color: 'white' } : {}}
                 >
                   {totalPages}
@@ -483,16 +482,18 @@ export default function Payments() {
               </>
             )}
           </div>
+
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="h-9 px-3 text-sm gap-1"
+            className="h-9 px-3 text-xs md:text-sm gap-1"
           >
             التالي →
           </Button>
-          <div className="text-xs text-muted-foreground ml-4">
+          
+          <div className="text-[10px] md:text-xs text-muted-foreground ml-2 md:ml-4">
             الصفحة {currentPage} من {totalPages}
           </div>
         </div>
