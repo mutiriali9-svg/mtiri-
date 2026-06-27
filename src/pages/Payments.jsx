@@ -264,7 +264,7 @@ export default function Payments() {
         )}
       />
 
-      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
+      <div className="bg-white card-bevel rounded-xl p-2 flex flex-wrap gap-1.5 items-end overflow-x-auto">
         <div className="relative flex-1 min-w-44">
           <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
           <Input
