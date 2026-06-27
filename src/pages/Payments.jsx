@@ -185,13 +185,13 @@ export default function Payments() {
       const newPayment = { ...data, ...(created || {}), id: created?.id || `temp_${Date.now()}` };
       await handleLogActivity('create', newPayment, null, data);
       base44.entities.Notification.create({
-  type: 'payment',
-  title: `دفعة جديدة — ${data.tenant_name}`,
-  amount: data.amount,
-  reference_id: created?.id || '',
-  reference_data: data,
-  is_read: false,
-}).catch(() => {});
+        type: 'payment',
+        title: `دفعة جديدة — ${data.tenant_name}`,
+        amount: data.amount,
+        reference_id: created?.id || '',
+        reference_data: data,
+        is_read: false,
+      }).catch(() => {});
       setPayments(prev => [newPayment, ...prev]);
       setNewRowPulse(newPayment.id);
       setTimeout(() => setNewRowPulse(null), 1200);
@@ -275,39 +275,56 @@ export default function Payments() {
         )}
       />
 
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-2">
-          <div className="relative flex-1 min-w-40">
-            <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-            <Input placeholder={t('searchPayments')} value={search} onChange={e => setSearch(e.target.value)} className="pr-9 text-sm" style={{ color: '#111827' }} />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 sm:w-36"><SelectValue placeholder={t('status')} /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('allStatuses_pay')}</SelectItem>
-              <SelectItem value="paid">{t('paid')}</SelectItem>
-              <SelectItem value="pending">{t('pending')}</SelectItem>
-              <SelectItem value="late">{t('late')}</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={yearFilter} onValueChange={setYearFilter}>
-            <SelectTrigger className="w-24 sm:w-28"><SelectValue placeholder="السنة" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
-              {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      {/* Filters - Same layout as Expenses */}
+      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
+        <div className="relative flex-1 min-w-44">
+          <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
+          <Input
+            placeholder={t('searchPayments')}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pr-9 text-sm h-9"
+          />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36 h-9 text-sm">
+            <SelectValue placeholder={t('status')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('allStatuses_pay')}</SelectItem>
+            <SelectItem value="paid">{t('paid')}</SelectItem>
+            <SelectItem value="pending">{t('pending')}</SelectItem>
+            <SelectItem value="late">{t('late')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={yearFilter} onValueChange={setYearFilter}>
+          <SelectTrigger className="w-28 h-9 text-sm">
+            <SelectValue placeholder="السنة" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
+            {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2 flex-wrap">
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="flex-1 min-w-32 text-sm" style={{ color: '#111827' }} />
-          <span className="text-xs" style={{ color: '#111827' }}>—</span>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="flex-1 min-w-32 text-sm" style={{ color: '#111827' }} />
-          {(dateFrom || dateTo || yearFilter !== 'all') && (
-            <Button variant="outline" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); }} className="text-xs">{t('clear')}</Button>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">من:</span>
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-32 text-sm h-9" />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">إلى:</span>
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-32 text-sm h-9" />
+          </div>
+          {(dateFrom || dateTo || yearFilter !== 'all' || search) && (
+            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5"
+              onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); setSearch(''); }}>
+              <X size={13} /> مسح
+            </Button>
           )}
         </div>
       </div>
 
+      {/* Total */}
       <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
           <p className="text-white/60 text-xs">{t('totalShown')}</p>
