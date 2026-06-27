@@ -166,7 +166,7 @@ export default function Expenses() {
   })).filter(c => c.count > 0).sort((a, b) => b.total - a.total);
 
   return (
-    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
+    <div className="space-y-5 animate-fade-in-up">
       <PageHeader
         titleAr="المصاريف والتكاليف"
         titleEn="Expenses & Costs"

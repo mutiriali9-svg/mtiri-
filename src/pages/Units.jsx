@@ -277,7 +277,7 @@ export default function Units() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
+    <div className="space-y-5 animate-fade-in-up">
       <PullRefreshIndicator refreshing={refreshing} />
       <PageHeader
         titleAr="الوحدات السكنية"

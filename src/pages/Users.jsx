@@ -47,7 +47,7 @@ export default function Users() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
+    <div className="space-y-5 animate-fade-in-up">
       <PageHeader
         titleAr="إدارة المستخدمين"
         titleEn="User Management"

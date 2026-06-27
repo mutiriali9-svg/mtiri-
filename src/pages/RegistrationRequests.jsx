@@ -150,7 +150,7 @@ export default function RegistrationRequests() {
   ];
 
   return (
-    <div className="space-y-5 animate-fade-in-up max-w-7xl mx-auto">
+    <div className="space-y-5 animate-fade-in-up">
       <PageHeader
         titleAr="طلبات التسجيل"
         titleEn="Registration Requests"
