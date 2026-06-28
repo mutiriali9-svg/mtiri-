@@ -3,7 +3,7 @@ import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Plus, Search, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,6 @@ export default function Payments() {
   const [units, setUnits] = useState([]);
   const [reUnits, setReUnits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -228,13 +227,11 @@ export default function Payments() {
   const availableYears = [...new Set(payments.map(p => p.payment_date?.substring(0, 4)).filter(Boolean))].sort((a, b) => b - a);
 
   const filtered = payments.filter(p => {
-    const q = search.toLowerCase();
-    const matchQ = !q || p.tenant_name?.toLowerCase().includes(q) || p.unit_number?.toLowerCase().includes(q);
     const matchS = statusFilter === 'all' || p.status === statusFilter;
     const matchFrom = !dateFrom || (p.payment_date && p.payment_date >= dateFrom);
     const matchTo = !dateTo || (p.payment_date && p.payment_date <= dateTo);
     const matchY = yearFilter === 'all' || p.payment_date?.startsWith(yearFilter);
-    return matchQ && matchS && matchFrom && matchTo && matchY;
+    return matchS && matchFrom && matchTo && matchY;
   });
 
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
@@ -258,15 +255,6 @@ export default function Payments() {
       />
 
       <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
-        <div className="relative flex-1 min-w-44">
-          <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-          <Input
-            placeholder={t('searchPayments')}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pr-9 text-sm h-9"
-          />
-        </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-36 h-9 text-sm">
             <SelectValue placeholder={t('status')} />
@@ -296,9 +284,9 @@ export default function Payments() {
             <span className="text-xs text-muted-foreground whitespace-nowrap">إلى:</span>
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-32 text-sm h-9" />
           </div>
-          {(dateFrom || dateTo || yearFilter !== 'all' || search) && (
+          {(dateFrom || dateTo || yearFilter !== 'all') && (
             <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5"
-              onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); setSearch(''); }}>
+              onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); }}>
               <X size={13} /> مسح
             </Button>
           )}
@@ -518,7 +506,6 @@ export default function Payments() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <div className="sm:col-span-2" ref={comboRef}>
               <div className="relative">
-                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   value={comboQuery}
                   onChange={e => {
@@ -530,7 +517,7 @@ export default function Payments() {
                   }}
                   onClick={() => setComboOpen(true)}
                   placeholder="ابحث برقم الوحدة أو اسم المستأجر..."
-                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  className="w-full pr-3 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                 />
                 {comboQuery && (
