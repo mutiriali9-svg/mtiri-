@@ -29,10 +29,6 @@ export default function Payments() {
   const [units, setUnits] = useState([]);
   const [reUnits, setReUnits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [yearFilter, setYearFilter] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyPayment);
@@ -53,8 +49,7 @@ export default function Payments() {
   const today = new Date().toISOString().split('T')[0];
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t, lang } = useLang();
-  const isAr = lang === 'ar';
+  const { t } = useLang();
   const isTester = user?.role === 'tester';
   const maskName = (name) => isTester ? '***' : name;
 
@@ -224,15 +219,7 @@ export default function Payments() {
     }});
   };
 
-  const availableYears = [...new Set(payments.map(p => p.payment_date?.substring(0, 4)).filter(Boolean))].sort((a, b) => b - a);
-
-  const filtered = payments.filter(p => {
-    const matchS = statusFilter === 'all' || p.status === statusFilter;
-    const matchFrom = !dateFrom || (p.payment_date && p.payment_date >= dateFrom);
-    const matchTo = !dateTo || (p.payment_date && p.payment_date <= dateTo);
-    const matchY = yearFilter === 'all' || p.payment_date?.startsWith(yearFilter);
-    return matchS && matchFrom && matchTo && matchY;
-  });
+  const filtered = payments;
 
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
 
@@ -253,45 +240,6 @@ export default function Payments() {
           </Button>
         )}
       />
-
-      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-9 text-sm">
-            <SelectValue placeholder={t('status')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allStatuses_pay')}</SelectItem>
-            <SelectItem value="paid">{t('paid')}</SelectItem>
-            <SelectItem value="pending">{t('pending')}</SelectItem>
-            <SelectItem value="late">{t('late')}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={yearFilter} onValueChange={setYearFilter}>
-          <SelectTrigger className="w-28 h-9 text-sm">
-            <SelectValue placeholder="السنة" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
-            {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">من:</span>
-            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-32 text-sm h-9" />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">إلى:</span>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-32 text-sm h-9" />
-          </div>
-          {(dateFrom || dateTo || yearFilter !== 'all') && (
-            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5"
-              onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); }}>
-              <X size={13} /> مسح
-            </Button>
-          )}
-        </div>
-      </div>
 
       <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
