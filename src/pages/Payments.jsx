@@ -257,7 +257,7 @@ export default function Payments() {
         )}
       />
 
-      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end overflow-hidden">
+      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div className="relative flex-1 min-w-44">
           <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
           <Input
@@ -540,16 +540,8 @@ export default function Payments() {
                   </button>
                 )}
                 {comboOpen && filteredComboUnits.length > 0 && (
-  <div
-    className="absolute left-0 right-0 mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto overflow-x-hidden"
-    style={{
-      width: "100%",
-      maxWidth: "100%",
-      zIndex: 9999,
-      boxSizing: "border-box",
-    }}
-  >
-    {filteredComboUnits.map(u => (
+                  <div className="absolute w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto" style={{ zIndex: 9999 }}>
+                    {filteredComboUnits.map(u => (
                       <button key={u.id} type="button" onClick={() => handleUnitSelect(u)}
                         className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
                         <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
