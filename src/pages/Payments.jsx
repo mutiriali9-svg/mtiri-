@@ -3,7 +3,7 @@ import { base44, uploadFile } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Plus, Search, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,11 +29,6 @@ export default function Payments() {
   const [units, setUnits] = useState([]);
   const [reUnits, setReUnits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [yearFilter, setYearFilter] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyPayment);
@@ -54,8 +49,7 @@ export default function Payments() {
   const today = new Date().toISOString().split('T')[0];
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t, lang } = useLang();
-  const isAr = lang === 'ar';
+  const { t } = useLang();
   const isTester = user?.role === 'tester';
   const maskName = (name) => isTester ? '***' : name;
 
@@ -225,17 +219,7 @@ export default function Payments() {
     }});
   };
 
-  const availableYears = [...new Set(payments.map(p => p.payment_date?.substring(0, 4)).filter(Boolean))].sort((a, b) => b - a);
-
-  const filtered = payments.filter(p => {
-    const q = search.toLowerCase();
-    const matchQ = !q || p.tenant_name?.toLowerCase().includes(q) || p.unit_number?.toLowerCase().includes(q);
-    const matchS = statusFilter === 'all' || p.status === statusFilter;
-    const matchFrom = !dateFrom || (p.payment_date && p.payment_date >= dateFrom);
-    const matchTo = !dateTo || (p.payment_date && p.payment_date <= dateTo);
-    const matchY = yearFilter === 'all' || p.payment_date?.startsWith(yearFilter);
-    return matchQ && matchS && matchFrom && matchTo && matchY;
-  });
+  const filtered = payments;
 
   const total = filtered.reduce((s, p) => s + (p.amount || 0), 0);
 
@@ -256,54 +240,6 @@ export default function Payments() {
           </Button>
         )}
       />
-
-      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
-        <div className="relative flex-1 min-w-44">
-          <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-          <Input
-            placeholder={t('searchPayments')}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pr-9 text-sm h-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-9 text-sm">
-            <SelectValue placeholder={t('status')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allStatuses_pay')}</SelectItem>
-            <SelectItem value="paid">{t('paid')}</SelectItem>
-            <SelectItem value="pending">{t('pending')}</SelectItem>
-            <SelectItem value="late">{t('late')}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={yearFilter} onValueChange={setYearFilter}>
-          <SelectTrigger className="w-28 h-9 text-sm">
-            <SelectValue placeholder="السنة" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
-            {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">من:</span>
-            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-32 text-sm h-9" />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">إلى:</span>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-32 text-sm h-9" />
-          </div>
-          {(dateFrom || dateTo || yearFilter !== 'all' || search) && (
-            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5"
-              onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); setSearch(''); }}>
-              <X size={13} /> مسح
-            </Button>
-          )}
-        </div>
-      </div>
 
       <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
@@ -386,7 +322,7 @@ export default function Payments() {
           return (
             <div key={p.id} onClick={() => setViewItem(p)}
               className={`bg-white card-bevel rounded-xl p-2.5 hover:shadow-sm transition-shadow cursor-pointer active:bg-muted/30 ${newRowPulse === p.id ? 'gold-pulse' : ''}`}>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</h3>
@@ -396,23 +332,23 @@ export default function Payments() {
                     <span className="text-xs text-muted-foreground">{p.payment_date}</span>
                     <span className="text-xs text-muted-foreground">{p.due_months || ''}</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="text-left">
-                    <p className="text-sm font-bold" style={{ color: '#2A9D8F' }}>{(p.amount || 0).toLocaleString()}</p>
-                    <p className="text-[10px] text-muted-foreground text-left">AED</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
+                    {canEdit && (
+                      <div className="flex items-center gap-0.5" onPointerDown={ev => ev.stopPropagation()} onClick={ev => ev.stopPropagation()}>
+                        <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); openEdit(p); }}
+                          className="p-1.5 rounded hover:bg-muted text-muted-foreground flex items-center justify-center"><Edit2 size={13} /></button>
+                        {user?.role === 'admin' && (
+                          <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); handleDelete(p.id); }}
+                            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center"><Trash2 size={13} /></button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
-                  {canEdit && (
-                    <div className="flex items-center gap-0.5" onPointerDown={ev => ev.stopPropagation()} onClick={ev => ev.stopPropagation()}>
-                      <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); openEdit(p); }}
-                        className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[36px] min-h-[36px] flex items-center justify-center"><Edit2 size={14} /></button>
-                      {user?.role === 'admin' && (
-                        <button onPointerDown={ev => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); handleDelete(p.id); }}
-                          className="p-2 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive min-w-[36px] min-h-[36px] flex items-center justify-center"><Trash2 size={14} /></button>
-                      )}
-                    </div>
-                  )}
+                </div>
+                <div className="text-left shrink-0">
+                  <p className="text-sm font-bold" style={{ color: '#2A9D8F' }}>{(p.amount || 0).toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground text-left">AED</p>
                 </div>
               </div>
             </div>
@@ -518,7 +454,6 @@ export default function Payments() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <div className="sm:col-span-2" ref={comboRef}>
               <div className="relative">
-                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   value={comboQuery}
                   onChange={e => {
@@ -530,7 +465,7 @@ export default function Payments() {
                   }}
                   onClick={() => setComboOpen(true)}
                   placeholder="ابحث برقم الوحدة أو اسم المستأجر..."
-                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  className="w-full pr-3 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                 />
                 {comboQuery && (
