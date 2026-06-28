@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import usePullToRefresh from '@/hooks/usePullToRefresh';
-import PullRefreshIndicator from '@/components/PullRefreshIndicator';
 import { addMonths, format, parseISO } from 'date-fns';
 import { logActivity, getChangeSummary } from '@/utils/activityLogger';
 
@@ -49,7 +47,6 @@ export default function Payments() {
   const [successMsg, setSuccessMsg] = useState('');
   const [unitAlert, setUnitAlert] = useState(null);
 
-  // Combobox
   const [comboQuery, setComboQuery] = useState('');
   const [comboOpen, setComboOpen] = useState(false);
   const comboRef = useRef(null);
@@ -72,7 +69,6 @@ export default function Payments() {
     late: { label: t('late'), color: '#E63946', bg: 'rgba(230,57,70,0.1)' },
   };
 
-  // Close combobox on outside click
   useEffect(() => {
     const handler = (e) => { if (comboRef.current && !comboRef.current.contains(e.target)) setComboOpen(false); };
     document.addEventListener('mousedown', handler);
@@ -107,7 +103,6 @@ export default function Payments() {
   }, []);
 
   useEffect(() => { fetchData(); }, []);
-  const refreshing = usePullToRefresh(fetchData);
 
   const allUnits = [
     ...units.map(u => ({ ...u, _type: 'qarya' })),
@@ -154,7 +149,6 @@ export default function Payments() {
       : action === 'update'
       ? `تعديل دفعة ${payment?.tenant_name}`
       : `حذف دفعة ${payment?.tenant_name}`;
-    
     await logActivity('Payment', action, `${payment?.tenant_name} - وحدة ${payment?.unit_number}`, oldData, newData, summary, user);
   };
 
@@ -247,7 +241,6 @@ export default function Payments() {
 
   return (
     <div className="space-y-5 animate-fade-in-up">
-      <PullRefreshIndicator refreshing={refreshing} />
       {successMsg && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-semibold animate-fade-in-up"
           style={{ backgroundColor: '#1B2B4B', minWidth: 220, textAlign: 'center' }}>
@@ -264,7 +257,7 @@ export default function Payments() {
         )}
       />
 
-      <div className="bg-white card-bevel rounded-xl p-2 flex flex-wrap gap-1.5 items-end overflow-x-auto">
+      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div className="relative flex-1 min-w-44">
           <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
           <Input
@@ -312,7 +305,7 @@ export default function Payments() {
         </div>
       </div>
 
-      <div className="bg-navy rounded-xl p-3 sm:p-4 grid grid-cols-2 gap-2 sm:gap-4 md:gap-6" style={{ backgroundColor: '#1B2B4B' }}>
+      <div className="bg-navy rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: '#1B2B4B' }}>
         <div>
           <p className="text-white/60 text-xs">{t('totalShown')}</p>
           <p className="text-2xl font-bold text-white">{total.toLocaleString()} <span className="text-sm text-white/60">AED</span></p>
@@ -476,7 +469,6 @@ export default function Payments() {
           <div style={{ overflowY: 'auto', flex: 1, padding: '0 0 8px' }}>
           <DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader>
 
-          {/* Smart Alert */}
           {!editItem && unitAlert && (() => {
             const monthly = Number(unitAlert.original_amount || 0);
             const currentBalance = Number(unitAlert.remaining_balance ?? monthly);
@@ -524,8 +516,6 @@ export default function Payments() {
           })()}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
-
-            {/* Combobox */}
             <div className="sm:col-span-2" ref={comboRef}>
               <div className="relative">
                 <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
