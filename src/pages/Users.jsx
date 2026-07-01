@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Shield, User, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { logActivity } from '@/utils/activityLogger';
 
 const ROLES = [
   { value: 'admin',      label: 'Admin — مدير',           color: '#E63946', bg: 'rgba(230,57,70,0.1)' },
@@ -36,8 +37,19 @@ export default function Users() {
   const handleRoleChange = async (userId, newRole) => {
     setSaving(prev => ({ ...prev, [userId]: true }));
     try {
+      const targetUser = users.find(u => u.id === userId);
+      const oldRole = targetUser?.role;
       await base44.entities.User.update(userId, { role: newRole });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      await logActivity(
+        'User',
+        'update',
+        `${targetUser?.name || targetUser?.email} — ${oldRole} ← ${newRole}`,
+        { role: oldRole },
+        { role: newRole },
+        `تغيير دور ${targetUser?.name || targetUser?.email} من ${oldRole} إلى ${newRole}`,
+        currentUser
+      );
       toast({ description: 'تم تحديث الصلاحية ✓' });
     } catch {
       toast({ description: 'حدث خطأ، حاول مرة أخرى', variant: 'destructive' });
@@ -98,7 +110,7 @@ export default function Users() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      {isAdmin && u.id !== currentUser?.id ? (
+                      {isAdmin && u.id !== currentUser?.id && u.email !== 'mutiriali9@gmail.com' ? (
                         <div className="flex items-center gap-2">
                           <Select value={u.role || ''} onValueChange={v => handleRoleChange(u.id, v)} disabled={!!saving[u.id]}>
                             <SelectTrigger className="w-52 h-8 text-xs" style={{ borderColor: rc?.color, color: rc?.color }}>
@@ -165,7 +177,7 @@ export default function Users() {
                 )}
               </div>
 
-              {isAdmin && u.id !== currentUser?.id && (
+              {isAdmin && u.id !== currentUser?.id && u.email !== 'mutiriali9@gmail.com' && (
                 <div className="flex items-center gap-2">
                   <Select value={u.role || ''} onValueChange={v => handleRoleChange(u.id, v)} disabled={!!saving[u.id]}>
                     <SelectTrigger className="flex-1 h-9 text-xs" style={{ borderColor: rc?.color, color: rc?.color }}>
