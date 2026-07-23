@@ -708,6 +708,20 @@ export default function SmartAlerts() {
                           }
                           {t('واتساب', 'WhatsApp')}
                         </button>
+                        {isAdmin && (
+                          <>
+                            <button onClick={() => openForm(a)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                              title={t('تعديل التنبيه', 'Edit alert')}>
+                              <Edit2 size={14} />
+                            </button>
+                            <button onClick={() => handleDelete(a)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 transition-colors"
+                              title={t('حذف التنبيه', 'Delete alert')}>
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
