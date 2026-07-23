@@ -25,6 +25,13 @@ const PAYMENT_PLANS = [
   { value: 'annual', label: { ar: 'سنوي', en: 'Annual' }, months: 12 },
 ];
 
+const PAYMENT_METHODS = [
+  { value: 'cash', label: { ar: 'نقداً', en: 'Cash' } },
+  { value: 'bank_transfer', label: { ar: 'تحويل بنكي', en: 'Bank Transfer' } },
+  { value: 'cheque', label: { ar: 'شيك', en: 'Cheque' } },
+  { value: 'other', label: { ar: 'أخرى', en: 'Other' } },
+];
+
 const statusConfig = {
   active: { label: { ar: 'نشط', en: 'Active' }, color: '#1B2B4B', bg: 'rgba(27,43,75,0.08)' },
   paid: { label: { ar: 'مدفوع', en: 'Paid' }, color: '#2A9D8F', bg: 'rgba(42,157,143,0.1)' },
@@ -46,6 +53,95 @@ function getNextDateFromPlan(startDate, plan) {
     return format(next, 'yyyy-MM-dd');
   }
   return format(addMonths(base, planObj.months), 'yyyy-MM-dd');
+}
+
+function cycleTotal(a) {
+  const monthly = Number(a?.original_amount || 0);
+  const acc = Number(a?.accumulated_amount || 0);
+  return monthly + acc;
+}
+
+function cyclePaid(a) {
+  const total = cycleTotal(a);
+  const remaining = Number(a?.remaining_balance ?? total);
+  return Math.max(0, total - remaining);
+}
+
+function paidAheadLabel(periods, plan, lang) {
+  if (!periods || periods <= 1) return '';
+  const planObj = PAYMENT_PLANS.find(p => p.value === plan) || PAYMENT_PLANS[0];
+  const label = planObj.label[lang] || planObj.label.ar;
+  return lang === 'en'
+    ? `Paid ahead — ${periods} periods (${label})`
+    : `مدفوع مقدماً — ${periods} دورات (${label})`;
+}
+
+function applyAlertPayment(alertRec, paidAmount, payDate) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const monthly = Number(alertRec.original_amount || 0);
+  const acc = Number(alertRec.accumulated_amount || 0);
+  const currentBalance = Number(alertRec.remaining_balance ?? (monthly + acc));
+  const alertDate = alertRec.alert_date || todayStr;
+  const plan = alertRec.payment_plan || 'monthly';
+  const paidBefore = cyclePaid(alertRec);
+
+  if (paidAmount >= currentBalance) {
+    const credit = paidAmount - currentBalance;
+    const additionalPeriods = monthly > 0 ? Math.floor(credit / monthly) : 0;
+    const partialCredit = monthly > 0 ? credit % monthly : 0;
+    const periodsAdvanced = 1 + additionalPeriods;
+
+    let newDate = alertDate;
+    for (let i = 0; i < periodsAdvanced; i++) {
+      newDate = getNextDateFromPlan(newDate, plan);
+    }
+
+    const newBalance = partialCredit > 0 ? monthly - partialCredit : monthly;
+    const status = newDate > todayStr ? 'active' : 'overdue';
+
+    return {
+      payload: {
+        remaining_balance: newBalance,
+        accumulated_amount: 0,
+        last_paid_date: payDate,
+        last_paid_amount: paidAmount,
+        alert_date: newDate,
+        next_alert_date: newDate,
+        status,
+      },
+      summary: {
+        settled: true,
+        periodsAdvanced,
+        newDate,
+        newBalance,
+        credit: partialCredit,
+        cyclePaidAfter: partialCredit,
+        status,
+      },
+    };
+  }
+
+  const newBalance = currentBalance - paidAmount;
+  const status = todayStr < alertDate ? 'active' : 'overdue';
+
+  return {
+    payload: {
+      remaining_balance: newBalance,
+      accumulated_amount: acc,
+      last_paid_date: payDate,
+      last_paid_amount: paidAmount,
+      status,
+    },
+    summary: {
+      settled: false,
+      periodsAdvanced: 0,
+      newDate: alertDate,
+      newBalance,
+      credit: 0,
+      cyclePaidAfter: paidBefore + paidAmount,
+      status,
+    },
+  };
 }
 
 function getDaysLabel(dateStr, lang) {
@@ -79,6 +175,10 @@ export default function SmartAlerts() {
 
   const t = (ar, en) => lang === 'en' ? en : ar;
 
+  const today = new Date().toISOString().split('T')[0];
+
+  const emptyPayment = { amount: '', payment_date: today, due_months: '', payment_method: '', notes: '', receipt_url: '' };
+
   const [alerts, setAlerts] = useState([]);
   const [units, setUnits] = useState([]);
   const [reUnits, setReUnits] = useState([]);
@@ -90,11 +190,12 @@ export default function SmartAlerts() {
   const [justPaid, setJustPaid] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [paymentModal, setPaymentModal] = useState(null);
-  const [paymentInput, setPaymentInput] = useState({ amount: '', notes: '' });
+  const [paymentInput, setPaymentInput] = useState(emptyPayment);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUploaded, setReceiptUploaded] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [pageError, setPageError] = useState('');
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTenant, setSearchTenant] = useState(searchParams.get('search') || '');
@@ -114,25 +215,29 @@ export default function SmartAlerts() {
     setSearchParams(p, { replace: true });
   }, [searchTenant, filterProperty, filterStatus, filterUnit, setSearchParams]);
 
-  const today = new Date().toISOString().split('T')[0];
-
   const load = async () => {
     setLoading(true);
-    const [alertsData, unitsData, reUnitsData] = await Promise.all([
-      base44.entities.PaymentAlert.list('-alert_date', 200),
-      base44.entities.Unit.list(),
-      base44.entities.ReUnit.list(),
-    ]);
-    const updated = alertsData.map(a => {
-      if (a.status !== 'paid' && a.alert_date && a.alert_date <= today) {
-        return { ...a, status: 'overdue' };
-      }
-      return a;
-    });
-    setAlerts(updated);
-    setUnits(unitsData);
-    setReUnits(reUnitsData);
-    setLoading(false);
+    try {
+      const [alertsData, unitsData, reUnitsData] = await Promise.all([
+        base44.entities.PaymentAlert.list('-alert_date', 200),
+        base44.entities.Unit.list(),
+        base44.entities.ReUnit.list(),
+      ]);
+      const updated = alertsData.map(a => {
+        if (a.status !== 'paid' && a.alert_date && a.alert_date <= today) {
+          return { ...a, status: 'overdue' };
+        }
+        return a;
+      });
+      setAlerts(updated);
+      setUnits(unitsData);
+      setReUnits(reUnitsData);
+      setPageError('');
+    } catch (e) {
+      setPageError(t('فشل تحميل البيانات: ', 'Failed to load data: ') + (e?.message || ''));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -145,8 +250,10 @@ export default function SmartAlerts() {
   const urgentAlerts = alerts.filter(a =>
     a.status !== 'paid' && a.alert_date && a.alert_date <= today
   );
+  const urgentIds = new Set(urgentAlerts.map(a => a.id));
 
   const filteredAlerts = alerts.filter(a => {
+    if (urgentIds.has(a.id)) return false;
     if (filterProperty !== 'all' && a.property_type !== filterProperty) return false;
     if (filterStatus !== 'all' && a.status !== filterStatus) return false;
     if (filterUnit !== 'all' && a.unit_number !== filterUnit) return false;
@@ -174,21 +281,21 @@ export default function SmartAlerts() {
     }));
   };
 
-  const openForm = (alert = null) => {
-    if (alert) {
-      setEditing(alert);
+  const openForm = (alertRec = null) => {
+    if (alertRec) {
+      setEditing(alertRec);
       setForm({
-        unit_number: alert.unit_number || '',
-        tenant_name: alert.tenant_name || '',
-        property_type: alert.property_type || 'qarya',
-        alert_date: alert.alert_date || '',
-        alert_time: alert.alert_time || '',
-        original_amount: alert.original_amount || '',
-        accumulated_amount: '',
-        remaining_balance: alert.remaining_balance || alert.original_amount || '',
-        description: alert.description || '',
-        payment_plan: alert.payment_plan || 'monthly',
-        status: alert.status || 'active',
+        unit_number: alertRec.unit_number || '',
+        tenant_name: alertRec.tenant_name || '',
+        property_type: alertRec.property_type || 'qarya',
+        alert_date: alertRec.alert_date || '',
+        alert_time: alertRec.alert_time || '',
+        original_amount: alertRec.original_amount || '',
+        accumulated_amount: String(alertRec.accumulated_amount || ''),
+        remaining_balance: alertRec.remaining_balance || alertRec.original_amount || '',
+        description: alertRec.description || '',
+        payment_plan: alertRec.payment_plan || 'monthly',
+        status: alertRec.status || 'active',
       });
     } else {
       setEditing(null);
@@ -211,6 +318,7 @@ export default function SmartAlerts() {
         alert_date: form.alert_date,
         alert_time: form.alert_time || '',
         original_amount: monthly,
+        accumulated_amount: overdue,
         remaining_balance: total || monthly,
         payment_plan: form.payment_plan || 'monthly',
         description: form.description || '',
@@ -223,17 +331,21 @@ export default function SmartAlerts() {
         await base44.entities.PaymentAlert.create(payload);
         await logActivity('PaymentAlert', 'create', `تنبيه - ${form.unit_number} - ${form.tenant_name}`, null, payload, null, user);
       }
+      setPageError('');
       setShowForm(false);
       load();
+    } catch (e) {
+      setPageError(t('فشل حفظ التنبيه: ', 'Failed to save alert: ') + (e?.message || ''));
     } finally {
       setSaving(false);
     }
   };
 
-  const openPaymentModal = (alert) => {
-    setPaymentModal(alert);
-    setPaymentInput({ amount: '', notes: '', receipt_url: '' });
+  const openPaymentModal = (alertRec) => {
+    setPaymentModal(alertRec);
+    setPaymentInput({ ...emptyPayment });
     setReceiptUploaded(false);
+    setPaymentError('');
     setJustPaid(null);
   };
 
@@ -241,18 +353,40 @@ export default function SmartAlerts() {
     const file = e.target.files[0];
     if (!file) return;
     setReceiptUploading(true);
-    const { file_url } = await uploadFile(file);
-    setPaymentInput(p => ({ ...p, receipt_url: file_url }));
-    setReceiptUploading(false);
-    setReceiptUploaded(true);
-    setTimeout(() => setReceiptUploaded(false), 3000);
+    try {
+      const { file_url } = await uploadFile(file);
+      setPaymentInput(p => ({ ...p, receipt_url: file_url }));
+      setReceiptUploaded(true);
+      setPaymentError('');
+      setTimeout(() => setReceiptUploaded(false), 3000);
+    } catch (err) {
+      setPaymentError(t('فشل رفع الإيصال: ', 'Receipt upload failed: ') + (err?.message || ''));
+    } finally {
+      setReceiptUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleDataEntryPaid = async () => {
-    const alert = paymentModal;
-    if (!alert || !paymentInput.amount) return;
+    if (paymentSaving) return;
+    const alertRec = paymentModal;
+    if (!alertRec) return;
+
+    const paidAmount = Number(paymentInput.amount);
+    if (!paidAmount || paidAmount <= 0) {
+      setPaymentError(t('أدخل مبلغاً صحيحاً *', 'Enter a valid amount *'));
+      return;
+    }
+    if (!paymentInput.payment_date) {
+      setPaymentError(t('حدد تاريخ الدفعة *', 'Select the payment date *'));
+      return;
+    }
     if (!paymentInput.due_months?.trim()) {
       setPaymentError(t('يرجى تحديد الشهر المستحق *', 'Please enter the due month *'));
+      return;
+    }
+    if (!paymentInput.payment_method) {
+      setPaymentError(t('حدد طريقة الدفع *', 'Select a payment method *'));
       return;
     }
     if (!paymentInput.receipt_url) {
@@ -262,135 +396,146 @@ export default function SmartAlerts() {
     setPaymentError('');
     setPaymentSaving(true);
 
-    const paidAmount   = Number(paymentInput.amount);
-    const monthly      = Number(alert.original_amount || 0);
-    const currentBalance = Number(alert.remaining_balance || monthly);
-    const alertDate    = alert.alert_date || today;
-    const plan         = alert.payment_plan || 'monthly';
-    const planObj      = PAYMENT_PLANS.find(p => p.value === plan);
-    const planLabel    = planObj?.label[lang] || planObj?.label.ar || 'شهري';
+    const plan = alertRec.payment_plan || 'monthly';
+    const planObj = PAYMENT_PLANS.find(p => p.value === plan);
+    const planLabel = planObj?.label[lang] || planObj?.label.ar || 'شهري';
+    const result = applyAlertPayment(alertRec, paidAmount, paymentInput.payment_date);
 
-    // Save payment record
+    const alertUpdatePayload = { ...result.payload };
+    if (result.summary.settled) {
+      alertUpdatePayload.description = alertUpdatePayload.status === 'active'
+        ? paidAheadLabel(result.summary.periodsAdvanced, plan, lang)
+        : '';
+    }
+
+    const snapshot = {
+      alert_date: alertRec.alert_date,
+      remaining_balance: alertRec.remaining_balance,
+      accumulated_amount: alertRec.accumulated_amount,
+      status: alertRec.status,
+      description: alertRec.description,
+      last_paid_date: alertRec.last_paid_date,
+      last_paid_amount: alertRec.last_paid_amount,
+      next_alert_date: alertRec.next_alert_date,
+    };
+
     const paymentRecord = {
-      tenant_name:       alert.tenant_name,
-      unit_number:       alert.unit_number,
+      tenant_name:       alertRec.tenant_name,
+      unit_number:       alertRec.unit_number,
       amount:            paidAmount,
-      payment_date:      today,
+      payment_date:      paymentInput.payment_date,
       due_months:        paymentInput.due_months || '',
+      payment_method:    paymentInput.payment_method,
       status:            'paid',
       notes:             paymentInput.notes || '',
       receipt_image_url: paymentInput.receipt_url || '',
+      alert_id:          alertRec.id,
+      alert_snapshot:    snapshot,
       created_by:        user?.id || '',
     };
 
-    await base44.entities.Payment.create(paymentRecord);
-    await logActivity('Payment', 'create', `دفعة - ${alert.unit_number} - ${alert.tenant_name}`, null, paymentRecord, `دفعة جديدة: ${paidAmount} د.إ`, user);
+    let createdPayment = null;
+    let warning = '';
 
-    base44.entities.Notification.create({
-      type: 'payment',
-      title: `دفعة جديدة — ${alert.tenant_name}`,
-      amount: paidAmount,
-      reference_id: '',
-      reference_data: paymentRecord,
-    }).catch(() => {});
+    try {
+      createdPayment = await base44.entities.Payment.create(paymentRecord);
 
-    let newDate, newBalance, nextStatus, periodsAdvanced;
-
-    if (paidAmount >= currentBalance) {
-      // ─── تسويه كاملة + احتساب ما زاد ───────────────────────────
-      const creditAfterCurrent   = paidAmount - currentBalance;
-      const additionalPeriods    = monthly > 0 ? Math.floor(creditAfterCurrent / monthly) : 0;
-      const partialCredit        = monthly > 0 ? creditAfterCurrent % monthly : 0;
-      periodsAdvanced            = 1 + additionalPeriods;
-
-      newDate = alertDate;
-      for (let i = 0; i < periodsAdvanced; i++) {
-        newDate = getNextDateFromPlan(newDate, plan);
+      try {
+        await base44.entities.PaymentAlert.update(alertRec.id, alertUpdatePayload);
+      } catch (updateErr) {
+        let rolledBack = true;
+        if (createdPayment?.id) {
+          try {
+            await base44.entities.Payment.delete(createdPayment.id);
+          } catch {
+            rolledBack = false;
+          }
+        }
+        throw new Error(
+          (rolledBack
+            ? t('فشل تحديث التنبيه — تم التراجع عن الدفعة: ', 'Alert update failed — payment rolled back: ')
+            : t('فشل تحديث التنبيه وتعذّر التراجع — الدفعة محفوظة، راجعها يدوياً: ', 'Alert update failed and rollback failed — payment saved, review it manually: ')
+          ) + (updateErr?.message || '')
+        );
       }
 
-      newBalance  = partialCredit > 0 ? monthly - partialCredit : monthly;
-      nextStatus  = newDate > today ? 'active' : 'overdue';
+      try {
+        await logActivity('Payment', 'create', `دفعة - ${alertRec.unit_number} - ${alertRec.tenant_name}`, null, paymentRecord, `دفعة جديدة: ${paidAmount} د.إ`, user);
+        await logActivity('PaymentAlert', 'update', `تحديث بعد دفع - ${alertRec.unit_number} - ${alertRec.tenant_name}`, alertRec, alertUpdatePayload, result.summary.settled ? `دفعة كاملة + ${result.summary.periodsAdvanced} دورات` : `دفعة جزئية: ${paidAmount} د.إ`, user);
+      } catch (logErr) {
+        warning = t('تم الحفظ — فشل تسجيل النشاط: ', 'Saved — activity log failed: ') + (logErr?.message || '');
+      }
 
-      const alertUpdatePayload = {
-        remaining_balance: newBalance,
-        last_paid_date:    today,
-        last_paid_amount:  paidAmount,
-        alert_date:        newDate,
-        next_alert_date:   newDate,
-        status:            nextStatus,
-      };
-
-      await base44.entities.PaymentAlert.update(alert.id, alertUpdatePayload);
-      await logActivity('PaymentAlert', 'update', `تحديث بعد دفع - ${alert.unit_number} - ${alert.tenant_name}`, alert, alertUpdatePayload, `دفعة كاملة + ${periodsAdvanced} دورات`, user);
-
-      setJustPaid({
-        unit_number:  alert.unit_number,
-        tenant_name:  alert.tenant_name,
-        next_date:    newDate,
-        plan:         planLabel,
-        paid:         paidAmount,
-        remaining:    partialCredit > 0 ? newBalance : 0,
-        periods:      periodsAdvanced,
-      });
-
-    } else {
-      // ─── دفع جزئي على الرصيد الحالي ─────────────────────────────
-      newBalance     = currentBalance - paidAmount;
-      newDate        = alertDate;
-      periodsAdvanced = 0;
-      nextStatus     = today < alertDate ? 'active' : 'overdue';
-
-      const alertUpdatePayload = {
-        remaining_balance: newBalance,
-        last_paid_date:    today,
-        last_paid_amount:  paidAmount,
-        status:            nextStatus,
-      };
-
-      await base44.entities.PaymentAlert.update(alert.id, alertUpdatePayload);
-      await logActivity('PaymentAlert', 'update', `تحديث بعد دفع جزئي - ${alert.unit_number} - ${alert.tenant_name}`, alert, alertUpdatePayload, `دفعة جزئية: ${paidAmount} د.إ`, user);
+      try {
+        await base44.entities.Notification.create({
+          type: 'payment',
+          title: `دفعة جديدة — ${alertRec.tenant_name}`,
+          amount: paidAmount,
+          reference_id: createdPayment?.id || '',
+          reference_data: paymentRecord,
+        });
+      } catch (notifyErr) {
+        warning = (warning ? warning + ' · ' : '') + t('فشل إنشاء الإشعار: ', 'Notification failed: ') + (notifyErr?.message || '');
+      }
 
       setJustPaid({
-        unit_number: alert.unit_number,
-        tenant_name: alert.tenant_name,
-        next_date:   newDate,
+        unit_number: alertRec.unit_number,
+        tenant_name: alertRec.tenant_name,
+        next_date:   result.summary.newDate,
         plan:        planLabel,
         paid:        paidAmount,
-        remaining:   newBalance,
-        periods:     0,
+        remaining:   result.summary.newBalance,
+        periods:     result.summary.periodsAdvanced,
+        cyclePaid:   result.summary.cyclePaidAfter,
+        settled:     result.summary.settled,
+        warning,
       });
-    }
+      if (!warning) setTimeout(() => setJustPaid(null), 5000);
 
-    setTimeout(() => setJustPaid(null), 5000);
-    setPaymentSaving(false);
-    setReceiptUploaded(false);
-    setPaymentModal(null);
-    load();
+      setPaymentModal(null);
+      setPaymentInput({ ...emptyPayment });
+      setReceiptUploaded(false);
+      setPageError('');
+      load();
+    } catch (err) {
+      setPaymentError(err?.message || t('فشل حفظ الدفعة', 'Failed to save payment'));
+    } finally {
+      setPaymentSaving(false);
+    }
   };
 
-  const handleSendWhatsapp = async (alert) => {
-    setWhatsappLoading(alert.id);
+  const handleSendWhatsapp = async (alertRec) => {
+    setWhatsappLoading(alertRec.id);
     try {
-      const res = await base44.functions.invoke('sendWhatsappReminder', { alert_id: alert.id });
+      const res = await base44.functions.invoke('sendWhatsappReminder', { alert_id: alertRec.id });
       const data = res.data;
       if (data?.whatsapp_url) {
         window.open(data.whatsapp_url, '_blank');
+        setPageError('');
+      } else {
+        setPageError(t('تعذّر توليد رابط واتساب لهذه الوحدة', 'Could not generate a WhatsApp link for this unit'));
       }
     } catch (e) {
-      // fallback: open generic WhatsApp link with manual message
+      setPageError(t('فشل إرسال تذكير واتساب: ', 'WhatsApp reminder failed: ') + (e?.message || ''));
     } finally {
       setWhatsappLoading(null);
     }
   };
 
-  const handleDelete = (alert) => {
+  const handleDelete = (alertRec) => {
     setConfirmDelete({
-      message: t(`هل تريد حذف تنبيه وحدة ${alert.unit_number} — ${alert.tenant_name}؟`, `Delete alert for unit ${alert.unit_number} — ${alert.tenant_name}?`),
+      message: t(`هل تريد حذف تنبيه وحدة ${alertRec.unit_number} — ${alertRec.tenant_name}؟`, `Delete alert for unit ${alertRec.unit_number} — ${alertRec.tenant_name}?`),
       onConfirm: async () => {
-        await base44.entities.PaymentAlert.delete(alert.id);
-        await logActivity('PaymentAlert', 'delete', `تنبيه - ${alert.unit_number} - ${alert.tenant_name}`, alert, null, null, user);
-        setConfirmDelete(null);
-        load();
+        try {
+          await base44.entities.PaymentAlert.delete(alertRec.id);
+          await logActivity('PaymentAlert', 'delete', `تنبيه - ${alertRec.unit_number} - ${alertRec.tenant_name}`, alertRec, null, null, user);
+          setPageError('');
+        } catch (e) {
+          setPageError(t('فشل حذف التنبيه: ', 'Failed to delete alert: ') + (e?.message || ''));
+        } finally {
+          setConfirmDelete(null);
+          load();
+        }
       },
     });
   };
@@ -403,6 +548,53 @@ export default function SmartAlerts() {
   const previewNextDate = form.alert_date && form.payment_plan
     ? getNextDateFromPlan(form.alert_date, form.payment_plan)
     : null;
+
+  const AmountChips = ({ a }) => {
+    const monthly = Number(a.original_amount || 0);
+    const acc = Number(a.accumulated_amount || 0);
+    const remaining = Number(a.remaining_balance ?? (monthly + acc));
+    const startTotal = cycleTotal(a);
+    const paidInCycle = cyclePaid(a);
+    const isPartial = paidInCycle > 0 && remaining > 0;
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap text-xs">
+        {monthly > 0 && (
+          <span className="px-2 py-1 rounded-lg font-semibold"
+            style={{ backgroundColor: 'rgba(42,157,143,0.1)', color: '#2A9D8F' }}>
+            {t('الدفعة', 'Amount')}: {monthly.toLocaleString()} {t('د.إ', 'AED')}
+          </span>
+        )}
+        {acc > 0 && (
+          <>
+            <span className="text-muted-foreground">+</span>
+            <span className="px-2 py-1 rounded-lg font-semibold"
+              style={{ backgroundColor: 'rgba(230,57,70,0.1)', color: '#E63946' }}>
+              {t('متأخر', 'Overdue')}: {acc.toLocaleString()} {t('د.إ', 'AED')}
+            </span>
+            <span className="text-muted-foreground">=</span>
+            <span className="px-2 py-1 rounded-lg font-bold"
+              style={{ backgroundColor: 'rgba(27,43,75,0.08)', color: '#1B2B4B' }}>
+              {t('الإجمالي', 'Total')}: {startTotal.toLocaleString()} {t('د.إ', 'AED')}
+            </span>
+          </>
+        )}
+        {isPartial && (
+          <>
+            <span className="px-2 py-1 rounded-lg font-semibold"
+              style={{ backgroundColor: 'rgba(201,168,76,0.15)', color: '#B8860B' }}>
+              {a.status === 'active' ? t('رصيد', 'Credit') : t('دفع جزئي', 'Partial')}: {paidInCycle.toLocaleString()} {t('د.إ', 'AED')}
+            </span>
+            <span className="px-2 py-1 rounded-lg font-bold" style={{
+              backgroundColor: a.status === 'active' ? 'rgba(201,168,76,0.15)' : 'rgba(230,57,70,0.1)',
+              color: a.status === 'active' ? '#B8860B' : '#E63946',
+            }}>
+              {a.status === 'active' ? t('متبقي للدورة القادمة', 'Next-cycle remaining') : t('المتبقي', 'Remaining')}: {remaining.toLocaleString()} {t('د.إ', 'AED')}
+            </span>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto" dir="rtl">
@@ -425,6 +617,15 @@ export default function SmartAlerts() {
         )}
       </div>
 
+      {pageError && (
+        <div className="rounded-xl px-4 py-3 flex items-start gap-3 border"
+          style={{ backgroundColor: 'rgba(230,57,70,0.06)', borderColor: '#E63946' }}>
+          <AlertTriangle size={18} style={{ color: '#E63946', flexShrink: 0, marginTop: 1 }} />
+          <p className="text-xs font-medium flex-1" style={{ color: '#E63946' }}>{pageError}</p>
+          <button onClick={() => setPageError('')} style={{ color: '#E63946' }}><X size={15} /></button>
+        </div>
+      )}
+
       {/* Just Paid Success Banner */}
       {justPaid && (
         <div className="rounded-xl p-4 flex items-start gap-3 border-2" style={{ backgroundColor: 'rgba(42,157,143,0.07)', borderColor: '#2A9D8F' }}>
@@ -435,9 +636,16 @@ export default function SmartAlerts() {
             </p>
             <p className="text-xs mt-1" style={{ color: '#1B2B4B' }}>
               {t('المبلغ المدفوع', 'Paid')}: <span className="font-bold">{justPaid.paid?.toLocaleString() || '0'}</span> {t('د.إ', 'AED')} · 
+              {!justPaid.settled && justPaid.cyclePaid > justPaid.paid && (
+                <> {t('الإجمالي المدفوع بالدورة', 'Total paid this cycle')}: <span className="font-bold" style={{ color: '#B8860B' }}>{justPaid.cyclePaid?.toLocaleString()}</span> {t('د.إ', 'AED')} · </>
+              )}
               {t('المتبقي', 'Remaining')}: <span className="font-bold">{justPaid.remaining?.toLocaleString() || '0'}</span> {t('د.إ', 'AED')} ·
               {t(`الدفعة القادمة (${justPaid.plan})`, `Next (${justPaid.plan})`)}: <span className="font-bold">{justPaid.next_date}</span>
+              {justPaid.periods > 1 && <> · {t(`غطّت ${justPaid.periods} دورات`, `covered ${justPaid.periods} periods`)}</>}
             </p>
+            {justPaid.warning && (
+              <p className="text-xs mt-1 font-medium" style={{ color: '#E63946' }}>⚠️ {justPaid.warning}</p>
+            )}
           </div>
           <button onClick={() => setJustPaid(null)} className="text-muted-foreground hover:text-foreground">
             <X size={16} />
@@ -459,11 +667,6 @@ export default function SmartAlerts() {
               const daysInfo = getDaysLabel(a.alert_date, lang);
               const planObj = PAYMENT_PLANS.find(p => p.value === (a.payment_plan || 'monthly'));
               const planLabel = planObj?.label[lang] || planObj?.label.ar;
-              const monthly = Number(a.original_amount || 0);
-              const total = Number(a.remaining_balance || monthly);
-              const overdueAmt = total > monthly ? total - monthly : 0;
-              // دفع جزئي: المتبقي أقل من الشهري وفيه last_paid_amount
-              const isPartial = a.last_paid_amount > 0 && total < monthly && total > 0;
               return (
                 <div key={a.id} className="rounded-xl px-3 py-2.5 bg-white border" style={{ borderColor: '#FECACA' }}>
                   {/* السطر الأول: الوحدة والمستأجر والوقت */}
@@ -483,48 +686,10 @@ export default function SmartAlerts() {
 
                   {/* السطر الثاني: تفاصيل المبالغ الذكية */}
                   <div className="flex items-center gap-2 flex-wrap text-xs">
-                    {/* الدفعة القادمة دائمًا */}
-                    {monthly > 0 && (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-lg font-semibold"
-                        style={{ backgroundColor: 'rgba(42,157,143,0.1)', color: '#2A9D8F' }}>
-                        {t('الدفعة', 'Amount')}: {monthly.toLocaleString()} {t('د.إ', 'AED')}
-                      </span>
-                    )}
-
-                    {/* حالة المتأخر: remaining > monthly */}
-                    {overdueAmt > 0 && (
-                      <>
-                        <span className="text-muted-foreground">+</span>
-                        <span className="flex items-center gap-1 px-2 py-1 rounded-lg font-semibold"
-                          style={{ backgroundColor: 'rgba(230,57,70,0.1)', color: '#E63946' }}>
-                          {t('متأخر', 'Overdue')}: {overdueAmt.toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                        <span className="text-muted-foreground">=</span>
-                        <span className="flex items-center gap-1 px-2 py-1 rounded-lg font-bold"
-                          style={{ backgroundColor: 'rgba(27,43,75,0.08)', color: '#1B2B4B' }}>
-                          {t('الإجمالي', 'Total')}: {total.toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                      </>
-                    )}
-
-                    {/* حالة الدفع الجزئي: remaining < monthly */}
-                    {isPartial && (
-                      <>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="flex items-center gap-1 px-2 py-1 rounded-lg font-semibold"
-                          style={{ backgroundColor: 'rgba(201,168,76,0.12)', color: '#B8860B' }}>
-                          {t('دفع جزئي', 'Partial')}: {Number(a.last_paid_amount).toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="flex items-center gap-1 px-2 py-1 rounded-lg font-bold"
-                          style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946' }}>
-                          {t('المتبقي', 'Remaining')}: {total.toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                      </>
-                    )}
+                    <AmountChips a={a} />
 
                     {/* أزرار العمل */}
-                    {isDataEntry && (
+                    {(isAdmin || isDataEntry) && (
                       <div className="flex items-center gap-2 mr-auto">
                         <Button size="sm" onClick={() => openPaymentModal(a)}
                           className="text-xs h-7 gap-1"
@@ -641,19 +806,19 @@ export default function SmartAlerts() {
       ) : filteredAlerts.length === 0 ? (
         <div className="bg-white card-bevel rounded-xl py-16 text-center text-muted-foreground">
           <Bell size={40} className="mx-auto mb-3 opacity-20" />
-          <p>{t('لا توجد تنبيهات', 'No alerts found')}</p>
+          <p>{urgentAlerts.length > 0 ? t('لا توجد تنبيهات أخرى', 'No other alerts') : t('لا توجد تنبيهات', 'No alerts found')}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredAlerts.map(alert => {
-            const daysInfo = getDaysLabel(alert.alert_date, lang);
-            const st = statusConfig[alert.status] || statusConfig.active;
-            const isOverdue = alert.status === 'overdue';
-            const planObj = PAYMENT_PLANS.find(p => p.value === (alert.payment_plan || 'monthly'));
+          {filteredAlerts.map(alertRec => {
+            const daysInfo = getDaysLabel(alertRec.alert_date, lang);
+            const st = statusConfig[alertRec.status] || statusConfig.active;
+            const isOverdue = alertRec.status === 'overdue';
+            const planObj = PAYMENT_PLANS.find(p => p.value === (alertRec.payment_plan || 'monthly'));
             const planLabel = planObj?.label[lang] || planObj?.label.ar;
 
             return (
-              <div key={alert.id} onClick={() => setViewAlert(alert)} className="bg-white card-bevel rounded-xl overflow-hidden transition-all cursor-pointer hover:shadow-md"
+              <div key={alertRec.id} onClick={() => setViewAlert(alertRec)} className="bg-white card-bevel rounded-xl overflow-hidden transition-all cursor-pointer hover:shadow-md"
                 style={{
                   borderRight: isOverdue ? '4px solid #E63946' : '4px solid transparent',
                   backgroundColor: isOverdue ? 'rgba(230,57,70,0.02)' : undefined,
@@ -661,7 +826,7 @@ export default function SmartAlerts() {
                 <div className="p-4 flex items-center gap-4 flex-wrap">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: st.bg }}>
-                    {alert.property_type === 'real_estate'
+                    {alertRec.property_type === 'real_estate'
                       ? <Home size={18} style={{ color: st.color }} />
                       : <Building2 size={18} style={{ color: st.color }} />}
                   </div>
@@ -669,42 +834,20 @@ export default function SmartAlerts() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
-                        {t('وحدة', 'Unit')} {alert.unit_number}
+                        {t('وحدة', 'Unit')} {alertRec.unit_number}
                       </span>
                       <span className="text-muted-foreground text-xs">·</span>
-                      <span className="text-sm text-muted-foreground">{alert.tenant_name}</span>
+                      <span className="text-sm text-muted-foreground">{alertRec.tenant_name}</span>
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>
                         {planLabel}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar size={11} /> {alert.alert_date}
+                        <Calendar size={11} /> {alertRec.alert_date}
                       </span>
-                      {alert.original_amount > 0 && (
-                        <span className="text-xs font-semibold" style={{ color: '#2A9D8F' }}>
-                          {t('الدفعة القادمة', 'Next Payment')}: {Number(alert.original_amount).toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                      )}
-                      {alert.remaining_balance > alert.original_amount && (
-                        <span className="text-xs font-bold" style={{ color: '#E63946' }}>
-                          {t('المتأخر', 'Overdue')}: {(Number(alert.remaining_balance) - Number(alert.original_amount)).toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                      )}
-                      {alert.remaining_balance > alert.original_amount && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(27,43,75,0.08)', color: '#1B2B4B' }}>
-                          {t('الإجمالي', 'Total')}: {Number(alert.remaining_balance).toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                      )}
-                      {/* دفع جزئي: المتبقي أقل من الشهري */}
-                      {alert.last_paid_amount > 0 && alert.remaining_balance < alert.original_amount && alert.remaining_balance > 0 && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(201,168,76,0.12)', color: '#B8860B' }}>
-                          {t('دفع', 'Paid')} {Number(alert.last_paid_amount).toLocaleString()} {t('جزئي · متبقي', 'partial · remaining')} {Number(alert.remaining_balance).toLocaleString()} {t('د.إ', 'AED')}
-                        </span>
-                      )}
-                      {alert.description && <span className="text-xs text-muted-foreground">{alert.description}</span>}
+                      <AmountChips a={alertRec} />
+                      {alertRec.description && <span className="text-xs text-muted-foreground">{alertRec.description}</span>}
                     </div>
                   </div>
 
@@ -721,10 +864,10 @@ export default function SmartAlerts() {
                     </span>
 
                     {/* إضافة دفعة — زر احترافي موحّد يفتح نافذة الدفع */}
-                    {(isAdmin || isDataEntry) && alert.status !== 'paid' && (
+                    {(isAdmin || isDataEntry) && alertRec.status !== 'paid' && (
                       <Button
                         size="sm"
-                        onClick={() => openPaymentModal(alert)}
+                        onClick={() => openPaymentModal(alertRec)}
                         className="h-7 px-2.5 gap-1 text-xs font-semibold rounded-lg shadow-none"
                         style={{ backgroundColor: '#2A9D8F' }}
                       >
@@ -733,15 +876,15 @@ export default function SmartAlerts() {
                     )}
 
                     {/* WhatsApp button — visible to admin and data_entry */}
-                    {(isAdmin || isDataEntry) && alert.status !== 'paid' && (
+                    {(isAdmin || isDataEntry) && alertRec.status !== 'paid' && (
                       <button
-                        onClick={() => handleSendWhatsapp(alert)}
-                        disabled={whatsappLoading === alert.id}
+                        onClick={() => handleSendWhatsapp(alertRec)}
+                        disabled={whatsappLoading === alertRec.id}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 transition-colors"
                         style={{ color: '#25D366' }}
                         title={t('إرسال تذكير واتساب', 'Send WhatsApp reminder')}
                       >
-                        {whatsappLoading === alert.id
+                        {whatsappLoading === alertRec.id
                           ? <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: '#25D366', borderTopColor: 'transparent' }} />
                           : <MessageCircle size={16} />
                         }
@@ -750,11 +893,11 @@ export default function SmartAlerts() {
 
                     {isAdmin && (
                       <>
-                        <button onClick={() => openForm(alert)}
+                        <button onClick={() => openForm(alertRec)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors">
                           <Edit2 size={15} />
                         </button>
-                        <button onClick={() => handleDelete(alert)}
+                        <button onClick={() => handleDelete(alertRec)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 transition-colors">
                           <Trash2 size={15} />
                         </button>
@@ -780,8 +923,9 @@ export default function SmartAlerts() {
             const planObj = PAYMENT_PLANS.find(p => p.value === (viewAlert.payment_plan || 'monthly'));
             const planLabel = planObj?.label[lang] || planObj?.label.ar;
             const monthly = Number(viewAlert.original_amount || 0);
-            const total = Number(viewAlert.remaining_balance || monthly);
-            const overdueAmt = Math.max(0, total - monthly);
+            const acc = Number(viewAlert.accumulated_amount || 0);
+            const remaining = Number(viewAlert.remaining_balance ?? (monthly + acc));
+            const paidInCycle = cyclePaid(viewAlert);
             return (
               <div className="space-y-3 pt-1">
                 <div className="rounded-xl p-3 space-y-2.5" style={{ backgroundColor: 'rgba(27,43,75,0.04)', border: '1px solid rgba(27,43,75,0.1)' }}>
@@ -790,7 +934,7 @@ export default function SmartAlerts() {
                     { label: t('نوع العقار', 'Property'), value: viewAlert.property_type === 'real_estate' ? t('العقارات', 'Real Estate') : t('بناية القرية', 'Qarya') },
                     { label: t('خطة الدفع', 'Payment Plan'), value: planLabel },
                     { label: t('تاريخ الاستحقاق', 'Due Date'), value: viewAlert.alert_date },
-                    { label: t('آخر دفع', 'Last Paid'), value: viewAlert.last_paid_date },
+                    { label: t('آخر دفع', 'Last Paid'), value: viewAlert.last_paid_date ? `${viewAlert.last_paid_date} — ${Number(viewAlert.last_paid_amount || 0).toLocaleString()} ${t('د.إ', 'AED')}` : null },
                     { label: t('ملاحظات', 'Notes'), value: viewAlert.description },
                   ].filter(r => r.value).map(row => (
                     <div key={row.label} className="flex justify-between gap-2 text-sm">
@@ -799,20 +943,26 @@ export default function SmartAlerts() {
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="grid grid-cols-2 gap-2 text-center text-xs">
                   <div className="rounded-xl p-2.5" style={{ backgroundColor: 'rgba(42,157,143,0.08)' }}>
                     <p className="text-muted-foreground">{planLabel || t('الدفعة', 'Amount')}</p>
                     <p className="font-bold mt-0.5" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()}</p>
                   </div>
-                  {overdueAmt > 0 && (
+                  {acc > 0 && (
                     <div className="rounded-xl p-2.5" style={{ backgroundColor: 'rgba(230,57,70,0.08)' }}>
                       <p className="text-muted-foreground">{t('المتأخر', 'Overdue')}</p>
-                      <p className="font-bold mt-0.5" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p>
+                      <p className="font-bold mt-0.5" style={{ color: '#E63946' }}>{acc.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {paidInCycle > 0 && remaining > 0 && (
+                    <div className="rounded-xl p-2.5" style={{ backgroundColor: 'rgba(201,168,76,0.12)' }}>
+                      <p className="text-muted-foreground">{viewAlert.status === 'active' ? t('رصيد', 'Credit') : t('مدفوع بالدورة', 'Paid this cycle')}</p>
+                      <p className="font-bold mt-0.5" style={{ color: '#B8860B' }}>{paidInCycle.toLocaleString()}</p>
                     </div>
                   )}
                   <div className="rounded-xl p-2.5" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}>
-                    <p className="text-muted-foreground">{t('الإجمالي', 'Total')}</p>
-                    <p className="font-bold mt-0.5" style={{ color: '#1B2B4B' }}>{total.toLocaleString()}</p>
+                    <p className="text-muted-foreground">{viewAlert.status === 'active' && paidInCycle > 0 ? t('متبقي للدورة القادمة', 'Next-cycle remaining') : t('المتبقي', 'Remaining')}</p>
+                    <p className="font-bold mt-0.5" style={{ color: '#1B2B4B' }}>{remaining.toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -893,20 +1043,20 @@ export default function SmartAlerts() {
       />
 
       {/* Data Entry Payment Modal */}
-      <Dialog open={!!paymentModal} onOpenChange={(v) => { if (!v) setPaymentModal(null); }}>
+      <Dialog open={!!paymentModal} onOpenChange={(v) => { if (!v && !paymentSaving) { setPaymentModal(null); setPaymentError(''); } }}>
         <DialogContent className="max-w-sm" dir="rtl" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <DialogHeader className="flex-shrink-0 pb-2 border-b">
             <DialogTitle>{t('رفع دفعة جديدة', 'Submit Payment')}</DialogTitle>
           </DialogHeader>
           {paymentModal && (() => {
             const monthly = Number(paymentModal.original_amount || 0);
-            const currentTotal = Number(paymentModal.remaining_balance || monthly);
-            const overdueAmt = Math.max(0, currentTotal - monthly);
+            const acc = Number(paymentModal.accumulated_amount || 0);
+            const currentTotal = Number(paymentModal.remaining_balance ?? (monthly + acc));
+            const paidInCycle = cyclePaid(paymentModal);
             const paidNow = Number(paymentInput.amount) || 0;
-            const afterPay = Math.max(0, currentTotal - paidNow);
-            const isFullyPaid = paidNow >= currentTotal && paidNow > 0;
-            const alertDate = paymentModal.alert_date || today;
-            const isPaidEarly = today < alertDate;
+            const plan = paymentModal.payment_plan || 'monthly';
+            const planObj = PAYMENT_PLANS.find(p => p.value === plan);
+            const planLabel = planObj?.label[lang] || planObj?.label.ar || '';
             return (
               <div className="overflow-y-auto flex-1 py-2 space-y-3 px-1">
                 {/* ملخص الوحدة */}
@@ -915,13 +1065,19 @@ export default function SmartAlerts() {
                   <p className="text-xs text-muted-foreground">{t('تاريخ الاستحقاق', 'Due date')}: {paymentModal.alert_date}</p>
                   <div className="space-y-1 pt-1 border-t">
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{PAYMENT_PLANS.find(p => p.value === (paymentModal.payment_plan || 'monthly'))?.label[lang] || t('الدفعة', 'Amount')}</span>
+                      <span className="text-muted-foreground">{planLabel || t('الدفعة', 'Amount')}</span>
                       <span className="font-semibold" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()} {t('د.إ', 'AED')}</span>
                     </div>
-                    {overdueAmt > 0 && (
+                    {acc > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">{t('متأخر', 'Overdue')}</span>
-                        <span className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()} {t('د.إ', 'AED')}</span>
+                        <span className="font-bold" style={{ color: '#E63946' }}>{acc.toLocaleString()} {t('د.إ', 'AED')}</span>
+                      </div>
+                    )}
+                    {paidInCycle > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">{t('مدفوع بالدورة', 'Paid this cycle')}</span>
+                        <span className="font-bold" style={{ color: '#B8860B' }}>− {paidInCycle.toLocaleString()} {t('د.إ', 'AED')}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm border-t pt-1">
@@ -944,6 +1100,17 @@ export default function SmartAlerts() {
                   />
                 </div>
 
+                {/* تاريخ الدفعة - إجباري */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold">{t('تاريخ الدفعة *', 'Payment Date *')}</Label>
+                  <Input
+                    type="date"
+                    value={paymentInput.payment_date}
+                    onChange={e => setPaymentInput(p => ({ ...p, payment_date: e.target.value }))}
+                    className="text-sm"
+                  />
+                </div>
+
                 {/* مستحق لشهر - إجباري */}
                 <div className="space-y-1.5">
                   <Label className="text-sm font-semibold">{t('مستحق لشهر *', 'Due Month *')}</Label>
@@ -955,134 +1122,138 @@ export default function SmartAlerts() {
                   />
                 </div>
 
+                {/* طريقة الدفع - إجباري */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold">{t('طريقة الدفع *', 'Payment Method *')}</Label>
+                  <MobileDrawerSelect
+                    value={paymentInput.payment_method}
+                    onValueChange={v => setPaymentInput(p => ({ ...p, payment_method: v }))}
+                    placeholder={t('اختر طريقة الدفع...', 'Select method...')}
+                    triggerClassName="text-sm w-full"
+                    dir="rtl"
+                    options={PAYMENT_METHODS.map(m => ({ value: m.value, label: m.label[lang] }))}
+                  />
+                </div>
+
                 {/* معاينة ذكية بعد الدفع */}
-{paidNow > 0 && (() => {
-  const creditAfterCurrent = paidNow >= currentTotal
-    ? paidNow - currentTotal : 0;
-  const additionalPeriods  = monthly > 0 && creditAfterCurrent > 0
-    ? Math.floor(creditAfterCurrent / monthly) : 0;
-  const partialCredit      = monthly > 0 && creditAfterCurrent > 0
-    ? creditAfterCurrent % monthly : 0;
-  const periodsToAdvance   = paidNow >= currentTotal ? 1 + additionalPeriods : 0;
+                {paidNow > 0 && (() => {
+                  const preview = applyAlertPayment(paymentModal, paidNow, paymentInput.payment_date || today);
+                  const isFullPay = preview.summary.settled;
+                  const hasCredit = isFullPay && preview.summary.credit > 0;
+                  const isPartialPay = !isFullPay;
 
-  let previewNextDate = alertDate;
-  for (let i = 0; i < periodsToAdvance; i++) {
-    previewNextDate = getNextDateFromPlan(previewNextDate, paymentModal.payment_plan || 'monthly');
-  }
+                  // لون الرصيد القادم
+                  const balanceColor = hasCredit
+                    ? '#C9A84C'           // أصفر — كريديت متبقي
+                    : isPartialPay
+                      ? '#E63946'         // أحمر — متأخر فعلي
+                      : '#2A9D8F';        // أخضر — كامل طبيعي
 
-  const previewNextBalance = paidNow >= currentTotal
-    ? (partialCredit > 0 ? monthly - partialCredit : monthly)
-    : currentTotal - paidNow;
+                  // عنوان الحالة
+                  const statusLabel = isPartialPay
+                    ? t('⚠️ دفعة جزئية', '⚠️ Partial payment')
+                    : (hasCredit || preview.summary.periodsAdvanced > 1)
+                      ? t('✅ تسوية + دفع مسبقاً', '✅ Settlement + paid ahead')
+                      : t('✅ تسوية كاملة', '✅ Full settlement');
 
-  const isFullPay      = paidNow >= currentTotal;
-  const hasCredit      = isFullPay && partialCredit > 0;
-  const isPartialPay   = !isFullPay;
+                  const statusColor = isPartialPay ? '#E63946' : '#2A9D8F';
 
-  // لون الرصيد القادم
-  const balanceColor = hasCredit
-    ? '#C9A84C'           // أصفر — كريديت متبقي
-    : isPartialPay
-      ? '#E63946'         // أحمر — متأخر فعلي
-      : '#2A9D8F';        // أخضر — كامل طبيعي
+                  return (
+                    <div className="rounded-xl p-3 space-y-1.5" style={{
+                      backgroundColor: isFullPay ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.05)',
+                      border: `1px solid ${isFullPay ? '#2A9D8F' : '#E63946'}33`
+                    }}>
+                      {/* العنوان */}
+                      <p className="text-xs font-bold" style={{ color: statusColor }}>
+                        {statusLabel}
+                      </p>
 
-  // عنوان الحالة
-  const statusLabel = isPartialPay
-    ? t('⚠️ دفعة جزئية', '⚠️ Partial payment')
-    : hasCredit
-      ? t('✅ تسوية + جزئي للدورة القادمة', '✅ Settlement + Partial next cycle')
-      : additionalPeriods > 0
-        ? t(`✅ تسوية + ${periodsToAdvance} دورات`, `✅ Settlement + ${periodsToAdvance} periods`)
-        : t('✅ تسوية كاملة', '✅ Full settlement');
+                      {/* المدفوع */}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">{t('المدفوع', 'Paid')}</span>
+                        <span className="font-bold" style={{ color: '#2A9D8F' }}>
+                          {paidNow.toLocaleString()} {t('د.إ', 'AED')}
+                        </span>
+                      </div>
 
-  const statusColor = isPartialPay ? '#E63946' : '#2A9D8F';
+                      {isPartialPay && preview.summary.cyclePaidAfter > paidNow && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{t('الإجمالي المدفوع بالدورة', 'Total paid this cycle')}</span>
+                          <span className="font-bold" style={{ color: '#B8860B' }}>
+                            {preview.summary.cyclePaidAfter.toLocaleString()} {t('د.إ', 'AED')}
+                          </span>
+                        </div>
+                      )}
 
-  // مبلغ الدورة حسب الخطة
-  const planObj2 = PAYMENT_PLANS.find(p => p.value === (paymentModal.payment_plan || 'monthly'));
-  const planLabel2 = planObj2?.label[lang] || planObj2?.label.ar || '';
-  const periodAmount = monthly;
+                      {/* مبلغ الدورة */}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {t(`الدورة (${planLabel})`, `Cycle (${planLabel})`)}
+                        </span>
+                        <span className="font-bold" style={{ color: '#1B2B4B' }}>
+                          {monthly.toLocaleString()} {t('د.إ', 'AED')}
+                        </span>
+                      </div>
 
-  return (
-    <div className="rounded-xl p-3 space-y-1.5" style={{
-      backgroundColor: isFullPay ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.05)',
-      border: `1px solid ${isFullPay ? '#2A9D8F' : '#E63946'}33`
-    }}>
-      {/* العنوان */}
-      <p className="text-xs font-bold" style={{ color: statusColor }}>
-        {statusLabel}
-      </p>
+                      {/* الدورات المغطاة */}
+                      {isFullPay && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{t('الدورات المغطاة', 'Periods covered')}</span>
+                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.periodsAdvanced}</span>
+                        </div>
+                      )}
 
-      {/* المدفوع */}
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">{t('المدفوع', 'Paid')}</span>
-        <span className="font-bold" style={{ color: '#2A9D8F' }}>
-          {paidNow.toLocaleString()} {t('د.إ', 'AED')}
-        </span>
-      </div>
+                      {/* تاريخ الاستحقاق القادم */}
+                      <div className="flex justify-between text-xs border-t pt-1">
+                        <span className="text-muted-foreground">{t('تاريخ الاستحقاق القادم', 'Next due date')}</span>
+                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.newDate}</span>
+                      </div>
 
-      {/* مبلغ الدورة */}
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">
-          {t(`الدورة (${planLabel2})`, `Cycle (${planLabel2})`)}
-        </span>
-        <span className="font-bold" style={{ color: '#1B2B4B' }}>
-          {periodAmount.toLocaleString()} {t('د.إ', 'AED')}
-        </span>
-      </div>
-
-      {/* الدورات المغطاة */}
-      {isFullPay && (
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">{t('الدورات المغطاة', 'Periods covered')}</span>
-          <span className="font-bold" style={{ color: '#1B2B4B' }}>{periodsToAdvance}</span>
-        </div>
-      )}
-
-      {/* تاريخ الاستحقاق القادم */}
-      <div className="flex justify-between text-xs border-t pt-1">
-        <span className="text-muted-foreground">{t('تاريخ الاستحقاق القادم', 'Next due date')}</span>
-        <span className="font-bold" style={{ color: '#1B2B4B' }}>{previewNextDate}</span>
-      </div>
-
-      {/* الرصيد القادم */}
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">{t('الرصيد القادم', 'Next balance')}</span>
-        <span className="font-bold" style={{ color: balanceColor }}>
-          {previewNextBalance.toLocaleString()} {t('د.إ', 'AED')}
-          {hasCredit && t(' (كريديت)', ' (credit)')}
-          {isPartialPay && t(' (متأخر)', ' (overdue)')}
-        </span>
-      </div>
-    </div>
-  );
-})()}
+                      {/* الرصيد القادم */}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">{hasCredit ? t('الرصيد', 'Credit') : t('الرصيد القادم', 'Next balance')}</span>
+                        <span className="font-bold" style={{ color: balanceColor }}>
+                          {(hasCredit ? preview.summary.credit : preview.summary.newBalance).toLocaleString()} {t('د.إ', 'AED')}
+                          {hasCredit && t(' (كريديت)', ' (credit)')}
+                          {isPartialPay && t(' (متأخر)', ' (overdue)')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* رفع الإيصال - إجباري */}
-<div className="space-y-1.5">
-  <Label className="text-sm font-semibold">{t('رفع الإيصال *', 'Upload Receipt *')}</Label>
-  {receiptUploading ? (
-    <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl" style={{ borderColor: '#C9A84C' }}>
-      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} />
-      <span className="text-xs text-muted-foreground">{t('جاري الرفع...', 'Uploading...')}</span>
-    </div>
-  ) : paymentInput.receipt_url ? (
-    <div className="relative">
-      <img src={paymentInput.receipt_url} alt="إيصال" className="w-full max-h-48 object-contain rounded-xl border border-border" />
-      <button type="button" onClick={() => setPaymentInput(p => ({ ...p, receipt_url: '' }))}
-        className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5">
-        <X size={14} />
-      </button>
-    </div>
-  ) : (
-    <label className="flex items-center justify-center w-full px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all"
-      style={{ borderColor: 'rgba(201,168,76,0.3)' }}>
-      <input type="file" accept="image/*,.pdf" onChange={handleReceiptUpload} className="hidden" />
-      <div className="flex items-center gap-2">
-        <Upload size={14} style={{ color: '#C9A84C' }} />
-        <span className="text-xs" style={{ color: '#C9A84C' }}>{t('انقر لرفع الإيصال', 'Click to upload receipt')}</span>
-      </div>
-    </label>
-  )}
-</div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold">{t('رفع الإيصال *', 'Upload Receipt *')}</Label>
+                  {receiptUploading ? (
+                    <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl" style={{ borderColor: '#C9A84C' }}>
+                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} />
+                      <span className="text-xs text-muted-foreground">{t('جاري الرفع...', 'Uploading...')}</span>
+                    </div>
+                  ) : paymentInput.receipt_url ? (
+                    <div className="relative">
+                      <img src={paymentInput.receipt_url} alt="إيصال" className="w-full max-h-48 object-contain rounded-xl border border-border" />
+                      <button type="button" onClick={() => setPaymentInput(p => ({ ...p, receipt_url: '' }))}
+                        className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center w-full px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all"
+                      style={{ borderColor: 'rgba(201,168,76,0.3)' }}>
+                      <input type="file" accept="image/*,.pdf" onChange={handleReceiptUpload} className="hidden" />
+                      <div className="flex items-center gap-2">
+                        <Upload size={14} style={{ color: '#C9A84C' }} />
+                        <span className="text-xs" style={{ color: '#C9A84C' }}>{t('انقر لرفع الإيصال', 'Click to upload receipt')}</span>
+                      </div>
+                    </label>
+                  )}
+                  {paymentInput.receipt_url && (
+                    <p className="text-[10px] font-medium" style={{ color: '#E63946' }}>
+                      ⚠️ {t('راجع الإيصال قبل الحفظ — لا يمكن تعديل الدفعة أو إيصالها لاحقاً', 'Review the receipt before saving — the payment and its receipt cannot be changed later')}
+                    </p>
+                  )}
+                </div>
 
                 {/* ملاحظات */}
                 <div className="space-y-1.5">
@@ -1102,12 +1273,13 @@ export default function SmartAlerts() {
                 )}
 
                 <div className="flex gap-2 pt-1 pb-1">
-                  <Button onClick={handleDataEntryPaid} disabled={paymentSaving || !paymentInput.amount}
+                  <Button onClick={handleDataEntryPaid}
+                    disabled={paymentSaving || receiptUploading || !paymentInput.amount || !paymentInput.payment_date || !paymentInput.payment_method || !paymentInput.receipt_url}
                     className="flex-1 gap-2" style={{ backgroundColor: '#2A9D8F' }}>
                     <CheckCircle2 size={15} />
                     {paymentSaving ? t('جاري الحفظ...', 'Saving...') : t('تأكيد الدفعة', 'Confirm Payment')}
                   </Button>
-                  <Button variant="outline" onClick={() => { setPaymentModal(null); setPaymentError(''); }} className="flex-1">{t('إلغاء', 'Cancel')}</Button>
+                  <Button variant="outline" disabled={paymentSaving} onClick={() => { setPaymentModal(null); setPaymentError(''); }} className="flex-1">{t('إلغاء', 'Cancel')}</Button>
                 </div>
               </div>
             );
