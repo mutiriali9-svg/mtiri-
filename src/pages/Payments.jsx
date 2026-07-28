@@ -13,11 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { addMonths, format, parseISO } from 'date-fns';
 import { logActivity, getChangeSummary } from '@/utils/activityLogger';
+import { PAYMENT_PLANS, getNextDateFromPlan, getAccrued, applyAlertPayment } from '@/utils/alertAccrual';
 
-function getNextAlertDate(dateStr, plan) {
-  const months = { monthly: 1, quarterly: 3, biannual: 6, annual: 12 }[plan] || 1;
-  return format(addMonths(parseISO(dateStr), months), 'yyyy-MM-dd');
-}
+const getNextAlertDate = (dateStr, plan) => getNextDateFromPlan(dateStr, plan);
 
 const emptyPayment = {
   tenant_name: '', unit_number: '', amount: '', payment_date: '',
@@ -191,24 +189,9 @@ export default function Payments() {
 
       if (unitAlert) {
         const paidAmount = parseFloat(data.amount) || 0;
-        const monthly = Number(unitAlert.original_amount || 0);
-        const currentBalance = Number(unitAlert.remaining_balance || monthly);
-        const newBalance = Math.max(0, currentBalance - paidAmount);
         const paymentDate = data.payment_date || today;
-        const alertDate = unitAlert.alert_date || today;
-        const isPaidEarly = paymentDate < alertDate;
-        const nextDate = getNextAlertDate(alertDate, unitAlert.payment_plan || 'monthly');
-        if (newBalance === 0) {
-          await base44.entities.PaymentAlert.update(unitAlert.id, {
-            remaining_balance: monthly, last_paid_date: paymentDate, last_paid_amount: paidAmount,
-            alert_date: nextDate, next_alert_date: nextDate, status: nextDate > today ? 'active' : 'overdue',
-          });
-        } else {
-          await base44.entities.PaymentAlert.update(unitAlert.id, {
-            remaining_balance: newBalance, last_paid_date: paymentDate, last_paid_amount: paidAmount,
-            status: isPaidEarly ? 'active' : 'overdue',
-          });
-        }
+        const { payload } = applyAlertPayment(unitAlert, paidAmount, paymentDate);
+        await base44.entities.PaymentAlert.update(unitAlert.id, payload);
       }
       showSuccess(t('paymentAdded'));
     }
@@ -471,46 +454,64 @@ export default function Payments() {
 
           {!editItem && unitAlert && (() => {
             const monthly = Number(unitAlert.original_amount || 0);
-            const currentBalance = Number(unitAlert.remaining_balance ?? monthly);
+            const { accrued, currentDueDate, periodsOverdue } = getAccrued(unitAlert);
+            const currentBalance = Number(unitAlert.remaining_balance ?? monthly) + (accrued - Number(unitAlert.accumulated_amount || 0));
             const overdueAmt = Math.max(0, currentBalance - monthly);
             const paidNow = parseFloat(form.amount) || 0;
             const afterPay = Math.max(0, currentBalance - paidNow);
             const isFullyPaid = paidNow >= currentBalance;
             const isPartial = paidNow > 0 && paidNow < currentBalance;
-            const alertDate = unitAlert.alert_date || today;
+            const alertDate = currentDueDate || unitAlert.alert_date || today;
             const payDate = form.payment_date || today;
             const isPaidEarly = payDate < alertDate;
+            const planObjPay = PAYMENT_PLANS.find(pl => pl.value === (unitAlert.payment_plan || 'monthly'));
+            const planLabelPay = planObjPay?.label[lang] || planObjPay?.label.ar || 'الشهري';
             return (
               <div className="rounded-xl p-3 space-y-2 mb-1" style={{ backgroundColor: 'rgba(27,43,75,0.04)', border: '1px solid rgba(201,168,76,0.25)' }}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <AlertTriangle size={14} style={{ color: '#C9A84C' }} />
                   <span className="text-xs font-bold" style={{ color: '#1B2B4B' }}>التنبيه الذكي — وحدة {unitAlert.unit_number}</span>
                   <span className="text-xs text-muted-foreground">الاستحقاق: {alertDate}</span>
+                  {periodsOverdue > 1 && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(230,57,70,0.12)', color: '#E63946' }}>
+                      {periodsOverdue} دورات مستحقة
+                    </span>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-center">
-                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(42,157,143,0.07)' }}><p className="text-muted-foreground">الشهري</p><p className="font-bold" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()}</p></div>
+                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(42,157,143,0.07)' }}><p className="text-muted-foreground">{planLabelPay}</p><p className="font-bold" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()}</p></div>
                   {overdueAmt > 0 ? (
-                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.07)' }}><p className="text-muted-foreground">متأخر</p><p className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p></div>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.07)' }}><p className="text-muted-foreground">متأخر{periodsOverdue > 1 ? ` (${periodsOverdue})` : ''}</p><p className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p></div>
                   ) : (
                     <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.04)' }}><p className="text-muted-foreground">الحالة</p><p className="font-bold text-[10px]" style={{ color: '#2A9D8F' }}>نشط</p></div>
                   )}
                   <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}><p className="text-muted-foreground">المستحق</p><p className="font-bold" style={{ color: '#1B2B4B' }}>{currentBalance.toLocaleString()}</p></div>
                 </div>
-                {paidNow > 0 && (
-                  <div className="rounded-lg p-2.5 space-y-1.5 border-t pt-2" style={{ backgroundColor: isFullyPaid ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.04)' }}>
-                    <p className="text-xs font-bold" style={{ color: isFullyPaid ? '#2A9D8F' : '#E63946' }}>{isFullyPaid ? '✅ سيتم تسوية الكامل' : '⚠️ دفعة جزئية'}</p>
-                    <div className="flex justify-between text-xs"><span className="text-muted-foreground">المدفوع</span><span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} د.إ</span></div>
-                    {isPartial && (
-                      <>
-                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">المتبقي بعد الدفع</span><span className="font-bold" style={{ color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>{afterPay.toLocaleString()} د.إ</span></div>
-                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">حالة التنبيه بعد الدفع</span><span className="font-bold px-2 py-0.5 rounded-full text-[10px]" style={{ backgroundColor: isPaidEarly ? 'rgba(27,43,75,0.08)' : 'rgba(230,57,70,0.1)', color: isPaidEarly ? '#1B2B4B' : '#E63946' }}>{isPaidEarly ? '🟢 نشط (دفع مبكر)' : '🔴 متأخر'}</span></div>
-                      </>
-                    )}
-                    {isFullyPaid && (
-                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">الدفعة القادمة</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{getNextAlertDate(alertDate, unitAlert.payment_plan || 'monthly')} — {monthly.toLocaleString()} د.إ</span></div>
-                    )}
-                  </div>
-                )}
+                {paidNow > 0 && (() => {
+                  const preview = applyAlertPayment(unitAlert, paidNow, payDate);
+                  const isFullPay = preview.summary.settled;
+                  const hasCredit = isFullPay && preview.summary.credit > 0;
+                  const isPartialPay = !isFullPay;
+                  const balanceColor = hasCredit ? '#C9A84C' : isPartialPay ? '#E63946' : '#2A9D8F';
+                  const statusLabel = isPartialPay
+                    ? '⚠️ دفعة جزئية'
+                    : (hasCredit || preview.summary.periodsAdvanced > 1) ? '✅ تسوية + دفع مسبقاً' : '✅ تسوية كاملة';
+                  const statusColor = isPartialPay ? '#E63946' : '#2A9D8F';
+                  return (
+                    <div className="rounded-lg p-2.5 space-y-1.5 border-t pt-2" style={{ backgroundColor: isFullPay ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.04)' }}>
+                      <p className="text-xs font-bold" style={{ color: statusColor }}>{statusLabel}</p>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">المدفوع</span><span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} د.إ</span></div>
+                      {isPartialPay && preview.summary.cyclePaidAfter > paidNow && (
+                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">الإجمالي المدفوع بالدورة</span><span className="font-bold" style={{ color: '#B8860B' }}>{preview.summary.cyclePaidAfter.toLocaleString()} د.إ</span></div>
+                      )}
+                      {isFullPay && (
+                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">الدورات المغطاة</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.periodsAdvanced}</span></div>
+                      )}
+                      <div className="flex justify-between text-xs border-t pt-1"><span className="text-muted-foreground">تاريخ الاستحقاق القادم</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.newDate}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">{hasCredit ? 'الرصيد' : 'الرصيد القادم'}</span><span className="font-bold" style={{ color: balanceColor }}>{(hasCredit ? preview.summary.credit : preview.summary.newBalance).toLocaleString()} د.إ{hasCredit ? ' (كريديت)' : ''}{isPartialPay ? ' (متأخر)' : ''}</span></div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}

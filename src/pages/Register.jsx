@@ -9,7 +9,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 
 
-const APP_URL = 'https://www.mteiri-bm.com';
+const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://www.mteiri-bm.com';
 
 const t = {
   ar: {

@@ -8,7 +8,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { LogIn, Mail, Lock, Loader2, Globe } from "lucide-react";
 
-const APP_URL = 'https://www.mteiri-bm.com';
+const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://www.mteiri-bm.com';
 
 const inputStyle = {
   color: '#EEF2F8',

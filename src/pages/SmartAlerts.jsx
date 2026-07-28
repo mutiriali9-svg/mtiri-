@@ -14,16 +14,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MobileDrawerSelect from '@/components/MobileDrawerSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { differenceInDays, parseISO, isValid, addMonths, format } from 'date-fns';
+import { differenceInDays, parseISO, isValid } from 'date-fns';
 import ConfirmDialog from '@/components/ConfirmDialog';
-
-const PAYMENT_PLANS = [
-  { value: 'monthly', label: { ar: 'شهري', en: 'Monthly' }, months: 1 },
-  { value: 'quarterly', label: { ar: 'كل 3 أشهر', en: 'Quarterly' }, months: 3 },
-  { value: 'five_annual', label: { ar: '5 دفعات سنوياً', en: '5x Annually' }, days: 73 },
-  { value: 'biannual', label: { ar: 'كل 6 أشهر', en: 'Biannual' }, months: 6 },
-  { value: 'annual', label: { ar: 'سنوي', en: 'Annual' }, months: 12 },
-];
+import {
+  PAYMENT_PLANS, getNextDateFromPlan, cycleTotal, cyclePaid,
+  paidAheadLabel, applyAlertPayment, getAccrued,
+} from '@/utils/alertAccrual';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: { ar: 'نقداً', en: 'Cash' } },
@@ -43,106 +39,6 @@ const emptyForm = {
   alert_date: '', alert_time: '', original_amount: '', accumulated_amount: '', remaining_balance: '', description: '',
   payment_plan: 'monthly', status: 'active',
 };
-
-function getNextDateFromPlan(startDate, plan) {
-  const planObj = PAYMENT_PLANS.find(p => p.value === plan) || PAYMENT_PLANS[0];
-  const base = parseISO(startDate);
-  if (planObj.days) {
-    const next = new Date(base);
-    next.setDate(next.getDate() + planObj.days);
-    return format(next, 'yyyy-MM-dd');
-  }
-  return format(addMonths(base, planObj.months), 'yyyy-MM-dd');
-}
-
-function cycleTotal(a) {
-  const monthly = Number(a?.original_amount || 0);
-  const acc = Number(a?.accumulated_amount || 0);
-  return monthly + acc;
-}
-
-function cyclePaid(a) {
-  const total = cycleTotal(a);
-  const remaining = Number(a?.remaining_balance ?? total);
-  return Math.max(0, total - remaining);
-}
-
-function paidAheadLabel(periods, plan, lang) {
-  if (!periods || periods <= 1) return '';
-  const planObj = PAYMENT_PLANS.find(p => p.value === plan) || PAYMENT_PLANS[0];
-  const label = planObj.label[lang] || planObj.label.ar;
-  return lang === 'en'
-    ? `Paid ahead — ${periods} periods (${label})`
-    : `مدفوع مقدماً — ${periods} دورات (${label})`;
-}
-
-function applyAlertPayment(alertRec, paidAmount, payDate) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const monthly = Number(alertRec.original_amount || 0);
-  const acc = Number(alertRec.accumulated_amount || 0);
-  const currentBalance = Number(alertRec.remaining_balance ?? (monthly + acc));
-  const alertDate = alertRec.alert_date || todayStr;
-  const plan = alertRec.payment_plan || 'monthly';
-  const paidBefore = cyclePaid(alertRec);
-
-  if (paidAmount >= currentBalance) {
-    const credit = paidAmount - currentBalance;
-    const additionalPeriods = monthly > 0 ? Math.floor(credit / monthly) : 0;
-    const partialCredit = monthly > 0 ? credit % monthly : 0;
-    const periodsAdvanced = 1 + additionalPeriods;
-
-    let newDate = alertDate;
-    for (let i = 0; i < periodsAdvanced; i++) {
-      newDate = getNextDateFromPlan(newDate, plan);
-    }
-
-    const newBalance = partialCredit > 0 ? monthly - partialCredit : monthly;
-    const status = newDate > todayStr ? 'active' : 'overdue';
-
-    return {
-      payload: {
-        remaining_balance: newBalance,
-        accumulated_amount: 0,
-        last_paid_date: payDate,
-        last_paid_amount: paidAmount,
-        alert_date: newDate,
-        next_alert_date: newDate,
-        status,
-      },
-      summary: {
-        settled: true,
-        periodsAdvanced,
-        newDate,
-        newBalance,
-        credit: partialCredit,
-        cyclePaidAfter: partialCredit,
-        status,
-      },
-    };
-  }
-
-  const newBalance = currentBalance - paidAmount;
-  const status = todayStr < alertDate ? 'active' : 'overdue';
-
-  return {
-    payload: {
-      remaining_balance: newBalance,
-      accumulated_amount: acc,
-      last_paid_date: payDate,
-      last_paid_amount: paidAmount,
-      status,
-    },
-    summary: {
-      settled: false,
-      periodsAdvanced: 0,
-      newDate: alertDate,
-      newBalance,
-      credit: 0,
-      cyclePaidAfter: paidBefore + paidAmount,
-      status,
-    },
-  };
-}
 
 function getDaysLabel(dateStr, lang) {
   if (!dateStr) return null;
@@ -551,10 +447,11 @@ export default function SmartAlerts() {
 
   const AmountChips = ({ a }) => {
     const monthly = Number(a.original_amount || 0);
-    const acc = Number(a.accumulated_amount || 0);
+    const { accrued, periodsOverdue } = getAccrued(a);
+    const acc = accrued;
     const remaining = Number(a.remaining_balance ?? (monthly + acc));
-    const startTotal = cycleTotal(a);
-    const paidInCycle = cyclePaid(a);
+    const startTotal = monthly + acc;
+    const paidInCycle = cyclePaid({ ...a, accumulated_amount: acc, remaining_balance: remaining });
     const isPartial = paidInCycle > 0 && remaining > 0;
     return (
       <div className="flex items-center gap-1.5 flex-wrap text-xs">
@@ -562,6 +459,12 @@ export default function SmartAlerts() {
           <span className="px-2 py-1 rounded-lg font-semibold"
             style={{ backgroundColor: 'rgba(42,157,143,0.1)', color: '#2A9D8F' }}>
             {t('الدفعة', 'Amount')}: {monthly.toLocaleString()} {t('د.إ', 'AED')}
+          </span>
+        )}
+        {periodsOverdue > 1 && (
+          <span className="px-2 py-1 rounded-lg font-bold"
+            style={{ backgroundColor: 'rgba(230,57,70,0.12)', color: '#E63946' }}>
+            {periodsOverdue} {t('دورات', 'periods')}
           </span>
         )}
         {acc > 0 && (
@@ -1064,9 +967,11 @@ export default function SmartAlerts() {
           </DialogHeader>
           {paymentModal && (() => {
             const monthly = Number(paymentModal.original_amount || 0);
-            const acc = Number(paymentModal.accumulated_amount || 0);
-            const currentTotal = Number(paymentModal.remaining_balance ?? (monthly + acc));
-            const paidInCycle = cyclePaid(paymentModal);
+            const { accrued, periodsOverdue } = getAccrued(paymentModal);
+            const acc = accrued;
+            const storedRemaining = Number(paymentModal.remaining_balance ?? monthly);
+            const currentTotal = storedRemaining + (accrued - Number(paymentModal.accumulated_amount || 0));
+            const paidInCycle = cyclePaid({ ...paymentModal, accumulated_amount: acc, remaining_balance: currentTotal });
             const paidNow = Number(paymentInput.amount) || 0;
             const plan = paymentModal.payment_plan || 'monthly';
             const planObj = PAYMENT_PLANS.find(p => p.value === plan);

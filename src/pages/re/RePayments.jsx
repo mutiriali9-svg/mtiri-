@@ -323,11 +323,146 @@ export default function RePayments() {
 
       {/* View Dialog + Add/Edit Dialog — باقي نفس الأصل بدون تغيير */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
-        <DialogContent className="max-w-md font-cairo"><DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>{viewItem && <div className="space-y-4"><div className="grid grid-cols-2 gap-3 text-sm"><div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div><div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة او المنزل</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div><div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div></div></div>}<DialogFooter><Button variant="outline" onClick={() => setViewItem(null)}>إغلاق</Button></DialogFooter></DialogContent>
+        <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
+          <DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>
+          {viewItem && (() => {
+            const sc = statusConfig[viewItem.status] || statusConfig.paid;
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة او المنزل</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">الحالة</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">تاريخ الدفع</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">مستحق لشهر</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">طريقة الدفع</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الإيصال</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
+                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">ملاحظات</p><p className="font-medium">{viewItem.notes}</p></div>}
+                </div>
+                {viewItem.receipt_image_url && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground font-medium">صورة الإيصال</p>
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      {viewItem.receipt_image_url.toLowerCase().endsWith('.pdf') ? (
+                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
+                      ) : (
+                        <img src={viewItem.receipt_image_url} alt="receipt" className="w-full max-h-64 object-contain p-2 bg-muted" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewItem(null)}>إغلاق</Button>
+            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> تعديل</Button>}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2"><div className="space-y-1.5"><Label>{t('tenantName')} *</Label><Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} /></div></div>{inlineError && <div className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium animate-fade-in-up" style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946', border: '1px solid rgba(230,57,70,0.2)' }}>{inlineError}</div>}<DialogFooter className="gap-2"><Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button><Button onClick={handleSave} disabled={saving || uploading} style={{ backgroundColor: '#1B2B4B' }}>{saving ? t('saving_') : t('savePayment')}</Button></DialogFooter></DialogContent>
+        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto flex flex-col">
+          <DialogHeader><DialogTitle>{editItem ? t('editPayment') : t('addPayment')}</DialogTitle></DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+            <div className="sm:col-span-2" ref={comboRef}>
+              <Label className="mb-1.5 block">{t('unit')}</Label>
+              <div className="relative">
+                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  value={comboQuery}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setComboQuery(val);
+                    setComboOpen(true);
+                    setForm(p => ({ ...p, tenant_name: val, unit_number: '' }));
+                  }}
+                  onClick={() => setComboOpen(true)}
+                  placeholder="ابحث برقم الوحدة أو اسم المستأجر..."
+                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  autoComplete="off"
+                />
+                {comboQuery && (
+                  <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setComboOpen(false); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+                {comboOpen && filteredComboUnits.length > 0 && (
+                  <div className="absolute w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto" style={{ zIndex: 9999 }}>
+                    {filteredComboUnits.map(u => (
+                      <button key={u.id} type="button" onClick={() => handleUnitComboSelect(u)}
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
+                        <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
+                        {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 space-y-1.5"><Label>{t('tenantName')} *</Label><Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t('paymentDate')} *</Label><Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t('dueMonth')}</Label><Input value={form.due_months} onChange={e => setForm(p => ({ ...p, due_months: e.target.value }))} placeholder="مثال: يوليو 2026" /></div>
+            <div className="space-y-1.5">
+              <Label>{t('paymentMethod')}</Label>
+              <Select value={form.payment_method} onValueChange={v => setForm(p => ({ ...p, payment_method: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">{t('cash')}</SelectItem>
+                  <SelectItem value="bank_transfer">{t('bank_transfer')}</SelectItem>
+                  <SelectItem value="cheque">{t('cheque')}</SelectItem>
+                  <SelectItem value="other">{t('other')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('status')}</Label>
+              <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">{t('paid')}</SelectItem>
+                  <SelectItem value="pending">{t('pending')}</SelectItem>
+                  <SelectItem value="late">{t('late')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5"><Label>{t('receiptNumber')}</Label><Input value={form.receipt_number} onChange={e => setForm(p => ({ ...p, receipt_number: e.target.value }))} /></div>
+            <div className="sm:col-span-2 space-y-1.5"><Label>{t('notes')}</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label>{t('receiptImage')}</Label>
+              {receiptUrl ? (
+                <div className="w-full rounded-lg border border-border bg-muted overflow-hidden">
+                  {receiptUrl.toLowerCase().endsWith('.pdf') ? (
+                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
+                  ) : (
+                    <img src={receiptUrl} alt="receipt" className="w-full max-h-52 object-contain p-2" />
+                  )}
+                  <div className="flex items-center justify-between px-3 py-2 bg-green-50 border-t border-green-100">
+                    <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> تم رفع الإيصال بنجاح</span>
+                    <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><Trash2 size={12} /> حذف</button>
+                  </div>
+                </div>
+              ) : (
+                <label className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:border-amber-400 hover:bg-amber-50/40 transition-colors cursor-pointer">
+                  <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>جارٍ الرفع...</span></> : <><Plus size={22} style={{ color: '#C9A84C' }} /><span>اضغط لرفع صورة الإيصال أو PDF</span></>}
+                </label>
+              )}
+            </div>
+          </div>
+
+          {inlineError && <div className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium animate-fade-in-up" style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946', border: '1px solid rgba(230,57,70,0.2)' }}>{inlineError}</div>}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={handleSave} disabled={saving || uploading} style={{ backgroundColor: '#1B2B4B' }}>{saving ? t('saving_') : t('savePayment')}</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );
