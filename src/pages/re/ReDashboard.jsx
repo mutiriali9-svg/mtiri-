@@ -46,7 +46,9 @@ export default function ReDashboard() {
   }, []);
 
   const totalCollected = payments.reduce((s, p) => s + (p.amount || 0), 0);
-  const totalExpensesSum = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const expensesExSavings = expenses.filter(e => e.category !== 'savings');
+  const totalExpensesSum = expensesExSavings.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalSavings = expenses.filter(e => e.category === 'savings').reduce((s, e) => s + (e.amount || 0), 0);
   const netIncome = totalCollected - totalExpensesSum;
   const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const occupiedUnits = units.filter(u => u.status === 'occupied').length;
@@ -74,7 +76,7 @@ export default function ReDashboard() {
     const revenue = payments
       .filter(p => p.payment_date && isValid(parseISO(p.payment_date)) && getYear(parseISO(p.payment_date)) === yearFilter && getMonth(parseISO(p.payment_date)) === idx)
       .reduce((s, p) => s + (p.amount || 0), 0);
-    const exp = expenses
+    const exp = expensesExSavings
       .filter(e => e.expense_date && isValid(parseISO(e.expense_date)) && getYear(parseISO(e.expense_date)) === yearFilter && getMonth(parseISO(e.expense_date)) === idx)
       .reduce((s, e) => s + (e.amount || 0), 0);
     return { name, revenue, expenses: exp };

@@ -12,6 +12,7 @@ import { useLang } from '@/lib/LanguageContext';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import RouteTransition from '@/components/RouteTransition';
 import MobileHeader from '@/components/MobileHeader';
+import SectionTabs, { sectionActive } from '@/components/SectionTabs';
 import NotificationDropdown from '@/components/NotificationDropdown';
 
 const adminNavKeys = [
@@ -380,7 +381,7 @@ useEffect(() => {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
 
-          {/* ── Admin / Tester: Qarya Villa ── */}
+          {/* ── Admin / Tester: Real Estate (Qarya + RE) ── */}
           {(isAdmin || isTester) && (
             <div>
               <button
@@ -392,7 +393,7 @@ useEffect(() => {
                   <Building2 size={16} style={{ color: '#C9A84C' }} />
                 </div>
                 <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>
-                  {navLabel('qaryaVilla')}
+                  {navLabel('realEstate')}
                 </span>
                 {qaryaOpen
                   ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
@@ -405,58 +406,10 @@ useEffect(() => {
               >
                 <div className="space-y-1 mt-1">
                   {adminNavKeys.filter(item => item.key !== 'registrationRequests').map((item) => {
-                    const isActive = location.pathname === item.path;
+                    const isActive = sectionActive(item.path, location.pathname);
                     const Icon = item.icon;
                     return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'}`}
-                        style={{
-                          borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
-                          borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
-                        }}
-                      >
-                        <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
-                        <span className="text-sm font-medium">{navLabel(item.key)}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Admin / Tester: Real Estate ── */}
-          {(isAdmin || isTester) && (
-            <div className="mt-2">
-              <div className="border-b border-white/10 mb-2" />
-              <button
-                onClick={() => setReOpen(prev => !prev)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
-                  <Home size={16} style={{ color: '#C9A84C' }} />
-                </div>
-                <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>
-                  {navLabel('realEstate')}
-                </span>
-                {reOpen
-                  ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
-                  : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
-                }
-              </button>
-              <div
-                className="overflow-hidden transition-all duration-300 ease-in-out"
-                style={{ maxHeight: reOpen ? '600px' : '0px', opacity: reOpen ? 1 : 0 }}
-              >
-                <div className="space-y-1 mt-1">
-                  {realEstateNavKeys.map((item) => {
-                    const isActive = location.pathname === item.path;
-                    const Icon = item.icon;
-                    return (
-                      <Link
+                      <Link onClick={() => setMobileOpen(false)}
                         key={item.path}
                         to={item.path}
                         className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'}`}
@@ -496,26 +449,26 @@ useEffect(() => {
               <div className="overflow-hidden transition-all duration-300 ease-in-out"
                 style={{ maxHeight: alertsOpen ? '600px' : '0px', opacity: alertsOpen ? 1 : 0 }}>
                 <div className="space-y-1 mt-1">
-                  <Link to="/activity-log"
+                  <Link onClick={() => setMobileOpen(false)} to="/activity-log"
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <History size={18} style={{ color: location.pathname === '/activity-log' ? '#C9A84C' : '', flexShrink: 0 }} />
                     <span className="text-sm font-medium">{navLabel('activityLog')}</span>
                   </Link>
-                  <Link to="/smart-alerts"
+                  <Link onClick={() => setMobileOpen(false)} to="/smart-alerts"
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <BellRing size={18} style={{ color: location.pathname === '/smart-alerts' ? '#C9A84C' : '', flexShrink: 0 }} />
                     <span className="text-sm font-medium">{navLabel('smartAlerts')}</span>
                   </Link>
-                  <Link to="/registration-requests"
+                  <Link onClick={() => setMobileOpen(false)} to="/registration-requests"
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <ClipboardList size={18} style={{ color: location.pathname === '/registration-requests' ? '#C9A84C' : '', flexShrink: 0 }} />
                     <span className="text-sm font-medium">{navLabel('registrationRequests')}</span>
                   </Link>
                   {/* Notes link */}
-                  <Link to="/notes"
+                  <Link onClick={() => setMobileOpen(false)} to="/notes"
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <StickyNote size={18} style={{ color: location.pathname === '/notes' ? '#A8B2C0' : '', flexShrink: 0 }} />
@@ -530,7 +483,7 @@ useEffect(() => {
           {user?.role === 'admin' && (
             <div className="mt-2">
               <div className="border-b border-white/10 mb-2" />
-              <Link
+              <Link onClick={() => setMobileOpen(false)}
                 to="/users"
                 className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/users' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                 style={{
@@ -561,46 +514,17 @@ useEffect(() => {
                     style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                     <Building2 size={16} style={{ color: '#C9A84C' }} />
                   </div>
-                  <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('qaryaVilla')}</span>
+                  <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('realEstate')}</span>
                   {qaryaOpen ? <ChevronUp size={15} className="text-white/40" /> : <ChevronDown size={15} className="text-white/40" />}
                 </button>
                 <div className="overflow-hidden transition-all duration-300 ease-in-out"
                   style={{ maxHeight: qaryaOpen ? '600px' : '0px', opacity: qaryaOpen ? 1 : 0 }}>
                   <div className="space-y-1 mt-1">
                     {investorQaryaNavKeys.map((item) => {
-                      const isActive = location.pathname === item.path;
+                      const isActive = sectionActive(item.path, location.pathname);
                       const Icon = item.icon;
                       return (
-                        <Link key={item.path} to={item.path}
-                          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                          style={{ borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
-                          <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
-                          <span className="text-sm font-medium">{navLabel(item.key)}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-2">
-                <div className="border-b border-white/10 mb-2" />
-                <button onClick={() => setReOpen(prev => !prev)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
-                    <Home size={16} style={{ color: '#C9A84C' }} />
-                  </div>
-                  <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('realEstate')}</span>
-                  {reOpen ? <ChevronUp size={15} className="text-white/40" /> : <ChevronDown size={15} className="text-white/40" />}
-                </button>
-                <div className="overflow-hidden transition-all duration-300 ease-in-out"
-                  style={{ maxHeight: reOpen ? '600px' : '0px', opacity: reOpen ? 1 : 0 }}>
-                  <div className="space-y-1 mt-1">
-                    {investorReNavKeys.map((item) => {
-                      const isActive = location.pathname === item.path;
-                      const Icon = item.icon;
-                      return (
-                        <Link key={item.path} to={item.path}
+                        <Link onClick={() => setMobileOpen(false)} key={item.path} to={item.path}
                           className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                           style={{ borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                           <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
@@ -614,7 +538,7 @@ useEffect(() => {
               {/* Smart Alerts - Investor */}
               <div className="mt-2">
                 <div className="border-b border-white/10 mb-2" />
-                <Link
+                <Link onClick={() => setMobileOpen(false)}
                   to="/smart-alerts"
                   className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
@@ -629,7 +553,7 @@ useEffect(() => {
                   </div>
                 </Link>
                 {/* Notes - Investor */}
-                <Link
+                <Link onClick={() => setMobileOpen(false)}
                   to="/notes"
                   className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
@@ -651,7 +575,7 @@ useEffect(() => {
                 const isActive = location.pathname === item.path;
                 const Icon = item.icon;
                 return (
-                  <Link key={item.path} to={item.path}
+                  <Link onClick={() => setMobileOpen(false)} key={item.path} to={item.path}
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
@@ -662,7 +586,7 @@ useEffect(() => {
               {/* Notes - Data Entry */}
               <div className="mt-2">
                 <div className="border-b border-white/10 mb-2" />
-                <Link
+                <Link onClick={() => setMobileOpen(false)}
                   to="/notes"
                   className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
@@ -806,6 +730,7 @@ useEffect(() => {
               </button>
             );
           })()}
+          <SectionTabs />
           <RouteTransition>
             <Outlet />
           </RouteTransition>

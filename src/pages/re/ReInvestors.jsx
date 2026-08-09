@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44, uploadFile } from '@/api/base44Client';
 import { useLang } from '@/lib/LanguageContext';
-import { Users, DollarSign, TrendingUp, Percent, CalendarRange, RotateCcw } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Percent, CalendarRange, RotateCcw, PiggyBank } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const thisYear = new Date().getFullYear();
@@ -10,9 +10,9 @@ export default function ReInvestors() {
   const [investors, setInvestors] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [selectedYear, setSelectedYear] = useState(String(thisYear));
+  const [dateFrom, setDateFrom] = useState(`${thisYear}-01-01`);
+  const [dateTo, setDateTo] = useState(`${thisYear}-12-31`);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const { t, lang } = useLang();
@@ -38,15 +38,18 @@ export default function ReInvestors() {
   };
 
   const totalRevenue = payments.filter(p => p.status === 'paid' && inRange(p.payment_date)).reduce((s, p) => s + (p.amount || 0), 0);
-  const totalExpenses = expenses.filter(e => inRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
+  const totalExpenses = expenses.filter(e => e.category !== 'savings' && inRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
+  const totalSavings = expenses.filter(e => e.category === 'savings' && inRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
   const totalShares = investors.reduce((s, i) => s + (i.share_percentage || 0), 0);
   const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const filteredPayments = payments.filter(p => p.status === 'paid' && inRange(p.payment_date));
-  const filteredExpenses = expenses.filter(e => inRange(e.expense_date));
-  const resetFilter = () => { setDateFrom(''); setDateTo(''); setSelectedYear(''); };
-  const applyYearFilter = (year) => { setSelectedYear(year); setDateFrom(`${year}-01-01`); setDateTo(`${year}-12-31`); };
+  const filteredExpenses = expenses.filter(e => e.category !== 'savings' && inRange(e.expense_date));
+  const filteredSavings = expenses.filter(e => e.category === 'savings' && inRange(e.expense_date));
+  const applyAllYears = () => { setSelectedYear('all'); setDateFrom(''); setDateTo(''); };
+  const resetFilter = () => { applyAllYears(); };
+  const applyYearFilter = (year) => { setSelectedYear(String(year)); setDateFrom(`${year}-01-01`); setDateTo(`${year}-12-31`); };
   const formatDateAr = (d) => d ? new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-US') : '';
 
   if (loading) return (
@@ -72,9 +75,9 @@ export default function ReInvestors() {
         <div className="flex flex-wrap items-end gap-3 flex-1">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t('year')}</label>
-            <select value={selectedYear} onChange={e => applyYearFilter(e.target.value)}
+            <select value={selectedYear} onChange={e => e.target.value === 'all' ? applyAllYears() : applyYearFilter(e.target.value)}
               className="border border-input rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-ring">
-              <option value="">-- {t('selectYear')} --</option>
+              <option value="all">{lang === 'ar' ? 'كل السنوات' : 'All Years'}</option>
               {[thisYear, thisYear - 1, thisYear - 2, thisYear - 3].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
@@ -112,6 +115,7 @@ export default function ReInvestors() {
             <p className="text-xs text-muted-foreground">{t('totalExpensesI')}</p>
             <p className="text-lg font-bold" style={{ color: '#E63946' }}>{fmt(totalExpenses)} AED</p>
             <p className="text-xs text-muted-foreground mt-0.5">{filteredExpenses.length} — {t('clickForDetails')}</p>
+            <p className="text-[11px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: '#059669' }}><PiggyBank size={11} />{lang === 'ar' ? 'ادخار' : 'Savings'} {fmt(totalSavings)} AED</p>
           </div>
         </button>
         <button onClick={() => setModal('profit')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
@@ -214,6 +218,10 @@ export default function ReInvestors() {
               <span className="text-sm font-medium" style={{ color: '#1B2B4B' }}>{t('totalExpensesI')}</span>
               <span className="font-bold text-red-600">- {fmt(totalExpenses)} AED</span>
             </div>
+            <div className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: '#F0FDF7' }}>
+              <span className="text-sm font-medium" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'الادخار (غير مخصوم)' : 'Savings (not deducted)'}</span>
+              <span className="font-bold" style={{ color: '#059669' }}>{fmt(totalSavings)} AED</span>
+            </div>
             <div className="flex justify-between items-center p-3 rounded-lg border-2" style={{ backgroundColor: '#F0FBF9', borderColor: '#2A9D8F' }}>
               <span className="text-sm font-bold" style={{ color: '#1B2B4B' }}>{t('netProfitI')}</span>
               <span className="font-bold text-lg" style={{ color: netProfit >= 0 ? '#2A9D8F' : '#E63946' }}>{fmt(netProfit)} AED</span>
@@ -229,26 +237,28 @@ export default function ReInvestors() {
           <span className="text-xs text-muted-foreground mr-auto">{t('totalShares')}: {totalShares.toFixed(2)}%</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[11px] lg:text-sm">
             <thead><tr className="bg-muted/40 text-muted-foreground text-xs">
-              <th className="text-right px-5 py-3 font-medium">{t('investorName')}</th>
-              <th className="text-right px-5 py-3 font-medium">{t('sharePct')}</th>
-              <th className="text-right px-5 py-3 font-medium">{t('revShare')}</th>
-              <th className="text-right px-5 py-3 font-medium">{t('expShare')}</th>
-              <th className="text-right px-5 py-3 font-medium">{t('netShare')}</th>
+              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('investorName')}</th>
+              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('sharePct')}</th>
+              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('revShare')}</th>
+              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('expShare')}</th>
+              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{lang === 'ar' ? 'نصيب الادخار' : 'Savings Share'}</th>
+              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('netShare')}</th>
             </tr></thead>
             <tbody>
               {investors.sort((a, b) => b.share_percentage - a.share_percentage).map((inv, i) => {
                 const pct = inv.share_percentage / 100;
                 return (
                   <tr key={inv.id} className={`border-t border-border/50 ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
-                    <td className="px-5 py-3.5 font-medium" style={{ color: '#1B2B4B' }}>{inv.name}</td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-2.5 lg:px-5 py-3.5 whitespace-nowrap font-medium" style={{ color: '#1B2B4B' }}>{inv.name}</td>
+                    <td className="px-2.5 lg:px-5 py-3.5 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: '#FFF8E7', color: '#C9A84C' }}>{inv.share_percentage}%</span>
                     </td>
-                    <td className="px-5 py-3.5 font-medium text-green-700">{fmt(totalRevenue * pct)} AED</td>
-                    <td className="px-5 py-3.5 text-red-600">{fmt(totalExpenses * pct)} AED</td>
-                    <td className="px-5 py-3.5 font-bold" style={{ color: (netProfit * pct) >= 0 ? '#2A9D8F' : '#E63946' }}>{fmt(netProfit * pct)} AED</td>
+                    <td className="px-2.5 lg:px-5 py-3.5 whitespace-nowrap font-medium text-green-700">{fmt(totalRevenue * pct)} AED</td>
+                    <td className="px-2.5 lg:px-5 py-3.5 whitespace-nowrap text-red-600">{fmt(totalExpenses * pct)} AED</td>
+                    <td className="px-2.5 lg:px-5 py-3.5 whitespace-nowrap font-semibold" style={{ color: '#059669' }}>{fmt(totalSavings * pct)} AED</td>
+                    <td className="px-2.5 lg:px-5 py-3.5 whitespace-nowrap font-bold" style={{ color: (netProfit * pct) >= 0 ? '#2A9D8F' : '#E63946' }}>{fmt(netProfit * pct)} AED</td>
                   </tr>
                 );
               })}
@@ -269,6 +279,10 @@ export default function ReInvestors() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('revShare')}</span><span className="font-medium text-green-700">{fmt(totalRevenue * pct)} AED</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('expShare')}</span><span className="font-medium text-red-600">{fmt(totalExpenses * pct)} AED</span></div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{lang === 'ar' ? 'نصيب الادخار' : 'Savings Share'}</span>
+                  <span className="font-semibold" style={{ color: '#059669' }}>{fmt(totalSavings * pct)} AED</span>
+                </div>
                 <div className="flex justify-between text-base pt-2 border-t border-border">
                   <span className="text-muted-foreground">{t('netShare')}</span>
                   <span className="font-bold" style={{ color: (netProfit * pct) >= 0 ? '#2A9D8F' : '#E63946' }}>{fmt(netProfit * pct)} AED</span>

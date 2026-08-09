@@ -4,7 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
 import { useLang } from '@/lib/LanguageContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
-import { TrendingUp, DollarSign, Receipt, Percent } from 'lucide-react';
+import { TrendingUp, DollarSign, Receipt, Percent, PiggyBank } from 'lucide-react';
 import { parseISO, isValid, getYear, getMonth } from 'date-fns';
 
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -43,17 +43,21 @@ export default function ReReports() {
   });
 
   const yearPayments = filterByYear(payments, 'payment_date');
-  const yearExpenses = filterByYear(expenses, 'expense_date');
+  const yearAllExpenses = filterByYear(expenses, 'expense_date');
+  const yearExpenses = yearAllExpenses.filter(e => e.category !== 'savings');
+  const yearSavings = yearAllExpenses.filter(e => e.category === 'savings');
   const totalRevenue = yearPayments.reduce((s, p) => s + (p.amount || 0), 0);
   const totalExpenses = yearExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalSavings = yearSavings.reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
   const monthlyData = MONTHS.map((name, idx) => {
     const revenue = yearPayments.filter(p => getMonth(parseISO(p.payment_date)) === idx).reduce((s, p) => s + (p.amount || 0), 0);
     const exp = yearExpenses.filter(e => getMonth(parseISO(e.expense_date)) === idx).reduce((s, e) => s + (e.amount || 0), 0);
-    return { name, revenue, expenses: exp, net: revenue - exp };
-  }).filter(m => m.revenue > 0 || m.expenses > 0);
+    const sav = yearSavings.filter(e => getMonth(parseISO(e.expense_date)) === idx).reduce((s, e) => s + (e.amount || 0), 0);
+    return { name, revenue, expenses: exp, savings: sav, net: revenue - exp };
+  }).filter(m => m.revenue > 0 || m.expenses > 0 || m.savings > 0);
 
   const expCatData = Object.entries(
     yearExpenses.reduce((acc, e) => { const cat = e.category || 'other'; acc[cat] = (acc[cat] || 0) + (e.amount || 0); return acc; }, {})
@@ -95,6 +99,15 @@ export default function ReReports() {
         <StatCard title="هامش الربح" titleEn="Profit Margin" value={`${profitMargin}%`} subtitle="" icon={Percent} accentColor="gold" delay={240} />
       </div>
 
+      <div className="bg-white card-bevel rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <PiggyBank size={18} style={{ color: '#059669' }} />
+          <span className="text-sm font-bold" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'الادخار' : 'Savings'}</span>
+          <span className="text-[11px] text-muted-foreground">{lang === 'ar' ? 'غير محتسب ضمن المصاريف ولا يؤثر على هامش الربح' : 'Excluded from expenses — does not affect profit margin'}</span>
+        </div>
+        <span className="text-lg font-bold" style={{ color: '#059669' }}>{totalSavings.toLocaleString()} AED</span>
+      </div>
+
       <div className="bg-white card-bevel rounded-xl p-5">
         <div className="mb-4">
           <h3 className="font-bold" style={{ color: '#1B2B4B' }}>{t('monthlyRevenueVsExpenses')}</h3>
@@ -107,10 +120,11 @@ export default function ReReports() {
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748B', fontFamily: 'Cairo' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip contentStyle={{ fontFamily: 'Cairo', fontSize: 13, border: '1px solid #E2E8F0', borderRadius: 8 }}
-                formatter={(v, name) => [`${v.toLocaleString()} AED`, name === 'revenue' ? t('revenue') : name === 'expenses' ? t('totalExpensesR') : t('net')]} />
-              <Legend formatter={v => ({ revenue: t('revenue'), expenses: t('totalExpensesR'), net: t('net') }[v] || v)} wrapperStyle={{ fontFamily: 'Cairo', fontSize: 12 }} />
+                formatter={(v, name) => [`${v.toLocaleString()} AED`, name === 'revenue' ? t('revenue') : name === 'expenses' ? t('totalExpensesR') : name === 'savings' ? (lang === 'ar' ? 'الادخار' : 'Savings') : t('net')]} />
+              <Legend formatter={v => ({ revenue: t('revenue'), expenses: t('totalExpensesR'), savings: (lang === 'ar' ? 'الادخار' : 'Savings'), net: t('net') }[v] || v)} wrapperStyle={{ fontFamily: 'Cairo', fontSize: 12 }} />
               <Bar dataKey="revenue" fill="#1B2B4B" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expenses" fill="#E63946" radius={[4, 4, 0, 0]} opacity={0.7} />
+              <Bar dataKey="savings" fill="#059669" radius={[4, 4, 0, 0]} opacity={0.75} />
             </BarChart>
           </ResponsiveContainer>
         ) : <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">{t('noDataForYear')}</div>}

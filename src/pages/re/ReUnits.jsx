@@ -288,18 +288,18 @@ export default function ReUnits() {
       {/* Desktop Table */}
       <div className="bg-white card-bevel rounded-xl overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[11px] lg:text-sm">
             <thead style={{ backgroundColor: '#C9A84C' }}>
               <tr>
                 {[t('unitNumber'), t('tenantName'), t('nationality'), t('annualRent'), t('paymentPlan'), t('contractEnd'), t('status'), ''].map((h, i) => (
-                  <th key={i} className="text-right py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
+                  <th key={i} className="text-right py-2.5 lg:py-3 px-2 lg:px-4 text-white/80 font-medium text-[10px] lg:text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? Array(5).fill(0).map((_, i) => (
                 <tr key={i} className="border-b border-border">
-                  {Array(8).fill(0).map((_, j) => <td key={j} className="py-3 px-4"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}
+                  {Array(8).fill(0).map((_, j) => <td key={j} className="py-2.5 lg:py-3 px-2 lg:px-4"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}
                 </tr>
               )) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className="py-12 text-center text-muted-foreground">{t('noUnitsFound')}</td></tr>
@@ -312,40 +312,40 @@ export default function ReUnits() {
                   <tr key={u.id} onClick={() => setViewUnit(u)}
                     className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer"
                     style={{ backgroundColor: isExpired ? 'rgba(230,57,70,0.07)' : i % 2 === 1 ? '#F8F9FA' : undefined }}>
-                    <td className="py-3 px-4 font-bold">
-                      <div className="flex items-center gap-2" style={{ color: '#1B2B4B' }}>
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4 font-bold">
+                      <div className="flex items-center gap-1.5 lg:gap-2" style={{ color: '#1B2B4B' }}>
                         <TypeIcon size={14} className="text-muted-foreground" />
                         {u.unit_number}
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-medium max-w-44">
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4 font-medium max-w-[120px] lg:max-w-44">
                       <span className="truncate font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</span>
-                      {u.owner_phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone size={10} />{u.owner_phone}</p>}
+                      {u.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone size={10} />{u.owner_phone}</p>}
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground text-xs">{u.nationality || '-'}</td>
-                    <td className="py-3 px-4 font-semibold" style={{ color: '#1B2B4B' }}>{u.annual_rent ? `${Number(u.annual_rent).toLocaleString()} AED` : '-'}</td>
-                    <td className="py-3 px-4 text-muted-foreground text-xs max-w-32"><span className="truncate block">{u.payment_plan || '-'}</span></td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{u.contract_end || '-'}</span>
-                        {expTag && <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: expTag.bg, color: expTag.color }}>{expTag.label}</span>}
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4 text-muted-foreground text-[10px] lg:text-xs">{u.nationality || '-'}</td>
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4 font-semibold whitespace-nowrap" style={{ color: '#1B2B4B' }}>{u.annual_rent ? `${Number(u.annual_rent).toLocaleString()} AED` : '-'}</td>
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4 text-muted-foreground text-[10px] lg:text-xs max-w-[84px] lg:max-w-32"><span className="truncate block">{u.payment_plan || '-'}</span></td>
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-0.5 lg:gap-2">
+                        <span className="text-[10px] lg:text-xs text-muted-foreground whitespace-nowrap">{u.contract_end || '-'}</span>
+                        {expTag && <span className="text-[9px] lg:text-xs font-bold px-1 lg:px-1.5 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: expTag.bg, color: expTag.color }}>{expTag.label}</span>}
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4">
+                      <span className="px-1.5 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
                     </td>
-                    <td className="py-3 px-4" onClick={ev => ev.stopPropagation()}>
+                    <td className="py-2.5 lg:py-3 px-2 lg:px-4" onClick={ev => ev.stopPropagation()}>
                       {canEdit && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 lg:gap-1">
                           {canAlert && (
                             <button onClick={() => openAlert(u)} title={isAr ? 'إضافة تنبيه' : 'Add alert'}
-                              className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: '#C9A84C' }}><BellRing size={14} /></button>
+                              className="p-1 lg:p-1.5 rounded hover:bg-muted transition-colors" style={{ color: '#C9A84C' }}><BellRing size={14} /></button>
                           )}
                           <button onClick={() => openEdit(u)}
-                            className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
+                            className="p-1 lg:p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
                           {isAdmin && (
                             <button onClick={() => handleDelete(u)}
-                              className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                              className="p-1 lg:p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                           )}
                         </div>
                       )}

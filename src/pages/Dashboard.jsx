@@ -40,7 +40,7 @@ export default function Dashboard() {
   const [dateTo, setDateTo] = useState('');
   const [filtered, setFiltered] = useState(false);
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
-  const [kpiYearFilter, setKpiYearFilter] = useState('all');
+  const [kpiYearFilter, setKpiYearFilter] = useState(String(new Date().getFullYear()));
   const [viewPayment, setViewPayment] = useState(null);
   const [viewExpense, setViewExpense] = useState(null);
   const { t, lang } = useLang();
@@ -125,6 +125,8 @@ export default function Dashboard() {
     ...expenses.map(e => e.expense_date ? getYear(parseISO(e.expense_date)) : null),
   ].filter(Boolean))].sort((a, b) => b - a);
 
+  const kpiYears = [...new Set([new Date().getFullYear(), ...availableYears])].sort((a, b) => b - a);
+
   const monthlyChartData = MONTHS.map((name, idx) => {
     const revenue = payments
       .filter(p => p.payment_date && isValid(parseISO(p.payment_date)) && getYear(parseISO(p.payment_date)) === yearFilter && getMonth(parseISO(p.payment_date)) === idx)
@@ -187,7 +189,7 @@ export default function Dashboard() {
           style={{ backgroundColor: kpiYearFilter === 'all' ? '#C9A84C' : '#F1F5F9', color: kpiYearFilter === 'all' ? '#fff' : '#111827' }}>
           {isAr ? 'كل السنوات' : 'All Years'}
         </button>
-        {(availableYears.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
+        {kpiYears.map(y => (
           <button key={y} onClick={() => setKpiYearFilter(String(y))} className="px-3 py-1 text-xs rounded-lg font-medium transition-all"
             style={{ backgroundColor: kpiYearFilter === String(y) ? '#1B2B4B' : '#F1F5F9', color: kpiYearFilter === String(y) ? '#FFFFFF' : '#111827' }}>
             {y}
@@ -213,7 +215,7 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">{yearFilter}</p>
             </div>
             <div className="flex gap-1 flex-wrap">
-              {(availableYears.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
+              {kpiYears.map(y => (
                 <button key={y} onClick={() => setYearFilter(y)} className="px-3 py-1 text-xs rounded-lg font-medium transition-all"
                   style={{ backgroundColor: yearFilter === y ? '#1B2B4B' : '#F1F5F9', color: yearFilter === y ? '#FFFFFF' : '#111827' }}>
                   {y}
