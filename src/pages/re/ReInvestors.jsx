@@ -263,6 +263,16 @@ export default function ReInvestors() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/30 font-bold">
+                <td className="px-2.5 lg:px-5 py-3 whitespace-nowrap" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'الإجمالي' : 'Total'}</td>
+                <td className="px-2.5 lg:px-5 py-3 whitespace-nowrap" style={{ color: '#C9A84C' }}>{totalShares.toFixed(2)}%</td>
+                <td className="px-2.5 lg:px-5 py-3 whitespace-nowrap text-green-700">{fmt(totalRevenue * totalShares / 100)} AED</td>
+                <td className="px-2.5 lg:px-5 py-3 whitespace-nowrap text-red-600">{fmt(totalExpenses * totalShares / 100)} AED</td>
+                <td className="px-2.5 lg:px-5 py-3 whitespace-nowrap" style={{ color: '#059669' }}>{fmt(totalSavings * totalShares / 100)} AED</td>
+                <td className="px-2.5 lg:px-5 py-3 whitespace-nowrap" style={{ color: '#2A9D8F' }}>{fmt(netProfit * totalShares / 100)} AED</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

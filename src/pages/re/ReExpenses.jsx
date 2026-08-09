@@ -35,6 +35,7 @@ export default function ReExpenses() {
   const [imageType, setImageType] = useState('image');
   const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [viewItem, setViewItem] = useState(null);
   const fileRef = useRef();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -208,7 +209,7 @@ export default function ReExpenses() {
               )) : paginatedData.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted-foreground">{t('noExpenses')}</td></tr>
               ) : paginatedData.map((e, i) => (
-                <tr key={e.id} className={`border-b border-border/50 hover:bg-surface transition-colors ${i % 2 === 1 ? 'bg-[#F8F9FA]' : ''}`}>
+                <tr key={e.id} onClick={() => setViewItem(e)} className={`border-b border-border/50 hover:bg-surface transition-colors cursor-pointer ${i % 2 === 1 ? 'bg-[#F8F9FA]' : ''}`}>
                   <td className="py-3 px-4 font-medium max-w-48" style={{ color: '#1B2B4B' }}>
                     <p className="truncate">{e.description}</p>
                     {e.invoice_number && <p className="text-xs text-muted-foreground">#{e.invoice_number}</p>}
@@ -222,7 +223,7 @@ export default function ReExpenses() {
                   </td>
                   <td className="py-3 px-4 text-muted-foreground text-xs">{e.vendor || '-'}</td>
                   <td className="py-3 px-4 text-muted-foreground text-xs">{e.unit_number || '-'}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4" onClick={ev => ev.stopPropagation()}>
                     {canEdit && (
                       <div className="flex items-center gap-1">
                         <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
@@ -244,7 +245,7 @@ export default function ReExpenses() {
         )) : paginatedData.length === 0 ? (
           <div className="bg-white card-bevel rounded-xl p-12 text-center text-muted-foreground">{t('noExpenses')}</div>
         ) : paginatedData.map((e) => (
-          <div key={e.id} className="bg-white card-bevel rounded-xl p-4 hover:shadow-md transition-shadow">
+          <div key={e.id} onClick={() => setViewItem(e)} className="bg-white card-bevel rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-sm" style={{ color: '#1B2B4B' }}>{e.description}</h3>
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0" style={{ backgroundColor: `${categoryColors[e.category]}18`, color: categoryColors[e.category] }}>
@@ -256,7 +257,7 @@ export default function ReExpenses() {
               <p className="text-sm text-muted-foreground">{e.expense_date}</p>
             </div>
             {canEdit && (
-              <div className="flex items-center gap-2 pt-3 border-t border-border">
+              <div className="flex items-center gap-2 pt-3 border-t border-border" onClick={ev => ev.stopPropagation()}>
                 <button onClick={() => openEdit(e)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-muted transition-colors text-sm"><Edit2 size={14} />{t('edit')}</button>
                 <button onClick={() => handleDelete(e.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-destructive/10 transition-colors text-sm text-destructive"><Trash2 size={14} />{t('delete')}</button>
               </div>
@@ -318,6 +319,47 @@ export default function ReExpenses() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
             <Button onClick={handleSave} disabled={saving || uploading} style={{ backgroundColor: '#1B2B4B' }}>{saving ? t('saving_') : t('saveExpense')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
+        <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
+          <DialogHeader><DialogTitle>{isAr ? 'بيانات المصروف' : 'Expense Details'}</DialogTitle></DialogHeader>
+          {viewItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="col-span-2 space-y-0.5">
+                  <p className="text-xs text-muted-foreground">{t('expenseDetails')}</p>
+                  <p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.description || '-'}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground">{t('amount')}</p>
+                  <p className="font-bold text-lg" style={{ color: '#E63946' }}>{fmt(viewItem.amount || 0)} AED</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground">{t('category')}</p>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block"
+                    style={{ backgroundColor: `${categoryColors[viewItem.category]}18`, color: categoryColors[viewItem.category] }}>
+                    {categoryLabels[viewItem.category] || viewItem.category}
+                  </span>
+                </div>
+                <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{t('date')}</p><p className="font-medium">{viewItem.expense_date || '-'}</p></div>
+                <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{t('vendor')}</p><p className="font-medium">{viewItem.vendor || '-'}</p></div>
+                <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{t('invoiceNumber')}</p><p className="font-medium">{viewItem.invoice_number || '-'}</p></div>
+                <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{t('unitNumber')}</p><p className="font-medium">{viewItem.unit_number || '-'}</p></div>
+                {viewItem.notes && (
+                  <div className="col-span-2 space-y-0.5">
+                    <p className="text-xs text-muted-foreground">{t('notes')}</p>
+                    <p className="font-medium whitespace-pre-line">{viewItem.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setViewItem(null)}>{t('cancel')}</Button>
+            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> {t('edit')}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

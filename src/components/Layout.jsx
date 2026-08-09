@@ -353,7 +353,7 @@ useEffect(() => {
         className={`
           fixed top-0 h-full z-50 flex flex-col
           transition-transform duration-300 ease-in-out
-          w-56 sm:w-64
+          w-[200px] sm:w-64
           ${isRtl ? 'right-0' : 'left-0'}
           ${mobileOpen
             ? 'translate-x-0'
@@ -379,20 +379,20 @@ useEffect(() => {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 sm:px-3 py-3 sm:py-4 space-y-1 overflow-y-auto">
 
           {/* ── Admin / Tester: Real Estate (Qarya + RE) ── */}
           {(isAdmin || isTester) && (
             <div>
               <button
                 onClick={() => setQaryaOpen(prev => !prev)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
+                className="w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                   <Building2 size={16} style={{ color: '#C9A84C' }} />
                 </div>
-                <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>
+                <span className="flex-1 text-right font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>
                   {navLabel('realEstate')}
                 </span>
                 {qaryaOpen
@@ -412,14 +412,14 @@ useEffect(() => {
                       <Link onClick={() => setMobileOpen(false)}
                         key={item.path}
                         to={item.path}
-                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'}`}
+                        className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10'}`}
                         style={{
                           borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
                           borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
                         }}
                       >
                         <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
-                        <span className="text-sm font-medium">{navLabel(item.key)}</span>
+                        <span className="text-[13px] sm:text-sm font-medium">{navLabel(item.key)}</span>
                       </Link>
                     );
                   })}
@@ -434,13 +434,13 @@ useEffect(() => {
               <div className="border-b border-white/10 mb-2" />
               <button
                 onClick={() => setAlertsOpen(prev => !prev)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
+                className="w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                   <Bell size={16} style={{ color: '#C9A84C' }} />
                 </div>
-                <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
+                <span className="flex-1 text-right font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
                 {alertsOpen
                   ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
                   : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
@@ -450,29 +450,29 @@ useEffect(() => {
                 style={{ maxHeight: alertsOpen ? '600px' : '0px', opacity: alertsOpen ? 1 : 0 }}>
                 <div className="space-y-1 mt-1">
                   <Link onClick={() => setMobileOpen(false)} to="/activity-log"
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/activity-log' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/activity-log' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <History size={18} style={{ color: location.pathname === '/activity-log' ? '#C9A84C' : '', flexShrink: 0 }} />
-                    <span className="text-sm font-medium">{navLabel('activityLog')}</span>
+                    <span className="text-[13px] sm:text-sm font-medium">{navLabel('activityLog')}</span>
                   </Link>
                   <Link onClick={() => setMobileOpen(false)} to="/smart-alerts"
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <BellRing size={18} style={{ color: location.pathname === '/smart-alerts' ? '#C9A84C' : '', flexShrink: 0 }} />
-                    <span className="text-sm font-medium">{navLabel('smartAlerts')}</span>
+                    <span className="text-[13px] sm:text-sm font-medium">{navLabel('smartAlerts')}</span>
                   </Link>
                   <Link onClick={() => setMobileOpen(false)} to="/registration-requests"
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/registration-requests' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/registration-requests' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <ClipboardList size={18} style={{ color: location.pathname === '/registration-requests' ? '#C9A84C' : '', flexShrink: 0 }} />
-                    <span className="text-sm font-medium">{navLabel('registrationRequests')}</span>
+                    <span className="text-[13px] sm:text-sm font-medium">{navLabel('registrationRequests')}</span>
                   </Link>
                   {/* Notes link */}
                   <Link onClick={() => setMobileOpen(false)} to="/notes"
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <StickyNote size={18} style={{ color: location.pathname === '/notes' ? '#A8B2C0' : '', flexShrink: 0 }} />
-                    <span className="text-sm font-medium">{navLabel('notes')}</span>
+                    <span className="text-[13px] sm:text-sm font-medium">{navLabel('notes')}</span>
                   </Link>
                 </div>
               </div>
@@ -485,18 +485,18 @@ useEffect(() => {
               <div className="border-b border-white/10 mb-2" />
               <Link onClick={() => setMobileOpen(false)}
                 to="/users"
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/users' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/users' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                 style={{
                   borderRight: isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none',
                   borderLeft: !isRtl && location.pathname === '/users' ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none',
                 }}
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                   <Users size={16} style={{ color: '#C9A84C' }} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>
+                  <span className="font-bold text-[13px] sm:text-sm" style={{ color: '#A8B2C0' }}>
                     {navLabel('userManagement')}
                   </span>
                 </div>
@@ -509,12 +509,12 @@ useEffect(() => {
             <>
               <div>
                 <button onClick={() => setQaryaOpen(prev => !prev)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  className="w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl hover:bg-white/5 transition-all duration-200 group">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                     <Building2 size={16} style={{ color: '#C9A84C' }} />
                   </div>
-                  <span className="flex-1 text-right font-bold text-base" style={{ color: '#C9A84C' }}>{navLabel('realEstate')}</span>
+                  <span className="flex-1 text-right font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>{navLabel('realEstate')}</span>
                   {qaryaOpen ? <ChevronUp size={15} className="text-white/40" /> : <ChevronDown size={15} className="text-white/40" />}
                 </button>
                 <div className="overflow-hidden transition-all duration-300 ease-in-out"
@@ -525,10 +525,10 @@ useEffect(() => {
                       const Icon = item.icon;
                       return (
                         <Link onClick={() => setMobileOpen(false)} key={item.path} to={item.path}
-                          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                          className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                           style={{ borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                           <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
-                          <span className="text-sm font-medium">{navLabel(item.key)}</span>
+                          <span className="text-[13px] sm:text-sm font-medium">{navLabel(item.key)}</span>
                         </Link>
                       );
                     })}
@@ -540,29 +540,29 @@ useEffect(() => {
                 <div className="border-b border-white/10 mb-2" />
                 <Link onClick={() => setMobileOpen(false)}
                   to="/smart-alerts"
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                  className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/smart-alerts' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/smart-alerts' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
                 >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
                     <BellRing size={16} style={{ color: '#A8B2C0' }} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('smartAlerts')}</span>
+                    <span className="font-bold text-[13px] sm:text-sm" style={{ color: '#A8B2C0' }}>{navLabel('smartAlerts')}</span>
                     <span className="text-[10px]" style={{ color: 'rgba(168,178,192,0.6)' }}>{lang === 'ar' ? 'لتتبع الدفعات' : 'Track Payments'}</span>
                   </div>
                 </Link>
                 {/* Notes - Investor */}
                 <Link onClick={() => setMobileOpen(false)}
                   to="/notes"
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                  className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
                 >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
                     <StickyNote size={16} style={{ color: '#A8B2C0' }} />
                   </div>
-                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('notes')}</span>
+                  <span className="font-bold text-[13px] sm:text-sm" style={{ color: '#A8B2C0' }}>{navLabel('notes')}</span>
                 </Link>
               </div>
             </>
@@ -576,10 +576,10 @@ useEffect(() => {
                 const Icon = item.icon;
                 return (
                   <Link onClick={() => setMobileOpen(false)} key={item.path} to={item.path}
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     style={{ borderRight: isRtl && isActive ? '3px solid #C9A84C' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && isActive ? '3px solid #C9A84C' : !isRtl ? '3px solid transparent' : 'none' }}>
                     <Icon size={18} style={{ color: isActive ? '#C9A84C' : '', flexShrink: 0 }} />
-                    <span className="text-sm font-medium">{navLabel(item.key)}</span>
+                    <span className="text-[13px] sm:text-sm font-medium">{navLabel(item.key)}</span>
                   </Link>
                 );
               })}
@@ -588,14 +588,14 @@ useEffect(() => {
                 <div className="border-b border-white/10 mb-2" />
                 <Link onClick={() => setMobileOpen(false)}
                   to="/notes"
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                  className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all duration-200 min-h-[44px] ${location.pathname === '/notes' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                   style={{ borderRight: isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : isRtl ? '3px solid transparent' : 'none', borderLeft: !isRtl && location.pathname === '/notes' ? '3px solid #A8B2C0' : !isRtl ? '3px solid transparent' : 'none' }}
                 >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'rgba(168,178,192,0.15)', border: '1px solid rgba(168,178,192,0.3)' }}>
                     <StickyNote size={16} style={{ color: '#A8B2C0' }} />
                   </div>
-                  <span className="font-bold text-sm" style={{ color: '#A8B2C0' }}>{navLabel('notes')}</span>
+                  <span className="font-bold text-[13px] sm:text-sm" style={{ color: '#A8B2C0' }}>{navLabel('notes')}</span>
                 </Link>
               </div>
             </div>

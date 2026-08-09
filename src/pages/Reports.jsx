@@ -247,7 +247,7 @@ export default function Reports() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {[t('month'), t('revenue'), t('totalExpensesR'), t('net'), t('margin')].map(h => (
+                {[t('month'), t('revenue'), t('totalExpensesR'), (lang === 'ar' ? 'الادخار' : 'Savings'), t('net'), t('margin')].map(h => (
                   <th key={h} className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{h}</th>
                 ))}
               </tr>
@@ -260,6 +260,7 @@ export default function Reports() {
                     <td className="py-2.5 px-3 font-medium" style={{ color: '#1B2B4B' }}>{m.name}</td>
                     <td className="py-2.5 px-3 font-semibold" style={{ color: '#2A9D8F' }}>{m.revenue.toLocaleString()} AED</td>
                     <td className="py-2.5 px-3 font-semibold" style={{ color: '#E63946' }}>{m.expenses.toLocaleString()} AED</td>
+                    <td className="py-2.5 px-3 font-semibold" style={{ color: '#059669' }}>{(m.savings || 0).toLocaleString()} AED</td>
                     <td className="py-2.5 px-3 font-bold" style={{ color: m.net >= 0 ? '#2A9D8F' : '#E63946' }}>
                       {m.net.toLocaleString()} AED
                     </td>
@@ -281,6 +282,7 @@ export default function Reports() {
                 <td className="py-3 px-3 font-bold" style={{ color: '#1B2B4B' }}>{t('totalRow')}</td>
                 <td className="py-3 px-3 font-bold" style={{ color: '#2A9D8F' }}>{totalRevenue.toLocaleString()} AED</td>
                 <td className="py-3 px-3 font-bold" style={{ color: '#E63946' }}>{totalExpenses.toLocaleString()} AED</td>
+                <td className="py-3 px-3 font-bold" style={{ color: '#059669' }}>{totalSavings.toLocaleString()} AED</td>
                 <td className="py-3 px-3 font-bold text-xl" style={{ color: netProfit >= 0 ? '#2A9D8F' : '#E63946' }}>
                   {netProfit.toLocaleString()} AED
                 </td>
@@ -317,6 +319,10 @@ export default function Reports() {
                   <span className="font-semibold" style={{ color: '#E63946' }}>{m.expenses.toLocaleString()} AED</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{lang === 'ar' ? 'الادخار' : 'Savings'}</span>
+                  <span className="font-semibold" style={{ color: '#059669' }}>{(m.savings || 0).toLocaleString()} AED</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{t('net')}</span>
                   <span className="font-bold" style={{ color: m.net >= 0 ? '#2A9D8F' : '#E63946' }}>{m.net.toLocaleString()} AED</span>
                 </div>
@@ -336,6 +342,10 @@ export default function Reports() {
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{t('totalExpensesR')}</span>
               <span className="font-bold" style={{ color: '#E63946' }}>{totalExpenses.toLocaleString()} AED</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{lang === 'ar' ? 'الادخار' : 'Savings'}</span>
+              <span className="font-bold" style={{ color: '#059669' }}>{totalSavings.toLocaleString()} AED</span>
             </div>
             <div className="flex items-center justify-between text-base">
               <span className="text-muted-foreground">{t('net')}</span>

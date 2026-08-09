@@ -175,7 +175,7 @@ export default function ReReports() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {[t('month'), t('revenue'), t('totalExpensesR'), t('net'), t('margin')].map(h => (
+                {[t('month'), t('revenue'), t('totalExpensesR'), (lang === 'ar' ? 'الادخار' : 'Savings'), t('net'), t('margin')].map(h => (
                   <th key={h} className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{h}</th>
                 ))}
               </tr>
@@ -188,6 +188,7 @@ export default function ReReports() {
                     <td className="py-2.5 px-3 font-medium" style={{ color: '#1B2B4B' }}>{m.name}</td>
                     <td className="py-2.5 px-3 font-semibold" style={{ color: '#2A9D8F' }}>{m.revenue.toLocaleString()} AED</td>
                     <td className="py-2.5 px-3 font-semibold" style={{ color: '#E63946' }}>{m.expenses.toLocaleString()} AED</td>
+                    <td className="py-2.5 px-3 font-semibold" style={{ color: '#059669' }}>{(m.savings || 0).toLocaleString()} AED</td>
                     <td className="py-2.5 px-3 font-bold" style={{ color: m.net >= 0 ? '#2A9D8F' : '#E63946' }}>{m.net.toLocaleString()} AED</td>
                     <td className="py-2.5 px-3">
                       <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: margin >= 50 ? 'rgba(42,157,143,0.1)' : margin >= 0 ? 'rgba(201,168,76,0.1)' : 'rgba(230,57,70,0.1)', color: margin >= 50 ? '#2A9D8F' : margin >= 0 ? '#C9A84C' : '#E63946' }}>
@@ -203,12 +204,82 @@ export default function ReReports() {
                 <td className="py-3 px-3 font-bold" style={{ color: '#1B2B4B' }}>{t('totalRow')}</td>
                 <td className="py-3 px-3 font-bold" style={{ color: '#2A9D8F' }}>{totalRevenue.toLocaleString()} AED</td>
                 <td className="py-3 px-3 font-bold" style={{ color: '#E63946' }}>{totalExpenses.toLocaleString()} AED</td>
+                <td className="py-3 px-3 font-bold" style={{ color: '#059669' }}>{totalSavings.toLocaleString()} AED</td>
                 <td className="py-3 px-3 font-bold text-xl" style={{ color: netProfit >= 0 ? '#2A9D8F' : '#E63946' }}>{netProfit.toLocaleString()} AED</td>
                 <td className="py-3 px-3 font-bold">{profitMargin}%</td>
               </tr>
             </tfoot>
           </table>
         </div>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {monthlyData.map((m, i) => {
+          const margin = m.revenue ? Math.round((m.net / m.revenue) * 100) : 0;
+          return (
+            <div key={m.name} className="bg-white card-bevel rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-bold text-base" style={{ color: '#1B2B4B' }}>{m.name}</h4>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor: margin >= 50 ? 'rgba(42,157,143,0.1)' : margin >= 0 ? 'rgba(201,168,76,0.1)' : 'rgba(230,57,70,0.1)',
+                    color: margin >= 50 ? '#2A9D8F' : margin >= 0 ? '#C9A84C' : '#E63946'
+                  }}>
+                  {margin}% {t('margin')}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('revenue')}</span>
+                  <span className="font-semibold" style={{ color: '#2A9D8F' }}>{m.revenue.toLocaleString()} AED</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('totalExpensesR')}</span>
+                  <span className="font-semibold" style={{ color: '#E63946' }}>{m.expenses.toLocaleString()} AED</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{lang === 'ar' ? 'الادخار' : 'Savings'}</span>
+                  <span className="font-semibold" style={{ color: '#059669' }}>{(m.savings || 0).toLocaleString()} AED</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('net')}</span>
+                  <span className="font-bold" style={{ color: m.net >= 0 ? '#2A9D8F' : '#E63946' }}>{m.net.toLocaleString()} AED</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="bg-[#F8F9FA] card-bevel rounded-xl p-4">
+          <h4 className="font-bold text-base mb-3" style={{ color: '#1B2B4B' }}>{t('totalRow')}</h4>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t('revenue')}</span>
+              <span className="font-bold" style={{ color: '#2A9D8F' }}>{totalRevenue.toLocaleString()} AED</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t('totalExpensesR')}</span>
+              <span className="font-bold" style={{ color: '#E63946' }}>{totalExpenses.toLocaleString()} AED</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{lang === 'ar' ? 'الادخار' : 'Savings'}</span>
+              <span className="font-bold" style={{ color: '#059669' }}>{totalSavings.toLocaleString()} AED</span>
+            </div>
+            <div className="flex items-center justify-between text-base">
+              <span className="text-muted-foreground">{t('net')}</span>
+              <span className="font-bold text-lg" style={{ color: netProfit >= 0 ? '#2A9D8F' : '#E63946' }}>
+                {netProfit.toLocaleString()} AED
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
+              <span className="text-muted-foreground">{t('margin')}</span>
+              <span className="font-bold" style={{ color: '#C9A84C' }}>{profitMargin}%</span>
+            </div>
+          </div>
+        </div>
+        {monthlyData.length === 0 && (
+          <div className="bg-white card-bevel rounded-xl p-8 text-center text-muted-foreground text-sm">{t('noDataForYear')}</div>
+        )}
       </div>
     </div>
   );
