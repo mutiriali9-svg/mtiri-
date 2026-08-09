@@ -30,6 +30,7 @@ import PendingApprovals from '@/pages/PendingApprovals';
 import RequestAccess from '@/pages/RequestAccess';
 import ReDashboard from '@/pages/re/ReDashboard';
 import ReUnits from '@/pages/re/ReUnits';
+import ReUnitDetails from '@/pages/re/ReUnitDetails';
 import RePayments from '@/pages/re/RePayments';
 import ReExpenses from '@/pages/re/ReExpenses';
 import ReReports from '@/pages/re/ReReports';
@@ -112,6 +113,7 @@ if (user?.role === 'delete_request') {
         <Route path="/pending-approvals" element={<PendingApprovals />} />
         <Route path="/re-dashboard" element={<ReDashboard />} />
         <Route path="/re-units" element={<ReUnits />} />
+        <Route path="/re-units/:unitNumber" element={<ReUnitDetails />} />
         <Route path="/re-payments" element={<RePayments />} />
         <Route path="/re-expenses" element={<ReExpenses />} />
         <Route path="/re-reports" element={<ReReports />} />

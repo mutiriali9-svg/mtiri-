@@ -116,6 +116,8 @@ export default function ReUnits() {
   const refreshing = usePullToRefresh(fetchUnits);
 
   const openAdd = () => { setEditUnit(null); setForm(emptyUnit); setDialogOpen(true); };
+  const goToUnit = (unit) => navigate(`/re-units/${encodeURIComponent(unit.unit_number)}`);
+
   const openEdit = (u) => { setEditUnit(u); setForm({ ...emptyUnit, ...u }); setDialogOpen(true); };
 
   const handleSave = async () => {
@@ -341,6 +343,8 @@ export default function ReUnits() {
                             <button onClick={() => openAlert(u)} title={isAr ? 'إضافة تنبيه' : 'Add alert'}
                               className="p-1 lg:p-1.5 rounded hover:bg-muted transition-colors" style={{ color: '#C9A84C' }}><BellRing size={14} /></button>
                           )}
+                          <button onClick={() => goToUnit(u)} title={isAr ? 'صفحة الوحدة' : 'Unit page'}
+                            className="p-1 lg:p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy"><Building2 size={14} /></button>
                           <button onClick={() => openEdit(u)}
                             className="p-1 lg:p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-navy"><Edit2 size={14} /></button>
                           {isAdmin && (
@@ -409,6 +413,8 @@ export default function ReUnits() {
                     <button onClick={() => openAlert(u)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-muted transition-colors text-sm" style={{ color: '#C9A84C' }}><BellRing size={14} /> {isAr ? 'تنبيه' : 'Alert'}</button>
                   )}
+                  <button onClick={() => goToUnit(u)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-muted transition-colors text-sm"><Building2 size={14} /> {isAr ? 'التفاصيل' : 'Details'}</button>
                   <button onClick={() => openEdit(u)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg hover:bg-muted transition-colors text-sm"><Edit2 size={14} />{t('edit')}</button>
                   {isAdmin && (
@@ -475,6 +481,9 @@ export default function ReUnits() {
                       <BellRing size={14} /> {isAr ? 'تنبيه' : 'Alert'}
                     </Button>
                   )}
+                  <Button className="flex-1" variant="outline" onClick={() => { setViewUnit(null); goToUnit(viewUnit); }}>
+                    <Building2 size={14} /> صفحة الوحدة
+                  </Button>
                   {canEdit && (
                     <Button className="flex-1" onClick={() => { setViewUnit(null); openEdit(viewUnit); }} style={{ backgroundColor: '#1B2B4B' }}>
                       <Edit2 size={14} /> تعديل

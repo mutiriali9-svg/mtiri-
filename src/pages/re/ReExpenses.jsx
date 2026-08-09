@@ -4,7 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { logActivity } from '@/utils/activityLogger';
-import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight, ImagePlus, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight, ImagePlus, X, FileImage } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,19 +70,18 @@ export default function ReExpenses() {
   useEffect(() => { setCurrentPage(1); }, [search, catFilter, yearFilter]);
 
   const openAdd = () => { setEditItem(null); setForm(emptyExpense); setImage(null); setImageType('image'); setDialogOpen(true); };
-  const openEdit = (e) => { setEditItem(e); setForm({ ...emptyExpense, ...e }); setImage(null); setImageType('image'); setDialogOpen(true); };
+  const openEdit = (e) => { setEditItem(e); setForm({ ...emptyExpense, ...e }); setImage(e.invoice_image_url || null); setImageType(e.invoice_image_url?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'); setDialogOpen(true); };
 
   const handleSave = async () => {
     setSaving(true);
-    const data = { ...form, amount: parseFloat(form.amount) || 0 };
-    if (image) data.notes = (data.notes ? data.notes + '\n' : '') + '[Invoice]: ' + image;
+    const data = { ...form, amount: parseFloat(form.amount) || 0, invoice_image_url: image || null };
     if (editItem) {
       await base44.entities.ReExpense.update(editItem.id, data);
-      await logActivity('ReExpense', 'update', `مصروف - ${form.description}`, editItem, data, null, user);
+      await logActivity('ReExpense', 'update', `مصروف - ${form.description}`, editItem, data, `تعديل مصروف ${form.description} — ${(parseFloat(form.amount) || 0).toLocaleString()} AED`, user);
       toast({ description: t('expenseUpdated') });
     } else {
       const created = await base44.entities.ReExpense.create(data);
-      await logActivity('ReExpense', 'create', `مصروف - ${form.description}`, null, data, null, user);
+      await logActivity('ReExpense', 'create', `مصروف - ${form.description}`, null, data, `إضافة مصروف ${(parseFloat(form.amount) || 0).toLocaleString()} AED — ${form.description}`, user);
       base44.entities.Notification.create({
         type: 're_expense',
         title: `مصروف عقارات — ${data.description}`,
@@ -102,7 +101,7 @@ export default function ReExpenses() {
     const expense = expenses.find(e => e.id === id);
     setConfirmDelete({ message: t('deleteExpenseConfirm'), onConfirm: async () => {
       await base44.entities.ReExpense.delete(id);
-      await logActivity('ReExpense', 'delete', `مصروف - ${expense.description}`, expense, null, null, user);
+      await logActivity('ReExpense', 'delete', `مصروف - ${expense.description}`, expense, null, `حذف مصروف ${expense.description} — ${(expense.amount || 0).toLocaleString()} AED`, user);
       toast({ description: t('expenseDeleted') });
       setConfirmDelete(null);
       fetchData();
@@ -213,6 +212,7 @@ export default function ReExpenses() {
                   <td className="py-3 px-4 font-medium max-w-48" style={{ color: '#1B2B4B' }}>
                     <p className="truncate">{e.description}</p>
                     {e.invoice_number && <p className="text-xs text-muted-foreground">#{e.invoice_number}</p>}
+                    {e.invoice_image_url && <FileImage size={12} className="inline-block mt-0.5" style={{ color: '#C9A84C' }} />}
                   </td>
                   <td className="py-3 px-4 font-bold" style={{ color: '#E63946' }}>{fmt(e.amount || 0)} <span className="text-xs font-normal text-muted-foreground">AED</span></td>
                   <td className="py-3 px-4 text-muted-foreground text-xs">{e.expense_date}</td>
@@ -315,6 +315,33 @@ export default function ReExpenses() {
             <div className="space-y-1.5"><Label>{t('invoiceNumber')}</Label><Input value={form.invoice_number} onChange={e => setForm(p => ({ ...p, invoice_number: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>{t('optionalUnit')}</Label><Input value={form.unit_number} onChange={e => setForm(p => ({ ...p, unit_number: e.target.value }))} /></div>
             <div className="sm:col-span-2 space-y-1.5"><Label>{t('notes')}</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label>{t('invoiceImage')}</Label>
+              <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
+                onChange={e => handleImageUpload(e.target.files[0])} />
+              {image ? (
+                <div className="relative w-full rounded-lg overflow-hidden border border-border bg-muted p-3">
+                  {imageType === 'pdf' ? (
+                    <div className="flex items-center gap-2 py-2">
+                      <FileImage size={20} style={{ color: '#C9A84C' }} />
+                      <a href={image} target="_blank" rel="noopener noreferrer" className="text-sm underline hover:opacity-70" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض الملف PDF' : 'Open PDF'}</a>
+                    </div>
+                  ) : (
+                    <img src={image} alt="invoice" className="w-full max-h-48 object-contain" />
+                  )}
+                  <button type="button" onClick={() => { setImage(null); setImageType('image'); }}
+                    className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => fileRef.current.click()} disabled={uploading}
+                  className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-4 text-sm text-muted-foreground hover:border-gold hover:text-foreground transition-colors min-h-[44px]">
+                  <ImagePlus size={18} style={{ color: '#C9A84C' }} />
+                  {uploading ? t('uploading') : t('uploadInvoice')}
+                </button>
+              )}
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('cancel')}</Button>
@@ -355,6 +382,21 @@ export default function ReExpenses() {
                   </div>
                 )}
               </div>
+              {viewItem.invoice_image_url && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-medium">{t('invoiceImage')}</p>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    {viewItem.invoice_image_url.toLowerCase().endsWith('.pdf') ? (
+                      <div className="flex items-center gap-3 p-3 bg-muted">
+                        <FileImage size={22} style={{ color: '#C9A84C' }} />
+                        <a href={viewItem.invoice_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'Open PDF'}</a>
+                      </div>
+                    ) : (
+                      <img src={viewItem.invoice_image_url} alt="invoice" className="w-full max-h-64 object-contain p-2 bg-muted" />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter className="gap-2">

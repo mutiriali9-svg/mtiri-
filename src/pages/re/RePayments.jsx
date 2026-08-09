@@ -119,11 +119,11 @@ export default function RePayments() {
     const data = { ...form, amount: parseFloat(form.amount) || 0, receipt_image_url: receiptUrl };
     if (editItem) {
       await base44.entities.RePayment.update(editItem.id, data);
-      await logActivity('RePayment', 'update', `دفعة - ${form.tenant_name} (${form.unit_number})`, editItem, data, null, user);
+      await logActivity('RePayment', 'update', `دفعة - ${form.tenant_name} (${form.unit_number})`, editItem, data, `تعديل دفعة ${form.tenant_name} — ${(parseFloat(form.amount) || 0).toLocaleString()} AED`, user);
       toast({ description: t('paymentUpdated') });
     } else {
       const created = await base44.entities.RePayment.create(data);
-      await logActivity('RePayment', 'create', `دفعة - ${form.tenant_name} (${form.unit_number})`, null, data, null, user);
+      await logActivity('RePayment', 'create', `دفعة - ${form.tenant_name} (${form.unit_number})`, null, data, `إضافة دفعة ${(parseFloat(form.amount) || 0).toLocaleString()} AED — ${form.tenant_name}`, user);
       setNewRowPulse(created.id);
       setTimeout(() => setNewRowPulse(null), 1200);
       base44.entities.Notification.create({
@@ -145,7 +145,7 @@ export default function RePayments() {
     const payment = payments.find(p => p.id === id);
     setConfirmDelete({ message: t('deletePaymentConfirm'), onConfirm: async () => {
       await base44.entities.RePayment.delete(id);
-      await logActivity('RePayment', 'delete', `دفعة - ${payment.tenant_name} (${payment.unit_number})`, payment, null, null, user);
+      await logActivity('RePayment', 'delete', `دفعة - ${payment.tenant_name} (${payment.unit_number})`, payment, null, `حذف دفعة ${payment.tenant_name} — ${(payment.amount || 0).toLocaleString()} AED`, user);
       toast({ description: t('paymentDeleted') });
       setConfirmDelete(null);
       fetchData();

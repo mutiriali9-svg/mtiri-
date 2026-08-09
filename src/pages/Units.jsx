@@ -181,11 +181,8 @@ export default function Units() {
   };
 
   const goToUnit = (unit) => {
-    if (unit._type === 're') {
-      navigate('/re-units');
-    } else {
-      navigate(`/units/${encodeURIComponent(unit.unit_number)}`);
-    }
+    const base = unit._type === 're' ? '/re-units' : '/units';
+    navigate(`${base}/${encodeURIComponent(unit.unit_number)}`);
   };
 
   // ── Alert handlers ──

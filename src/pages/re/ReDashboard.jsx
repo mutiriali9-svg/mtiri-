@@ -6,8 +6,12 @@ import { Link } from 'react-router-dom';
 import { useLang } from '@/lib/LanguageContext';
 import {
   TrendingUp, Building2, CreditCard, Receipt,
-  CheckCircle2
+  CheckCircle2, CalendarRange, FileText
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend
 } from 'recharts';
@@ -17,12 +21,23 @@ import { useAuth } from '@/lib/AuthContext';
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const EXP_CAT = {
+  ar: { maintenance: 'صيانة', salary: 'رواتب', utilities: 'مرافق', equipment: 'معدات', cleaning: 'نظافة', admin: 'إدارة', marketing: 'تسويق', insurance: 'تأمين', savings: 'ادخار', other: 'أخرى' },
+  en: { maintenance: 'Maintenance', salary: 'Salary', utilities: 'Utilities', equipment: 'Equipment', cleaning: 'Cleaning', admin: 'Admin', marketing: 'Marketing', insurance: 'Insurance', savings: 'Savings', other: 'Other' },
+};
+
 export default function ReDashboard() {
   const [units, setUnits] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
+  const [kpiYearFilter, setKpiYearFilter] = useState(String(new Date().getFullYear()));
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [filtered, setFiltered] = useState(false);
+  const [viewPayment, setViewPayment] = useState(null);
+  const [viewExpense, setViewExpense] = useState(null);
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
   const { user } = useAuth();
@@ -45,10 +60,23 @@ export default function ReDashboard() {
     });
   }, []);
 
-  const totalCollected = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const expCategoryAr = EXP_CAT[lang] || EXP_CAT.ar;
+
+  const inKpiRange = (d) => {
+    if (!d) return false;
+    if (kpiYearFilter !== 'all' && !d.startsWith(kpiYearFilter)) return false;
+    if (!filtered || (!dateFrom && !dateTo)) return true;
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
+    return true;
+  };
+
   const expensesExSavings = expenses.filter(e => e.category !== 'savings');
-  const totalExpensesSum = expensesExSavings.reduce((s, e) => s + (e.amount || 0), 0);
-  const totalSavings = expenses.filter(e => e.category === 'savings').reduce((s, e) => s + (e.amount || 0), 0);
+  const filteredPayments = payments.filter(p => inKpiRange(p.payment_date));
+  const filteredExpenses = expensesExSavings.filter(e => inKpiRange(e.expense_date));
+  const totalCollected = filteredPayments.reduce((s, p) => s + (p.amount || 0), 0);
+  const totalExpensesSum = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalSavings = expenses.filter(e => e.category === 'savings' && inKpiRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
   const netIncome = totalCollected - totalExpensesSum;
   const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const occupiedUnits = units.filter(u => u.status === 'occupied').length;
@@ -70,6 +98,8 @@ export default function ReDashboard() {
     ...payments.map(p => p.payment_date ? getYear(parseISO(p.payment_date)) : null),
     ...expenses.map(e => e.expense_date ? getYear(parseISO(e.expense_date)) : null),
   ].filter(Boolean))].sort((a, b) => b - a);
+
+  const kpiYears = [...new Set([new Date().getFullYear(), ...availableYears])].sort((a, b) => b - a);
 
   // Monthly Revenue vs Expenses for selected year
   const monthlyChartData = MONTHS.map((name, idx) => {
@@ -105,11 +135,42 @@ export default function ReDashboard() {
         description={t('dashSub')}
       />
 
+
+      <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap items-end gap-2 sm:gap-3">
+        <CalendarRange size={16} style={{ color: '#C9A84C' }} className="mt-5 flex-shrink-0" />
+        <div className="space-y-0.5 min-w-28">
+          <Label className="text-[11px] sm:text-xs" style={{ color: '#1B2B4B' }}>{t('fromDate')}</Label>
+          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full sm:w-32 text-xs h-8" style={{ color: '#111827' }} />
+        </div>
+        <div className="space-y-0.5 min-w-28">
+          <Label className="text-[11px] sm:text-xs" style={{ color: '#1B2B4B' }}>{t('toDate')}</Label>
+          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full sm:w-32 text-xs h-8" style={{ color: '#111827' }} />
+        </div>
+        <Button onClick={() => setFiltered(true)} className="text-xs h-8 px-3" style={{ backgroundColor: '#1B2B4B' }}>{t('apply')}</Button>
+        {filtered && (
+          <Button variant="outline" className="text-xs h-8 px-3" onClick={() => { setDateFrom(''); setDateTo(''); setFiltered(false); }}>{t('reset')}</Button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium" style={{ color: '#1B2B4B' }}>{isAr ? 'فلترة الإجماليات:' : 'Filter totals:'}</span>
+        <button onClick={() => setKpiYearFilter('all')} className="px-3 py-1 text-xs rounded-lg font-medium transition-all"
+          style={{ backgroundColor: kpiYearFilter === 'all' ? '#C9A84C' : '#F1F5F9', color: kpiYearFilter === 'all' ? '#fff' : '#111827' }}>
+          {isAr ? 'كل السنوات' : 'All Years'}
+        </button>
+        {kpiYears.map(y => (
+          <button key={y} onClick={() => setKpiYearFilter(String(y))} className="px-3 py-1 text-xs rounded-lg font-medium transition-all"
+            style={{ backgroundColor: kpiYearFilter === String(y) ? '#1B2B4B' : '#F1F5F9', color: kpiYearFilter === String(y) ? '#FFFFFF' : '#111827' }}>
+            {y}
+          </button>
+        ))}
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} subtitle={t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
-<StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} ${currency}`} subtitle={`${payments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/re-payments" />
-<StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpensesSum)} ${currency}`} subtitle={`${expenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/re-expenses" />
+<StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} ${currency}`} subtitle={`${filteredPayments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/re-payments" />
+<StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpensesSum)} ${currency}`} subtitle={`${filteredExpenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/re-expenses" />
         <StatCard title="نسبة الإشغال" titleEn="Occupancy Rate" value={`${occupancyRate}%`} subtitle={`${occupiedUnits} / ${units.length}`} icon={Building2} accentColor="gold" delay={240} />
       </div>
 
@@ -123,7 +184,7 @@ export default function ReDashboard() {
             </div>
             {/* Year Filter */}
             <div className="flex gap-1 flex-wrap">
-              {(availableYears.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
+              {kpiYears.map(y => (
                 <button
                   key={y}
                   onClick={() => setYearFilter(y)}
@@ -211,7 +272,7 @@ export default function ReDashboard() {
             </thead>
             <tbody className="table-striped">
               {payments.slice(0, 5).map((p) => (
-                <tr key={p.id} className="border-b border-border/50 hover:bg-surface transition-colors">
+                <tr key={p.id} onClick={() => setViewPayment(p)} className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer">
                   <td className="py-2.5 px-3 font-medium" style={{ color: '#1B2B4B' }}>{p.tenant_name}</td>
                   <td className="py-2.5 px-3 text-muted-foreground">{p.unit_number || '-'}</td>
                   <td className="py-2.5 px-3 font-semibold" style={{ color: '#2A9D8F' }}>{fmt(p.amount || 0)} AED</td>
@@ -224,7 +285,7 @@ export default function ReDashboard() {
         </div>
         <div className="md:hidden space-y-2">
           {payments.slice(0, 5).map((p) => (
-            <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+            <div key={p.id} onClick={() => setViewPayment(p)} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-surface transition-colors cursor-pointer">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</p>
                 <p className="text-xs text-muted-foreground">{t('unit')}: {p.unit_number || '-'}</p>
@@ -238,6 +299,166 @@ export default function ReDashboard() {
           {payments.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">{t('noPaymentsRegistered')}</div>}
         </div>
       </div>
+
+      {/* Recent Expenses */}
+      <div className="bg-white card-bevel rounded-xl p-3 sm:p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold" style={{ color: '#1B2B4B' }}>{isAr ? 'آخر المصروفات' : 'Recent Expenses'}</h3>
+            <p className="text-xs text-muted-foreground">{isAr ? 'أحدث المصروفات المسجّلة' : 'Latest recorded expenses'}</p>
+          </div>
+          <Link to="/re-expenses" className="text-xs font-medium hover:underline" style={{ color: '#C9A84C' }}>{t('viewAll')}</Link>
+        </div>
+        <div className="overflow-x-auto hidden md:block">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'البيان' : 'Description'}</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التصنيف' : 'Category'}</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('date')}</th>
+              </tr>
+            </thead>
+            <tbody className="table-striped">
+              {[...expenses].sort((a, b) => (b.expense_date || '').localeCompare(a.expense_date || '')).slice(0, 5).map((e) => (
+                <tr key={e.id} onClick={() => setViewExpense(e)} className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer">
+                  <td className="py-2.5 px-3 font-medium" style={{ color: '#1B2B4B' }}>{e.description}</td>
+                  <td className="py-2.5 px-3 text-muted-foreground text-xs">{expCategoryAr[e.category] || e.category || '-'}</td>
+                  <td className="py-2.5 px-3 font-semibold" style={{ color: '#E63946' }}>{fmt(e.amount || 0)} AED</td>
+                  <td className="py-2.5 px-3 text-muted-foreground text-xs">{e.expense_date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {expenses.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">{isAr ? 'لا توجد مصروفات مسجّلة' : 'No expenses registered'}</div>}
+        </div>
+        <div className="md:hidden space-y-1.5">
+          {expenses.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">{isAr ? 'لا توجد مصروفات مسجّلة' : 'No expenses registered'}</div>
+          ) : [...expenses].sort((a, b) => (b.expense_date || '').localeCompare(a.expense_date || '')).slice(0, 5).map((e) => (
+            <div key={e.id} onClick={() => setViewExpense(e)} className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:bg-surface transition-colors cursor-pointer">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{e.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{expCategoryAr[e.category] || e.category || '-'}</p>
+              </div>
+              <div className="text-left flex-shrink-0">
+                <p className="text-sm font-semibold" style={{ color: '#E63946' }}>{fmt(e.amount || 0)} AED</p>
+                <p className="text-xs text-muted-foreground">{e.expense_date}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Dialog open={!!viewPayment} onOpenChange={() => setViewPayment(null)}>
+        <DialogContent className="max-w-sm font-cairo">
+          <DialogHeader><DialogTitle>{isAr ? 'بيانات الدفعة' : 'Payment Details'}</DialogTitle></DialogHeader>
+          {viewPayment && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-0.5 col-span-2">
+                <p className="text-xs text-muted-foreground">{isAr ? 'اسم المستأجر' : 'Tenant Name'}</p>
+                <p className="font-bold text-base" style={{ color: '#1B2B4B' }}>{maskName(viewPayment.tenant_name)}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة او المنزل' : 'Unit'}</p>
+                <p className="font-medium">{viewPayment.unit_number || '-'}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{t('amount')}</p>
+                <p className="font-bold" style={{ color: '#2A9D8F' }}>{fmt(viewPayment.amount || 0)} AED</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{t('paymentDate')}</p>
+                <p className="font-medium">{viewPayment.payment_date || '-'}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{isAr ? 'مستحق لشهر' : 'Due Month'}</p>
+                <p className="font-medium">{viewPayment.due_months || '-'}</p>
+              </div>
+              {viewPayment.notes && (
+                <div className="space-y-0.5 col-span-2">
+                  <p className="text-xs text-muted-foreground">{t('notes')}</p>
+                  <p className="font-medium whitespace-pre-line">{viewPayment.notes}</p>
+                </div>
+              )}
+              {viewPayment.receipt_image_url && (
+                <div className="col-span-2 space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-medium">{isAr ? 'صورة الإيصال' : 'Receipt'}</p>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    {viewPayment.receipt_image_url.toLowerCase().endsWith('.pdf') ? (
+                      <div className="flex items-center gap-3 p-3 bg-muted">
+                        <FileText size={20} style={{ color: '#C9A84C' }} />
+                        <a href={viewPayment.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'View PDF'}</a>
+                      </div>
+                    ) : (
+                      <img src={viewPayment.receipt_image_url} alt="receipt" className="w-full max-h-48 object-contain p-2 bg-muted" />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewPayment(null)}>{isAr ? 'إغلاق' : 'Close'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewExpense} onOpenChange={() => setViewExpense(null)}>
+        <DialogContent className="max-w-sm font-cairo">
+          <DialogHeader><DialogTitle>{isAr ? 'بيانات المصروف' : 'Expense Details'}</DialogTitle></DialogHeader>
+          {viewExpense && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-0.5 col-span-2">
+                <p className="text-xs text-muted-foreground">{isAr ? 'البيان' : 'Description'}</p>
+                <p className="font-bold text-base" style={{ color: '#1B2B4B' }}>{viewExpense.description}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{t('amount')}</p>
+                <p className="font-bold" style={{ color: '#E63946' }}>{fmt(viewExpense.amount || 0)} AED</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{t('date')}</p>
+                <p className="font-medium">{viewExpense.expense_date || '-'}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{isAr ? 'التصنيف' : 'Category'}</p>
+                <p className="font-medium">{expCategoryAr[viewExpense.category] || viewExpense.category || '-'}</p>
+              </div>
+              {viewExpense.vendor && (
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground">{t('vendor')}</p>
+                  <p className="font-medium">{viewExpense.vendor}</p>
+                </div>
+              )}
+              {viewExpense.unit_number && (
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة او المنزل' : 'Unit'}</p>
+                  <p className="font-medium">{viewExpense.unit_number}</p>
+                </div>
+              )}
+              {viewExpense.invoice_image_url && (
+                <div className="col-span-2 space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-medium">{isAr ? 'صورة الفاتورة' : 'Invoice'}</p>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    {viewExpense.invoice_image_url.toLowerCase().endsWith('.pdf') ? (
+                      <div className="flex items-center gap-3 p-3 bg-muted">
+                        <FileText size={20} style={{ color: '#C9A84C' }} />
+                        <a href={viewExpense.invoice_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'View PDF'}</a>
+                      </div>
+                    ) : (
+                      <img src={viewExpense.invoice_image_url} alt="invoice" className="w-full max-h-48 object-contain p-2 bg-muted" />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewExpense(null)}>{isAr ? 'إغلاق' : 'Close'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
