@@ -113,6 +113,9 @@ export const base44 = {
     Notification: makeEntity('notifications'),
     NotificationRead: makeEntity('notification_reads'),
     Note: makeEntity('notes'),
+    Deposit: makeEntity('deposits'),
+    Refund: makeEntity('refunds'),
+    DepositDeduction: makeEntity('deposit_deductions'),
     
   },
   functions: {

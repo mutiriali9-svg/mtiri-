@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Bell, CreditCard, Receipt, ArrowRight, X, Image, FileText, Calendar, Hash, Building2, User } from 'lucide-react';
+import { Bell, CreditCard, Receipt, ArrowRight, X, Image, FileText, Calendar, Hash, Building2, User, ShieldCheck, RotateCcw, MinusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,22 @@ const paymentMethodLabels = {
   ar: { cash: 'نقداً', bank_transfer: 'تحويل بنكي', cheque: 'شيك', other: 'أخرى' },
   en: { cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque', other: 'Other' },
 };
+
+const TYPE_META = {
+  payment:           { color: '#2A9D8F', Icon: CreditCard,  ar: 'دفعة',           en: 'Payment' },
+  re_payment:        { color: '#2A9D8F', Icon: CreditCard,  ar: 'دفعة',           en: 'Payment' },
+  expense:           { color: '#E63946', Icon: Receipt,     ar: 'مصروف',          en: 'Expense' },
+  re_expense:        { color: '#E63946', Icon: Receipt,     ar: 'مصروف',          en: 'Expense' },
+  deposit:           { color: '#2A9D8F', Icon: ShieldCheck, ar: 'تأمين',          en: 'Deposit' },
+  deposit_return:    { color: '#0EA5E9', Icon: RotateCcw,   ar: 'استرجاع تأمين',  en: 'Deposit refund' },
+  deposit_deduction: { color: '#7C3AED', Icon: MinusCircle, ar: 'خصم من التأمين', en: 'Deposit deduction' },
+  refund:            { color: '#7C3AED', Icon: RotateCcw,   ar: 'استرجاع وخصم',   en: 'Refund' },
+};
+
+const metaOf = (type) => TYPE_META[type] || TYPE_META.expense;
+
+const itemDate = (item) =>
+  item.payment_date || item.expense_date || item.refund_date || item.received_date || item.deduction_date || null;
 
 function Row({ icon, label, value }) {
   return (
@@ -101,20 +117,21 @@ export default function Notifications() {
         <div className="bg-white card-bevel rounded-2xl overflow-hidden" style={{ maxWidth: '100%' }}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>
-              {isAr ? 'الدفعات والمصروفات الجديدة' : 'New Payments & Expenses'}
+              {isAr ? 'الحركات المالية الجديدة' : 'New financial records'}
             </span>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>{notifs.length}</span>
           </div>
           <div className="divide-y divide-border">
             {notifs.map(n => {
-              const isPayment = n.type === 'payment' || n.type === 're_payment';
-              const isRe = n.type === 're_payment' || n.type === 're_expense';
-              const color = isPayment ? '#2A9D8F' : '#E63946';
-              const bgColor = isPayment ? 'rgba(42,157,143,0.1)' : 'rgba(230,57,70,0.1)';
-              const Icon = isPayment ? CreditCard : Receipt;
               const item = n.reference_data || {};
-              const date = isPayment ? item.payment_date : item.expense_date;
-              const label = isPayment ? (item.tenant_name || n.title) : (item.description || n.title);
+              const meta = metaOf(n.type);
+              const isPayment = n.type === 'payment' || n.type === 're_payment';
+              const isRe = n.type === 're_payment' || n.type === 're_expense' || item.property_type === 'real_estate';
+              const color = meta.color;
+              const bgColor = `${meta.color}1A`;
+              const Icon = meta.Icon;
+              const date = itemDate(item);
+              const label = item.description || item.tenant_name || n.title;
               const tag = isRe ? (isAr ? 'عقارات' : 'RE') : (isAr ? 'القرية' : 'Qarya');
 
               return (
@@ -122,7 +139,7 @@ export default function Notifications() {
                   key={n.id}
                   onClick={() => setSelected(n)}
                   className="flex items-center gap-2 px-3 py-3 cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors"
-                  style={{ backgroundColor: isPayment ? 'rgba(42,157,143,0.04)' : 'rgba(230,57,70,0.04)' }}
+                  style={{ backgroundColor: `${meta.color}0A` }}
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bgColor }}>
                     <Icon size={14} style={{ color }} />
@@ -147,21 +164,23 @@ export default function Notifications() {
         <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
           {selected && (() => {
             const item = selected.reference_data || {};
+            const meta = metaOf(selected.type);
             const isPayment = selected.type === 'payment' || selected.type === 're_payment';
             const payLabels = paymentMethodLabels[lang] || paymentMethodLabels.ar;
-            const color = isPayment ? '#2A9D8F' : '#E63946';
-            const bgTint = isPayment ? 'rgba(42,157,143,0.08)' : 'rgba(230,57,70,0.08)';
+            const color = meta.color;
+            const bgTint = `${meta.color}14`;
+            const imageUrl = item.receipt_image_url || item.invoice_image_url || null;
 
             return (
               <>
                 <DialogHeader>
-                  <DialogTitle>{isPayment ? (isAr ? 'تفاصيل الدفعة' : 'Payment Details') : (isAr ? 'تفاصيل المصروف' : 'Expense Details')}</DialogTitle>
+                  <DialogTitle>{isAr ? `تفاصيل — ${meta.ar}` : `${meta.en} details`}</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 flex-1">
                   {/* Amount */}
                   <div className="rounded-xl p-3 text-center" style={{ backgroundColor: bgTint }}>
-                    <p className="text-[11px] text-muted-foreground mb-0.5">{isPayment ? (isAr ? 'المبلغ المدفوع' : 'Amount Paid') : (isAr ? 'المبلغ' : 'Amount')}</p>
+                    <p className="text-[11px] text-muted-foreground mb-0.5">{isAr ? 'المبلغ' : 'Amount'}</p>
                     <p className="text-2xl font-bold" style={{ color }}>
                       {(selected.amount || 0).toLocaleString()} <span className="text-sm">AED</span>
                     </p>
@@ -182,26 +201,30 @@ export default function Notifications() {
                     ) : (
                       <>
                         {item.description && <Row icon={<FileText size={13}/>} label={isAr ? 'الوصف' : 'Description'} value={item.description} />}
-                        {item.expense_date && <Row icon={<Calendar size={13}/>} label={isAr ? 'التاريخ' : 'Date'} value={new Date(item.expense_date).toLocaleDateString()} />}
+                        {item.reason && <Row icon={<FileText size={13}/>} label={isAr ? 'السبب' : 'Reason'} value={item.reason} />}
+                        {itemDate(item) && <Row icon={<Calendar size={13}/>} label={isAr ? 'التاريخ' : 'Date'} value={new Date(itemDate(item)).toLocaleDateString()} />}
                         {item.category && <Row icon={<FileText size={13}/>} label={isAr ? 'التصنيف' : 'Category'} value={(categoryLabels[lang]||categoryLabels.ar)[item.category] || item.category} />}
                         {item.unit_number && <Row icon={<Building2 size={13}/>} label={isAr ? 'رقم الوحدة' : 'Unit'} value={item.unit_number} />}
+                        {item.tenant_name && <Row icon={<User size={13}/>} label={isAr ? 'المستأجر' : 'Tenant'} value={item.tenant_name} />}
                         {item.vendor && <Row icon={<User size={13}/>} label={isAr ? 'المورد' : 'Vendor'} value={item.vendor} />}
+                        {item.method && <Row icon={<CreditCard size={13}/>} label={isAr ? 'الطريقة' : 'Method'} value={payLabels[item.method] || item.method} />}
                         {item.invoice_number && <Row icon={<Hash size={13}/>} label={isAr ? 'رقم الفاتورة' : 'Invoice No.'} value={item.invoice_number} />}
+                        {item.receipt_number && <Row icon={<Hash size={13}/>} label={isAr ? 'رقم السند' : 'Voucher No.'} value={item.receipt_number} />}
                         {item.notes && <Row icon={<FileText size={13}/>} label={isAr ? 'ملاحظات' : 'Notes'} value={item.notes} />}
                       </>
                     )}
                   </div>
 
                   {/* Receipt/Invoice image */}
-                  {(isPayment ? item.receipt_image_url : item.invoice_image_url) && (
+                  {imageUrl && (
                     <div className="space-y-2">
                       <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                        <Image size={12} />{isPayment ? (isAr ? 'صورة الإيصال' : 'Receipt') : (isAr ? 'صورة الفاتورة' : 'Invoice')}
+                        <Image size={12} />{isAr ? 'المرفق' : 'Attachment'}
                       </p>
                       <div className="rounded-lg overflow-hidden border border-border">
-                        <img src={isPayment ? item.receipt_image_url : item.invoice_image_url} alt="receipt" className="w-full object-contain max-h-48" onError={e => { e.target.style.display = 'none'; }} />
+                        <img src={imageUrl} alt="attachment" className="w-full object-contain max-h-48" onError={e => { e.target.style.display = 'none'; }} />
                       </div>
-                      <a href={isPayment ? item.receipt_image_url : item.invoice_image_url} target="_blank" rel="noopener noreferrer"
+                      <a href={imageUrl} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-xs font-semibold"
                         style={{ backgroundColor: bgTint, color }}>
                         <Image size={13} />{isAr ? 'فتح بالحجم الكامل' : 'Open Full Size'}

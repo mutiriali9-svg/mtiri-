@@ -71,13 +71,13 @@ export default function NotificationDropdown({
     items.push({
       key: 'finance',
       icon: CreditCard,
-      label: isRtl ? 'آخر الدفعات والمصروفات' : 'Recent Payments & Expenses',
+      label: isRtl ? 'آخر الحركات المالية' : 'Recent financial records',
       count: combinedFinanceCount,
       color: combinedFinanceCount > 0 ? '#2A9D8F' : '#6B7280',
       subLabel: combinedFinanceCount > 0
         ? (isRtl
-          ? `${newPaymentsCount || 0} دفعة · ${newExpensesCount || 0} مصروف`
-          : `${newPaymentsCount || 0} payment · ${newExpensesCount || 0} expense`)
+          ? `${combinedFinanceCount} حركة جديدة — دفعات · مصاريف · تأمينات · استرجاعات`
+          : `${combinedFinanceCount} new — payments, expenses, deposits, refunds`)
         : null,
       to: '/notifications',
     });

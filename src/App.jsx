@@ -43,6 +43,8 @@ import MyPayments from '@/pages/MyPayments';
 import Profile from '@/pages/Profile';
 import Users from '@/pages/Users';
 import Notes from '@/pages/Notes';
+import Deposits from '@/pages/Deposits';
+import Refunds from '@/pages/Refunds';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, isAuthenticated, authChecked } = useAuth();
@@ -119,6 +121,8 @@ if (user?.role === 'delete_request') {
         <Route path="/re-reports" element={<ReReports />} />
         <Route path="/re-investors" element={<ReInvestors />} />
         <Route path="/re-savings" element={<ReSavings />} />
+        <Route path="/deposits" element={<Deposits />} />
+        <Route path="/refunds" element={<Refunds />} />
         <Route path="/smart-alerts" element={<SmartAlerts />} />
         <Route path="/activity-log" element={<ActivityLogPage />} />
         <Route path="/my-payments" element={<MyPayments />} />

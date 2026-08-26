@@ -4,7 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
 import { useLang } from '@/lib/LanguageContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
-import { TrendingUp, DollarSign, Receipt, Percent, PiggyBank } from 'lucide-react';
+import { TrendingUp, DollarSign, Receipt, Percent, PiggyBank, RotateCcw, ShieldCheck } from 'lucide-react';
 import { parseISO, isValid, getYear, getMonth } from 'date-fns';
 
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -13,6 +13,8 @@ const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'
 export default function ReReports() {
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [refunds, setRefunds] = useState([]);
+  const [recoveries, setRecoveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
   const { t, lang } = useLang();
@@ -28,12 +30,21 @@ export default function ReReports() {
     Promise.all([
       base44.entities.RePayment.list(),
       base44.entities.ReExpense.list(),
-    ]).then(([p, e]) => { setPayments(p); setExpenses(e); setLoading(false); });
+      base44.entities.Refund.list(),
+      base44.entities.DepositDeduction.list(),
+    ]).then(([p, e, r, dd]) => {
+      setPayments(p);
+      setExpenses(e);
+      setRefunds((r || []).filter(x => x.property_type === 'real_estate'));
+      setRecoveries((dd || []).filter(x => x.property_type === 'real_estate' && x.destination === 'owner_recovery'));
+      setLoading(false);
+    });
   }, []);
 
   const availableYears = [...new Set([
     ...payments.map(p => p.payment_date ? getYear(parseISO(p.payment_date)) : null),
     ...expenses.map(e => e.expense_date ? getYear(parseISO(e.expense_date)) : null),
+    ...refunds.map(r => (r.applies_to_date || r.refund_date) ? getYear(parseISO(r.applies_to_date || r.refund_date)) : null),
   ].filter(Boolean))].sort((a, b) => b - a);
 
   const filterByYear = (items, dateKey) => items.filter(item => {
@@ -46,18 +57,37 @@ export default function ReReports() {
   const yearAllExpenses = filterByYear(expenses, 'expense_date');
   const yearExpenses = yearAllExpenses.filter(e => e.category !== 'savings');
   const yearSavings = yearAllExpenses.filter(e => e.category === 'savings');
-  const totalRevenue = yearPayments.reduce((s, p) => s + (p.amount || 0), 0);
+  const yearRefunds = refunds.filter(r => {
+    const key = r.applies_to_date || r.refund_date;
+    if (!key) return false;
+    const d = parseISO(key);
+    return isValid(d) && getYear(d) === yearFilter;
+  });
+
+  const yearRecoveries = recoveries.filter(x => {
+    if (!x.deduction_date) return false;
+    const d = parseISO(x.deduction_date);
+    return isValid(d) && getYear(d) === yearFilter;
+  });
+
+  const grossRevenue = yearPayments.reduce((s, p) => s + (p.amount || 0), 0);
+  const totalRefunds = yearRefunds.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const totalRecovery = yearRecoveries.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const totalRevenue = grossRevenue + totalRecovery - totalRefunds;
   const totalExpenses = yearExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const totalSavings = yearSavings.reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
   const monthlyData = MONTHS.map((name, idx) => {
-    const revenue = yearPayments.filter(p => getMonth(parseISO(p.payment_date)) === idx).reduce((s, p) => s + (p.amount || 0), 0);
+    const gross = yearPayments.filter(p => getMonth(parseISO(p.payment_date)) === idx).reduce((s, p) => s + (p.amount || 0), 0);
+    const ref = yearRefunds.filter(r => getMonth(parseISO(r.applies_to_date || r.refund_date)) === idx).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    const rec = yearRecoveries.filter(x => getMonth(parseISO(x.deduction_date)) === idx).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const revenue = gross + rec - ref;
     const exp = yearExpenses.filter(e => getMonth(parseISO(e.expense_date)) === idx).reduce((s, e) => s + (e.amount || 0), 0);
     const sav = yearSavings.filter(e => getMonth(parseISO(e.expense_date)) === idx).reduce((s, e) => s + (e.amount || 0), 0);
-    return { name, revenue, expenses: exp, savings: sav, net: revenue - exp };
-  }).filter(m => m.revenue > 0 || m.expenses > 0 || m.savings > 0);
+    return { name, revenue, refunds: ref, expenses: exp, savings: sav, net: revenue - exp };
+  }).filter(m => m.revenue !== 0 || m.refunds > 0 || m.expenses > 0 || m.savings > 0);
 
   const expCatData = Object.entries(
     yearExpenses.reduce((acc, e) => { const cat = e.category || 'other'; acc[cat] = (acc[cat] || 0) + (e.amount || 0); return acc; }, {})
@@ -92,10 +122,11 @@ export default function ReReports() {
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title="إجمالي الإيرادات" titleEn="Total Revenue" value={`${totalRevenue.toLocaleString()} AED`} subtitle={`${yearPayments.length}`} icon={TrendingUp} accentColor="navy" delay={0} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <StatCard title="صافي الإيراد" titleEn="Net Revenue" value={`${totalRevenue.toLocaleString()} AED`} subtitle={totalRecovery > 0 ? `${grossRevenue.toLocaleString()} + ${totalRecovery.toLocaleString()} − ${totalRefunds.toLocaleString()}` : `${grossRevenue.toLocaleString()} − ${totalRefunds.toLocaleString()}`} icon={TrendingUp} accentColor="navy" delay={0} />
+        <StatCard title="الاسترجاعات والخصومات" titleEn="Refunds & Deductions" value={`${totalRefunds.toLocaleString()} AED`} subtitle={`${yearRefunds.length}`} icon={RotateCcw} accentColor="gold" delay={40} />
         <StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${totalExpenses.toLocaleString()} AED`} subtitle={`${yearExpenses.length}`} icon={Receipt} accentColor="urgent" delay={80} />
-        <StatCard title="صافي الربح" titleEn="Net Profit" value={`${netProfit.toLocaleString()} AED`} subtitle={t('revenueMinusExpenses')} icon={DollarSign} accentColor="success" delay={160} />
+        <StatCard title="صافي الربح" titleEn="Net Profit" value={`${netProfit.toLocaleString()} AED`} subtitle={lang === 'ar' ? 'صافي الإيراد − المصاريف' : 'Net revenue − expenses'} icon={DollarSign} accentColor="success" delay={160} />
         <StatCard title="هامش الربح" titleEn="Profit Margin" value={`${profitMargin}%`} subtitle="" icon={Percent} accentColor="gold" delay={240} />
       </div>
 
@@ -107,6 +138,23 @@ export default function ReReports() {
         </div>
         <span className="text-lg font-bold" style={{ color: '#059669' }}>{totalSavings.toLocaleString()} AED</span>
       </div>
+
+      {totalRecovery > 0 && (
+        <div className="bg-white card-bevel rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={18} style={{ color: '#2A9D8F' }} />
+            <span className="text-sm font-bold" style={{ color: '#1B2B4B' }}>
+              {lang === 'ar' ? 'استردادات من التأمينات' : 'Recovered from deposits'}
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {lang === 'ar'
+                ? 'مبالغ خُصمت من تأمين المستأجر لتغطية مصاريف دفعها المالك — تُضاف إلى الإيراد'
+                : 'Deducted from tenant deposits against owner-paid costs — added to revenue'}
+            </span>
+          </div>
+          <span className="text-lg font-bold" style={{ color: '#2A9D8F' }}>+ {totalRecovery.toLocaleString()} AED</span>
+        </div>
+      )}
 
       <div className="bg-white card-bevel rounded-xl p-5">
         <div className="mb-4">

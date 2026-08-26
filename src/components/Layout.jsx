@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRef } from 'react';
 import {
   LayoutDashboard, Building2, CreditCard, Receipt,
-  BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft, StickyNote
+  BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft, StickyNote, ShieldCheck, RotateCcw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { base44, supabase } from '@/api/base44Client';
@@ -23,6 +23,8 @@ const adminNavKeys = [
   { path: '/payments', key: 'payments', icon: CreditCard },
   { path: '/expenses', key: 'expenses', icon: Receipt },
   { path: '/savings', key: 'savings', icon: Wallet },
+  { path: '/deposits', key: 'deposits', icon: ShieldCheck },
+  { path: '/refunds', key: 'refunds', icon: RotateCcw },
 ];
 
 const dataEntryNavKeys = [
@@ -39,6 +41,8 @@ const investorQaryaNavKeys = [
   { path: '/payments', key: 'payments', icon: CreditCard },
   { path: '/expenses', key: 'expenses', icon: Receipt },
   { path: '/savings', key: 'savings', icon: Wallet },
+  { path: '/deposits', key: 'deposits', icon: ShieldCheck },
+  { path: '/refunds', key: 'refunds', icon: RotateCcw },
 ];
 
 const investorReNavKeys = [
@@ -89,6 +93,8 @@ const navLabels = {
     alerts: 'الإشعارات',
     userManagement: 'إدارة الحسابات',
     notes: 'الملاحظات',
+    deposits: 'التأمينات',
+    refunds: 'الاسترجاعات والخصومات',
   },
   en: {
     dashboard: 'Dashboard',
@@ -115,6 +121,8 @@ const navLabels = {
     alerts: 'Notifications',
     userManagement: 'User Management',
     notes: 'Notes',
+    deposits: 'Deposits',
+    refunds: 'Refunds & Deductions',
   },
 };
 
@@ -122,6 +130,7 @@ const BACK_BUTTON_ROUTES = [
   '/dashboard', '/units', '/payments', '/expenses', '/reports', '/investors', '/savings',
   '/re-dashboard', '/re-units', '/re-payments', '/re-expenses', '/re-reports', '/re-investors', '/re-savings',
   '/smart-alerts', '/notifications', '/activity-log', '/data-entry', '/my-payments',
+  '/deposits', '/refunds',
   '/registration-requests', '/pending-approvals', '/notes',
 ];
 
@@ -303,7 +312,7 @@ useEffect(() => {
   const isAllowedInvestor = [
     '/', '/dashboard', '/units', '/payments', '/expenses', '/reports', '/investors', '/savings',
     '/re-dashboard', '/re-units', '/re-payments', '/re-expenses', '/re-reports', '/re-investors', '/re-savings',
-    '/smart-alerts', '/notifications', '/profile', '/notes',
+    '/smart-alerts', '/notifications', '/profile', '/notes', '/deposits', '/refunds',
   ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   if (user && isInvestor && !isAllowedInvestor) {
