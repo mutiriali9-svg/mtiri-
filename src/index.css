@@ -86,6 +86,23 @@
     scroll-behavior: smooth;
   }
 
+  .sheet-overlay {
+    height: 100vh;
+  }
+
+  .sheet-shell {
+    max-height: 92vh;
+  }
+
+  @supports (height: 100dvh) {
+    .sheet-overlay {
+      height: 100dvh;
+    }
+    .sheet-shell {
+      max-height: 92dvh;
+    }
+  }
+
   /* iOS Safe Area support */
   .safe-top {
     padding-top: env(safe-area-inset-top);

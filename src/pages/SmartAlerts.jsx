@@ -17,8 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
-  PAYMENT_PLANS, getNextDateFromPlan, cycleTotal, cyclePaid,
-  paidAheadLabel, applyAlertPayment, getAccrued,
+  PAYMENT_PLANS, getNextDateFromPlan,
+  paidAheadLabel, applyAlertPayment, getAccrued, getAlertState,
 } from '@/utils/alertAccrual';
 
 const PAYMENT_METHODS = [
@@ -120,10 +120,9 @@ export default function SmartAlerts() {
         base44.entities.ReUnit.list(),
       ]);
       const updated = alertsData.map(a => {
-        if (a.status !== 'paid' && a.alert_date && a.alert_date <= today) {
-          return { ...a, status: 'overdue' };
-        }
-        return a;
+        if (a.status === 'paid' || !a.alert_date) return a;
+        const live = a.alert_date <= today ? 'overdue' : 'active';
+        return a.status === live ? a : { ...a, status: live };
       });
       setAlerts(updated);
       setUnits(unitsData);
@@ -357,7 +356,7 @@ export default function SmartAlerts() {
 
       try {
         await logActivity('Payment', 'create', `دفعة - ${alertRec.unit_number} - ${alertRec.tenant_name}`, null, paymentRecord, `دفعة جديدة: ${paidAmount} د.إ`, user);
-        await logActivity('PaymentAlert', 'update', `تحديث بعد دفع - ${alertRec.unit_number} - ${alertRec.tenant_name}`, alertRec, alertUpdatePayload, result.summary.settled ? `دفعة كاملة + ${result.summary.periodsAdvanced} دورات` : `دفعة جزئية: ${paidAmount} د.إ`, user);
+        await logActivity('PaymentAlert', 'update', `تحديث بعد دفع - ${alertRec.unit_number} - ${alertRec.tenant_name}`, alertRec, alertUpdatePayload, result.summary.settled ? `دفعة كاملة — غطّت ${result.summary.periodsCovered} دورات` : `دفعة جزئية: ${paidAmount} د.إ`, user);
       } catch (logErr) {
         warning = t('تم الحفظ — فشل تسجيل النشاط: ', 'Saved — activity log failed: ') + (logErr?.message || '');
       }
@@ -381,7 +380,7 @@ export default function SmartAlerts() {
         plan:        planLabel,
         paid:        paidAmount,
         remaining:   result.summary.newBalance,
-        periods:     result.summary.periodsAdvanced,
+        periods:     result.summary.periodsCovered,
         cyclePaid:   result.summary.cyclePaidAfter,
         settled:     result.summary.settled,
         warning,
@@ -446,25 +445,13 @@ export default function SmartAlerts() {
     : null;
 
   const AmountChips = ({ a }) => {
-    const monthly = Number(a.original_amount || 0);
-    const { accrued, periodsOverdue } = getAccrued(a);
-    const acc = accrued;
-    const remaining = Number(a.remaining_balance ?? (monthly + acc));
-    const startTotal = monthly + acc;
-    const paidInCycle = cyclePaid({ ...a, accumulated_amount: acc, remaining_balance: remaining });
-    const isPartial = paidInCycle > 0 && remaining > 0;
+    const { monthly, overdue: acc, cycles, total: startTotal, remaining, paid: paidInCycle, isPartial } = getAlertState(a);
     return (
       <div className="flex items-center gap-1.5 flex-wrap text-xs">
         {monthly > 0 && (
           <span className="px-2 py-1 rounded-lg font-semibold"
             style={{ backgroundColor: 'rgba(42,157,143,0.1)', color: '#2A9D8F' }}>
             {t('الدفعة', 'Amount')}: {monthly.toLocaleString()} {t('د.إ', 'AED')}
-          </span>
-        )}
-        {periodsOverdue > 1 && (
-          <span className="px-2 py-1 rounded-lg font-bold"
-            style={{ backgroundColor: 'rgba(230,57,70,0.12)', color: '#E63946' }}>
-            {periodsOverdue} {t('دورات', 'periods')}
           </span>
         )}
         {acc > 0 && (
@@ -475,6 +462,12 @@ export default function SmartAlerts() {
               {t('متأخر', 'Overdue')}: {acc.toLocaleString()} {t('د.إ', 'AED')}
             </span>
             <span className="text-muted-foreground">=</span>
+            {cycles > 1 && (
+              <span className="px-2 py-1 rounded-lg font-bold"
+                style={{ backgroundColor: 'rgba(230,57,70,0.12)', color: '#E63946' }}>
+                {cycles} {t('دورات', 'periods')}
+              </span>
+            )}
             <span className="px-2 py-1 rounded-lg font-bold"
               style={{ backgroundColor: 'rgba(27,43,75,0.08)', color: '#1B2B4B' }}>
               {t('الإجمالي', 'Total')}: {startTotal.toLocaleString()} {t('د.إ', 'AED')}
@@ -839,10 +832,7 @@ export default function SmartAlerts() {
             const daysInfo = getDaysLabel(viewAlert.alert_date, lang);
             const planObj = PAYMENT_PLANS.find(p => p.value === (viewAlert.payment_plan || 'monthly'));
             const planLabel = planObj?.label[lang] || planObj?.label.ar;
-            const monthly = Number(viewAlert.original_amount || 0);
-            const acc = Number(viewAlert.accumulated_amount || 0);
-            const remaining = Number(viewAlert.remaining_balance ?? (monthly + acc));
-            const paidInCycle = cyclePaid(viewAlert);
+            const { monthly, overdue: acc, remaining, paid: paidInCycle } = getAlertState(viewAlert);
             return (
               <div className="space-y-3 pt-1">
                 <div className="rounded-xl p-3 space-y-2.5" style={{ backgroundColor: 'rgba(27,43,75,0.04)', border: '1px solid rgba(27,43,75,0.1)' }}>
@@ -966,12 +956,7 @@ export default function SmartAlerts() {
             <DialogTitle>{t('رفع دفعة جديدة', 'Submit Payment')}</DialogTitle>
           </DialogHeader>
           {paymentModal && (() => {
-            const monthly = Number(paymentModal.original_amount || 0);
-            const { accrued, periodsOverdue } = getAccrued(paymentModal);
-            const acc = accrued;
-            const storedRemaining = Number(paymentModal.remaining_balance ?? monthly);
-            const currentTotal = storedRemaining + (accrued - Number(paymentModal.accumulated_amount || 0));
-            const paidInCycle = cyclePaid({ ...paymentModal, accumulated_amount: acc, remaining_balance: currentTotal });
+            const { monthly, overdue: acc, remaining: currentTotal, paid: paidInCycle } = getAlertState(paymentModal);
             const paidNow = Number(paymentInput.amount) || 0;
             const plan = paymentModal.payment_plan || 'monthly';
             const planObj = PAYMENT_PLANS.find(p => p.value === plan);
@@ -1118,7 +1103,7 @@ export default function SmartAlerts() {
                       {isFullPay && (
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">{t('الدورات المغطاة', 'Periods covered')}</span>
-                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.periodsAdvanced}</span>
+                          <span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.periodsCovered}</span>
                         </div>
                       )}
 

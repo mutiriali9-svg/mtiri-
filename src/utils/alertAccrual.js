@@ -70,6 +70,33 @@ export function getAccrued(a) {
   return { missedCycles, accrued, currentDueDate: cursor, periodsOverdue };
 }
 
+export function getAlertState(a) {
+  const monthly = Number(a?.original_amount || 0);
+  const storedAcc = Number(a?.accumulated_amount || 0);
+  const storedRemaining = Number(a?.remaining_balance ?? monthly);
+  const { accrued, missedCycles, periodsOverdue, currentDueDate } = getAccrued(a);
+  const remaining = Math.max(0, storedRemaining + (accrued - storedAcc));
+  const storedPaid = Math.max(0, Number(a?.cycle_paid_amount) || 0);
+  const legacyPaid = Math.max(0, monthly + storedAcc - storedRemaining);
+  const paid = storedPaid > 0 ? storedPaid : legacyPaid;
+  const total = remaining + paid;
+  const overdue = Math.max(0, total - monthly);
+  const cycles = monthly > 0 ? Math.max(1, Math.round(total / monthly)) : 0;
+  return {
+    monthly,
+    accrued,
+    overdue,
+    cycles,
+    missedCycles,
+    periodsOverdue,
+    dueDate: currentDueDate || a?.alert_date || '',
+    total,
+    remaining,
+    paid,
+    isPartial: paid > 0 && remaining > 0,
+  };
+}
+
 export function applyAlertPayment(alertRec, paidAmount, payDate) {
   const todayStr = new Date().toISOString().split('T')[0];
   const monthly = Number(alertRec.original_amount || 0);
@@ -78,7 +105,11 @@ export function applyAlertPayment(alertRec, paidAmount, payDate) {
   const storedRemaining = Number(alertRec.remaining_balance ?? monthly);
   const currentBalance = storedRemaining + (accrued - Number(alertRec.accumulated_amount || 0));
   const plan = alertRec.payment_plan || 'monthly';
-  const paidBefore = cyclePaid({ ...alertRec, accumulated_amount: accrued, remaining_balance: currentBalance });
+  const hasPaidColumn = alertRec?.cycle_paid_amount !== undefined && alertRec?.cycle_paid_amount !== null;
+  const storedPaidBefore = Math.max(0, Number(alertRec?.cycle_paid_amount) || 0);
+  const paidBefore = storedPaidBefore > 0
+    ? storedPaidBefore
+    : Math.max(0, monthly + Number(alertRec.accumulated_amount || 0) - storedRemaining);
 
   if (paidAmount >= currentBalance) {
     const credit = paidAmount - currentBalance;
@@ -98,6 +129,7 @@ export function applyAlertPayment(alertRec, paidAmount, payDate) {
       payload: {
         remaining_balance: newBalance,
         accumulated_amount: 0,
+        ...(hasPaidColumn ? { cycle_paid_amount: partialCredit } : {}),
         last_paid_date: payDate,
         last_paid_amount: paidAmount,
         alert_date: newDate,
@@ -107,10 +139,12 @@ export function applyAlertPayment(alertRec, paidAmount, payDate) {
       summary: {
         settled: true,
         periodsAdvanced,
+        periodsCovered: (monthly > 0 ? Math.max(1, Math.round((currentBalance + paidBefore) / monthly)) : 1) + additionalPeriods,
         newDate,
         newBalance,
         credit: partialCredit,
         cyclePaidAfter: partialCredit,
+        paidBefore,
         status,
       },
     };
@@ -124,6 +158,7 @@ export function applyAlertPayment(alertRec, paidAmount, payDate) {
     payload: {
       remaining_balance: newTotalBalance,
       accumulated_amount: newAcc,
+      ...(hasPaidColumn ? { cycle_paid_amount: paidBefore + paidAmount } : {}),
       alert_date: effectiveDate,
       next_alert_date: effectiveDate,
       last_paid_date: payDate,
@@ -133,6 +168,7 @@ export function applyAlertPayment(alertRec, paidAmount, payDate) {
     summary: {
       settled: false,
       periodsAdvanced: 0,
+      periodsCovered: 0,
       newDate: effectiveDate,
       newBalance: newTotalBalance,
       credit: 0,

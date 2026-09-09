@@ -222,9 +222,9 @@ export default function Notes() {
       {selectedNote && (() => {
         const ts = TYPE_STYLES[selectedNote.note_type] || TYPE_STYLES.other;
         return (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setSelectedNote(null)}>
-            <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border" dir={isAr ? 'rtl' : 'ltr'}>
+          <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setSelectedNote(null)}>
+            <div className="sheet-shell bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0" dir={isAr ? 'rtl' : 'ltr'}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(168,178,192,0.15)' }}>
                     <StickyNote size={18} style={{ color: '#A8B2C0' }} />
@@ -242,7 +242,7 @@ export default function Notes() {
                   </button>
                 </div>
               </div>
-              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto" dir={isAr ? 'rtl' : 'ltr'}>
+              <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" dir={isAr ? 'rtl' : 'ltr'}>
                 <div className="rounded-xl p-3 text-center" style={{ backgroundColor: ts.bg }}>
                   <span className="font-bold text-sm" style={{ color: ts.color }}>
                     {typeLabels[selectedNote.note_type] || selectedNote.note_type}
@@ -277,7 +277,7 @@ export default function Notes() {
 
       {/* Delete Confirm */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="sheet-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5">
             <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
               <Trash2 size={24} style={{ color: '#E63946' }} />
@@ -300,9 +300,9 @@ export default function Notes() {
 
       {/* Add Note Modal */}
       {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDialogOpen(false)}>
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border" dir={isAr ? 'rtl' : 'ltr'}>
+        <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setDialogOpen(false)}>
+          <div className="sheet-shell bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0" dir={isAr ? 'rtl' : 'ltr'}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(168,178,192,0.15)' }}>
                   <StickyNote size={18} style={{ color: '#A8B2C0' }} />
@@ -312,14 +312,14 @@ export default function Notes() {
               <button onClick={() => setDialogOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-muted"><X size={16} /></button>
             </div>
 
-            <div className="p-5 space-y-4 max-h-[72vh] overflow-y-auto" dir={isAr ? 'rtl' : 'ltr'}>
+            <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" dir={isAr ? 'rtl' : 'ltr'}>
               {/* Note Type */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground block">{isAr ? 'نوع الملاحظة' : 'Note Type'}</label>
                 <select
                   value={form.note_type}
                   onChange={e => setForm(p => ({ ...p, note_type: e.target.value }))}
-                  className="w-full h-9 border border-input rounded-md text-sm px-3 focus:outline-none focus:ring-1 bg-white"
+                  className="w-full h-11 sm:h-9 border border-input rounded-md text-base sm:text-sm px-3 focus:outline-none focus:ring-1 bg-white"
                   dir={isAr ? 'rtl' : 'ltr'}
                 >
                   {Object.entries(typeLabels).map(([val, label]) => (
@@ -334,7 +334,7 @@ export default function Notes() {
                 <input
                   value={form.tenant_name}
                   onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))}
-                  className="w-full h-9 border border-input rounded-md text-sm px-3 focus:outline-none focus:ring-1"
+                  className="w-full h-11 sm:h-9 border border-input rounded-md text-base sm:text-sm px-3 focus:outline-none focus:ring-1"
                   placeholder={isAr ? 'اسم المستأجر' : 'Tenant name'}
                 />
               </div>
@@ -345,7 +345,7 @@ export default function Notes() {
                 <input
                   value={form.unit_info}
                   onChange={e => setForm(p => ({ ...p, unit_info: e.target.value }))}
-                  className="w-full h-9 border border-input rounded-md text-sm px-3 focus:outline-none focus:ring-1"
+                  className="w-full h-11 sm:h-9 border border-input rounded-md text-base sm:text-sm px-3 focus:outline-none focus:ring-1"
                   placeholder={isAr ? 'مثال: شقة 5 — القرية' : 'e.g. Unit 5 — Qarya'}
                 />
               </div>
@@ -356,7 +356,7 @@ export default function Notes() {
                 <input
                   value={form.phone}
                   onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                  className="w-full h-9 border border-input rounded-md text-sm px-3 focus:outline-none focus:ring-1"
+                  className="w-full h-11 sm:h-9 border border-input rounded-md text-base sm:text-sm px-3 focus:outline-none focus:ring-1"
                   placeholder="+971 5X XXX XXXX"
                   type="tel"
                   dir="ltr"
@@ -369,7 +369,7 @@ export default function Notes() {
                 <textarea
                   value={form.description}
                   onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                  className="w-full border border-input rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-1 resize-none"
+                  className="w-full border border-input rounded-md text-base sm:text-sm px-3 py-2 focus:outline-none focus:ring-1 resize-none"
                   rows={4}
                   placeholder={isAr ? 'اكتب التفاصيل هنا...' : 'Write details here...'}
                 />
@@ -411,7 +411,7 @@ export default function Notes() {
               )}
             </div>
 
-            <div className="px-5 pb-6 flex gap-3" dir={isAr ? 'rtl' : 'ltr'}>
+            <div className="px-5 pt-4 pb-6 flex gap-3 flex-shrink-0 border-t border-border safe-bottom" dir={isAr ? 'rtl' : 'ltr'}>
               <button onClick={() => setDialogOpen(false)} className="flex-1 py-3 rounded-xl border font-semibold text-sm hover:bg-secondary" style={{ color: '#1B2B4B' }}>
                 {isAr ? 'إلغاء' : 'Cancel'}
               </button>
