@@ -58,6 +58,7 @@ export default function Payments() {
 
   const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); };
   const canEdit = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'data_entry';
+  const receiptOptional = user?.role === 'admin';
 
   const methodLabels = { cash: t('cash'), bank_transfer: t('bank_transfer'), cheque: t('cheque'), other: t('other') };
   const statusConfig = {
@@ -151,7 +152,7 @@ export default function Payments() {
     if (!form.amount || parseFloat(form.amount) <= 0) missing.push('المبلغ');
     if (!form.payment_date) missing.push('تاريخ الدفع');
     if (!form.due_months?.trim()) missing.push('مستحق لشهر');
-    if (!receiptUrl) missing.push('صورة الإيصال');
+    if (!receiptUrl && !receiptOptional) missing.push('صورة الإيصال');
     if (missing.length > 0) {
       setInlineError(`⚠️ يرجى تعبئة: ${missing.join(' — ')}`);
       setTimeout(() => setInlineError(''), 4000);
@@ -578,7 +579,11 @@ export default function Payments() {
             <div className="space-y-1.5"><Label>{t('receiptNumber')}</Label><Input value={form.receipt_number} onChange={e => setForm(p => ({ ...p, receipt_number: e.target.value }))} /></div>
             <div className="sm:col-span-2 space-y-1.5"><Label>{t('notes')}</Label><Input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label>{t('receiptImage')} *</Label>
+              <Label>
+                {t('receiptImage')}{receiptOptional
+                  ? <span className="text-muted-foreground font-normal"> ({isAr ? 'اختياري' : 'optional'})</span>
+                  : ' *'}
+              </Label>
               {receiptUrl ? (
                 <div className="w-full rounded-lg border border-border bg-muted overflow-hidden">
                   {receiptUrl.toLowerCase().endsWith('.pdf') ? (

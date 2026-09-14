@@ -284,7 +284,7 @@ export default function SmartAlerts() {
       setPaymentError(t('حدد طريقة الدفع *', 'Select a payment method *'));
       return;
     }
-    if (!paymentInput.receipt_url) {
+    if (!paymentInput.receipt_url && !isAdmin) {
       setPaymentError(t('يرجى رفع صورة الإيصال *', 'Please upload a receipt image *'));
       return;
     }
@@ -1128,7 +1128,9 @@ export default function SmartAlerts() {
 
                 {/* رفع الإيصال - إجباري */}
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold">{t('رفع الإيصال *', 'Upload Receipt *')}</Label>
+                  <Label className="text-sm font-semibold">
+                    {isAdmin ? t('رفع الإيصال (اختياري)', 'Upload Receipt (optional)') : t('رفع الإيصال *', 'Upload Receipt *')}
+                  </Label>
                   {receiptUploading ? (
                     <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl" style={{ borderColor: '#C9A84C' }}>
                       <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#C9A84C', borderTopColor: 'transparent' }} />

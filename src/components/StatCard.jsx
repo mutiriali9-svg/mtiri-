@@ -9,7 +9,7 @@ const accentMap = {
   urgent:  { cardBg: 'bg-card', text: 'text-foreground', subText: 'text-muted-foreground', valueText: 'text-foreground', iconBg: 'bg-destructive/10', iconColor: 'text-destructive', border: 'border-destructive/40' },
 };
 
-export default function StatCard({ title, titleEn, value, subtitle, icon: Icon, trend, trendValue, accentColor = 'navy', delay = 0, href, extra }) {
+export default function StatCard({ title, titleEn, value, subtitle, icon: Icon, trend, trendValue, accentColor = 'navy', delay = 0, href, extra, onClick }) {
   const { lang } = useLang();
   const displayTitle = lang === 'en' && titleEn ? titleEn : title;
   const c = accentMap[accentColor] || accentMap.navy;
@@ -49,6 +49,19 @@ export default function StatCard({ title, titleEn, value, subtitle, icon: Icon, 
       >
         {inner}
       </Link>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`card-bevel rounded-xl p-5 animate-fade-in-up border-r-4 ${c.cardBg} ${c.border} select-none block w-full text-right hover:opacity-90 transition-opacity cursor-pointer min-h-[44px]`}
+        style={{ animationDelay: `${delay}ms` }}
+      >
+        {inner}
+      </button>
     );
   }
 

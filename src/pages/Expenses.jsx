@@ -49,6 +49,7 @@ export default function Expenses() {
   const { t, lang } = useLang();  
   const isAr = lang === 'ar';     
   const canEdit = user?.role === 'admin' || user?.role === 'manager';
+  const invoiceOptional = user?.role === 'admin';
 
   const categoryLabels = {
     maintenance: t('maintenance_cat'), salary: t('salary'), utilities: t('utilities'),
@@ -92,7 +93,7 @@ export default function Expenses() {
     if (!form.description?.trim()) newErrors.description = true;
     if (!form.amount || parseFloat(form.amount) <= 0) newErrors.amount = true;
     if (!form.expense_date) newErrors.expense_date = true;
-    if (form.category !== 'other' && !image) newErrors.image = true;
+    if (form.category !== 'other' && !image && !invoiceOptional) newErrors.image = true;
     if (form.category === 'other' && !form.notes?.trim()) newErrors.notes = true;
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     setErrors({});
@@ -491,7 +492,9 @@ export default function Expenses() {
             </div>
             <div className="sm:col-span-2 space-y-1.5">
               <Label className={errors.image ? 'text-destructive' : ''}>
-                {t('invoiceImage')} *
+                {t('invoiceImage')}{invoiceOptional
+                  ? <span className="text-muted-foreground font-normal"> ({isAr ? 'اختياري' : 'optional'})</span>
+                  : ' *'}
               </Label>
               <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
                 onChange={e => handleImageUpload(e.target.files[0])} />
