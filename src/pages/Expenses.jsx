@@ -59,10 +59,6 @@ export default function Expenses() {
 
   const handleImageUpload = async (file) => {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ description: 'حجم الملف كبير جداً، يرجى اختيار ملف أقل من 5MB', variant: 'destructive' });
-      return;
-    }
     setUploading(true);
     setImageType(file.type === 'application/pdf' ? 'pdf' : 'image');
     try {
@@ -70,7 +66,7 @@ export default function Expenses() {
       setImage(file_url);
       setErrors(p => ({ ...p, image: false }));
     } catch (err) {
-      toast({ description: 'فشل رفع الصورة، يرجى المحاولة مرة أخرى', variant: 'destructive' });
+      toast({ description: err?.message || 'فشل رفع الصورة، يرجى المحاولة مرة أخرى', variant: 'destructive' });
     }
     setUploading(false);
   };

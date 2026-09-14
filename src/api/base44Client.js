@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { prepareUpload } from '@/utils/imageCompress';
 
 const APP_URL = 'https://www.mteiri-bm.com';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -62,10 +63,11 @@ const makeEntity = (tableName) => ({
   },
 });
 
-export const uploadFile = async (file) => {
-  const fileExt = file.name.split('.').pop();
+export const uploadFile = async (file, kind = 'proof') => {
+  const prepared = await prepareUpload(file, kind);
+  const fileExt = prepared.name.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-  const { error } = await supabase.storage.from('mtiri').upload(fileName, file, { cacheControl: '3600', upsert: false });
+  const { error } = await supabase.storage.from('mtiri').upload(fileName, prepared, { cacheControl: '3600', upsert: false, contentType: prepared.type || undefined });
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('mtiri').getPublicUrl(fileName);
   return { file_url: publicUrl };
@@ -127,10 +129,11 @@ export const base44 = {
   },
   integrations: {
     Core: {
-      UploadFile: async ({ file }) => {
-        const fileExt = file.name.split('.').pop();
+      UploadFile: async ({ file, kind = 'proof' }) => {
+        const prepared = await prepareUpload(file, kind);
+        const fileExt = prepared.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const { error } = await supabase.storage.from('mtiri').upload(fileName, file, { cacheControl: '3600', upsert: false });
+        const { error } = await supabase.storage.from('mtiri').upload(fileName, prepared, { cacheControl: '3600', upsert: false, contentType: prepared.type || undefined });
         if (error) throw error;
         const { data: { publicUrl } } = supabase.storage.from('mtiri').getPublicUrl(fileName);
         return { file_url: publicUrl };
