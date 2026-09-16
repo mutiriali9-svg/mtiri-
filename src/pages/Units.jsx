@@ -3,6 +3,8 @@ import { base44, uploadFile, supabase } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
+import PhoneInput from '@/components/PhoneInput';
+import { formatPhone } from '@/utils/phone';
 import { Plus, Search, Edit2, Trash2, Building2, Phone, Upload, X, FileImage, Loader2, BellRing, DoorOpen, ArrowLeft } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
@@ -551,7 +553,7 @@ export default function Units() {
                       <div className="flex items-center gap-2">
                         <span className="truncate font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</span>
                       </div>
-                      {u.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone size={10} />{u.owner_phone}</p>}
+                      {u.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone size={10} />{formatPhone(u.owner_phone)}</p>}
                     </td>
                     <td className="py-2.5 lg:py-3 px-2 lg:px-4 text-muted-foreground text-[10px] lg:text-xs">{u.nationality || '-'}</td>
                     <td className="py-2.5 lg:py-3 px-2 lg:px-4 font-semibold whitespace-nowrap" style={{ color: '#1B2B4B' }}>{u.annual_rent ? `${Number(u.annual_rent).toLocaleString()} AED` : '-'}</td>
@@ -618,7 +620,7 @@ export default function Units() {
                   <span className="text-sm font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</span>
                 </div>
                 {u.owner_phone && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone size={12} />{u.owner_phone}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone size={12} />{formatPhone(u.owner_phone)}</div>
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{t('annualRent')}</span>
@@ -831,7 +833,7 @@ export default function Units() {
                   { label: 'الإيجار السنوي', value: viewUnit.annual_rent ? `${Number(viewUnit.annual_rent).toLocaleString()} AED` : null },
                   { label: 'خطة الدفع', value: viewUnit.payment_plan },
                   { label: 'الطابق', value: viewUnit.floor },
-                  { label: 'رقم المالك', value: viewUnit.owner_phone },
+                  { label: 'رقم المالك', value: formatPhone(viewUnit.owner_phone) },
                   { label: 'بداية العقد', value: viewUnit.contract_start },
                   { label: 'نهاية العقد', value: viewUnit.contract_end },
                   { label: 'التأمين', value: viewUnit.insurance ? `${viewUnit.insurance} (${viewUnit.insurance_type === 'cheque' ? 'شيك' : 'نقداً'})` : null },
@@ -913,7 +915,11 @@ export default function Units() {
             ].map(f => (
               <div key={f.key} className="space-y-1.5">
                 <Label className="text-sm">{f.label}</Label>
-                <Input type={f.type} value={form[f.key] || ''} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="text-sm" />
+                {f.type === 'tel' ? (
+                  <PhoneInput value={form[f.key] || ''} onChange={v => setForm(p => ({ ...p, [f.key]: v }))} />
+                ) : (
+                  <Input type={f.type} value={form[f.key] || ''} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="text-sm" />
+                )}
               </div>
             ))}
 
@@ -946,7 +952,7 @@ export default function Units() {
             </div>
 
             {[
-              { label: t('ownerPhone'), key: 'owner_phone', type: 'text' },
+              { label: t('ownerPhone'), key: 'owner_phone', type: 'tel' },
               { label: t('contractStart'), key: 'contract_start', type: 'date' },
               { label: t('contractEndDate'), key: 'contract_end', type: 'date' },
               { label: t('paymentPlan'), key: 'payment_plan', type: 'text' },
@@ -954,7 +960,11 @@ export default function Units() {
             ].map(f => (
               <div key={f.key} className="space-y-1.5">
                 <Label className="text-sm">{f.label}</Label>
-                <Input type={f.type} value={form[f.key] || ''} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="text-sm" />
+                {f.type === 'tel' ? (
+                  <PhoneInput value={form[f.key] || ''} onChange={v => setForm(p => ({ ...p, [f.key]: v }))} />
+                ) : (
+                  <Input type={f.type} value={form[f.key] || ''} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="text-sm" />
+                )}
               </div>
             ))}
             <div className="space-y-1.5">

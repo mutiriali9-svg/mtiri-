@@ -20,6 +20,8 @@ import {
   PAYMENT_PLANS, getNextDateFromPlan,
   paidAheadLabel, applyAlertPayment, getAccrued, getAlertState,
 } from '@/utils/alertAccrual';
+import { buildReminderMessage } from '@/utils/whatsappReminder';
+import { formatPhone } from '@/utils/phone';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: { ar: 'نقداً', en: 'Cash' } },
@@ -98,7 +100,6 @@ export default function SmartAlerts() {
   const [filterProperty, setFilterProperty] = useState(searchParams.get('property') || 'all');
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || 'all');
   const [filterUnit, setFilterUnit] = useState(searchParams.get('unit') || 'all');
-  const [whatsappLoading, setWhatsappLoading] = useState(null);
   const [unitDetailModal, setUnitDetailModal] = useState(null);
   const [viewAlert, setViewAlert] = useState(null);
 
@@ -399,22 +400,20 @@ export default function SmartAlerts() {
     }
   };
 
-  const handleSendWhatsapp = async (alertRec) => {
-    setWhatsappLoading(alertRec.id);
+  const waReminder = (alertRec) => {
     try {
-      const res = await base44.functions.invoke('sendWhatsappReminder', { alert_id: alertRec.id });
-      const data = res.data;
-      if (data?.whatsapp_url) {
-        window.open(data.whatsapp_url, '_blank');
-        setPageError('');
-      } else {
-        setPageError(t('تعذّر توليد رابط واتساب لهذه الوحدة', 'Could not generate a WhatsApp link for this unit'));
-      }
-    } catch (e) {
-      setPageError(t('فشل إرسال تذكير واتساب: ', 'WhatsApp reminder failed: ') + (e?.message || ''));
-    } finally {
-      setWhatsappLoading(null);
+      const unit = allUnits.find(u => u.unit_number === alertRec.unit_number);
+      return buildReminderMessage(alertRec, unit);
+    } catch {
+      return { whatsappUrl: '', hasPhone: false, message: '' };
     }
+  };
+
+  const noteWhatsapp = (alertRec) => {
+    const { hasPhone } = waReminder(alertRec);
+    setPageError(hasPhone
+      ? ''
+      : t('لا يوجد رقم هاتف محفوظ لهذه الوحدة — اختر المستلم داخل واتساب', 'No phone saved for this unit — pick the recipient inside WhatsApp'));
   };
 
   const handleDelete = (alertRec) => {
@@ -592,18 +591,17 @@ export default function SmartAlerts() {
                           style={{ backgroundColor: '#2A9D8F' }}>
                           <Upload size={13} /> {t('رفع دفعة', 'Submit Payment')}
                         </Button>
-                        <button
-                          onClick={() => handleSendWhatsapp(a)}
-                          disabled={whatsappLoading === a.id}
+                        <a
+                          href={waReminder(a).whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => noteWhatsapp(a)}
                           className="h-7 px-2 rounded-lg flex items-center gap-1 text-xs font-medium transition-colors"
                           style={{ backgroundColor: '#25D366', color: '#fff' }}
                         >
-                          {whatsappLoading === a.id
-                            ? <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor: '#fff', borderTopColor: 'transparent' }} />
-                            : <MessageCircle size={13} />
-                          }
+                          <MessageCircle size={13} />
                           {t('واتساب', 'WhatsApp')}
-                        </button>
+                        </a>
                         {isAdmin && (
                           <>
                             <button onClick={() => openForm(a)}
@@ -787,18 +785,17 @@ export default function SmartAlerts() {
 
                     {/* WhatsApp button — visible to admin and data_entry */}
                     {(isAdmin || isDataEntry) && alertRec.status !== 'paid' && (
-                      <button
-                        onClick={() => handleSendWhatsapp(alertRec)}
-                        disabled={whatsappLoading === alertRec.id}
+                      <a
+                        href={waReminder(alertRec).whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => noteWhatsapp(alertRec)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 transition-colors"
                         style={{ color: '#25D366' }}
                         title={t('إرسال تذكير واتساب', 'Send WhatsApp reminder')}
                       >
-                        {whatsappLoading === alertRec.id
-                          ? <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: '#25D366', borderTopColor: 'transparent' }} />
-                          : <MessageCircle size={16} />
-                        }
-                      </button>
+                        <MessageCircle size={16} />
+                      </a>
                     )}
 
                     {isAdmin && (
@@ -913,7 +910,7 @@ export default function SmartAlerts() {
                   { label: t('خطة الدفع', 'Payment Plan'), value: unitDetailModal.payment_plan },
                   { label: t('بداية العقد', 'Contract Start'), value: unitDetailModal.contract_start },
                   { label: t('نهاية العقد', 'Contract End'), value: unitDetailModal.contract_end },
-                  { label: t('رقم المالك', 'Owner Phone'), value: unitDetailModal.owner_phone },
+                  { label: t('رقم المالك', 'Owner Phone'), value: formatPhone(unitDetailModal.owner_phone) },
                   { label: t('الطابق', 'Floor'), value: unitDetailModal.floor },
                   { label: t('ملاحظات', 'Notes'), value: unitDetailModal.notes },
                 ].filter(r => r.value).map(row => (

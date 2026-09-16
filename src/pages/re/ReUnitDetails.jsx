@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44, uploadFile } from '@/api/base44Client';
 import { useLang } from '@/lib/LanguageContext';
+import PhoneInput from '@/components/PhoneInput';
+import { formatPhone } from '@/utils/phone';
 import { useAuth } from '@/lib/AuthContext';
 import { ArrowRight, ArrowLeft, Building2, Calendar, Phone, Receipt, Filter, Edit2, Upload, X, FileImage, Loader2 } from 'lucide-react';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
@@ -182,7 +184,7 @@ export default function ReUnitDetails() {
           {unit.owner_phone && (
             <div>
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone size={11} /> {t('ownerPhoneLabel')}</p>
-              <p className="font-medium text-sm mt-1">{unit.owner_phone}</p>
+              <p className="font-medium text-sm mt-1" dir="ltr">{formatPhone(unit.owner_phone)}</p>
             </div>
           )}
           {unit.payment_plan && (
@@ -497,7 +499,7 @@ export default function ReUnitDetails() {
               { label: 'الجنسية', key: 'nationality', type: 'text' },
               { label: 'الإيجار السنوي (AED)', key: 'annual_rent', type: 'number' },
               { label: 'التأمين', key: 'insurance', type: 'text' },
-              { label: 'رقم المالك', key: 'owner_phone', type: 'text' },
+              { label: 'رقم المالك', key: 'owner_phone', type: 'tel' },
               { label: 'بداية العقد', key: 'contract_start', type: 'date' },
               { label: 'نهاية العقد', key: 'contract_end', type: 'date' },
               { label: 'خطة الدفع', key: 'payment_plan', type: 'text' },
@@ -505,7 +507,11 @@ export default function ReUnitDetails() {
             ].map(f => (
               <div key={f.key} className="space-y-1.5">
                 <Label className="text-sm">{f.label}</Label>
-                <Input type={f.type} value={form[f.key] || ''} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="text-sm" />
+                {f.type === 'tel' ? (
+                  <PhoneInput value={form[f.key] || ''} onChange={v => setForm(p => ({ ...p, [f.key]: v }))} />
+                ) : (
+                  <Input type={f.type} value={form[f.key] || ''} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="text-sm" />
+                )}
               </div>
             ))}
             <div className="space-y-1.5">

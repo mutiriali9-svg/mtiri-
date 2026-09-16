@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { User, AtSign, Shield, ArrowRight, Phone, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { normalizeE164, isValidE164, phoneExampleFor, phoneInvalidText } from '@/utils/phone';
 
 const roleLabels = {
   admin: 'مالك',
@@ -213,10 +214,13 @@ export default function Profile() {
             </label>
             <div className="flex gap-2">
               <input
+                type="tel"
+                inputMode="tel"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-border text-sm focus:outline-none"
-                placeholder="رقم الهاتف"
+                onBlur={() => { const e164 = normalizeE164(phone); if (e164 && e164 !== phone) setPhone(e164); }}
+                className={`flex-1 px-3 py-2 rounded-xl border text-base sm:text-sm focus:outline-none ${phone.trim() && !isValidE164(phone) ? 'border-destructive' : 'border-border'}`}
+                placeholder={phoneExampleFor()}
                 dir="ltr"
                 autoComplete="tel"
               />
@@ -229,6 +233,9 @@ export default function Profile() {
                 {phoneSaved ? '✓' : savingPhone ? '...' : 'حفظ'}
               </button>
             </div>
+            {phone.trim() && !isValidE164(phone) && (
+              <p className="text-[11px] text-destructive">{phoneInvalidText(true)}</p>
+            )}
           </div>
         </div>
       </div>
