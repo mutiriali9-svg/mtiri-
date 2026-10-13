@@ -42,7 +42,7 @@ export default function ReInvestors() {
   const totalSavings = expenses.filter(e => e.category === 'savings' && inRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
   const totalShares = investors.reduce((s, i) => s + (i.share_percentage || 0), 0);
-  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB') : n.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const filteredPayments = payments.filter(p => p.status === 'paid' && inRange(p.payment_date));
   const filteredExpenses = expenses.filter(e => e.category !== 'savings' && inRange(e.expense_date));
@@ -62,7 +62,7 @@ export default function ReInvestors() {
     <div className="space-y-6 animate-fade-in-up ">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{t('investorsTitle')} — العقارات</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{t('investorsTitle')} — {lang === 'ar' ? 'العقارات' : 'Real Estate'}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Real Estate Investors & Profit Distribution</p>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function ReInvestors() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button onClick={() => setModal('revenue')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
+        <button onClick={() => setModal('revenue')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-start w-full cursor-pointer">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EBF3FF' }}>
             <DollarSign size={20} style={{ color: '#1B2B4B' }} />
           </div>
@@ -107,7 +107,7 @@ export default function ReInvestors() {
             <p className="text-xs text-muted-foreground mt-0.5">{filteredPayments.length} — {t('clickForDetails')}</p>
           </div>
         </button>
-        <button onClick={() => setModal('expenses')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
+        <button onClick={() => setModal('expenses')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-start w-full cursor-pointer">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFF3F3' }}>
             <TrendingUp size={20} style={{ color: '#E63946' }} />
           </div>
@@ -118,7 +118,7 @@ export default function ReInvestors() {
             <p className="text-[11px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: '#059669' }}><PiggyBank size={11} />{lang === 'ar' ? 'ادخار' : 'Savings'} {fmt(totalSavings)} AED</p>
           </div>
         </button>
-        <button onClick={() => setModal('profit')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
+        <button onClick={() => setModal('profit')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-start w-full cursor-pointer">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F0FBF9' }}>
             <Percent size={20} style={{ color: '#2A9D8F' }} />
           </div>
@@ -139,11 +139,11 @@ export default function ReInvestors() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="bg-muted/40 text-muted-foreground text-xs">
-                <th className="text-right px-3 py-2 font-medium">{t('tenant')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('unitNumber')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('amount')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('date')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('paymentMethod')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('tenant')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('unitNumber')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('amount')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('date')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('paymentMethod')}</th>
               </tr></thead>
               <tbody>
                 {filteredPayments.sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || '')).map((p, i) => (
@@ -176,11 +176,11 @@ export default function ReInvestors() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="bg-muted/40 text-muted-foreground text-xs">
-                <th className="text-right px-3 py-2 font-medium">{t('description_col')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('category')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('amount')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('date')}</th>
-                <th className="text-right px-3 py-2 font-medium">{t('vendor')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('description_col')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('category')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('amount')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('date')}</th>
+                <th className="text-start px-3 py-2 font-medium">{t('vendor')}</th>
               </tr></thead>
               <tbody>
                 {filteredExpenses.sort((a, b) => (b.expense_date || '').localeCompare(a.expense_date || '')).map((e, i) => (
@@ -234,17 +234,17 @@ export default function ReInvestors() {
         <div className="px-5 py-4 border-b border-border flex items-center gap-2">
           <Users size={18} style={{ color: '#C9A84C' }} />
           <h2 className="font-semibold" style={{ color: '#1B2B4B' }}>{t('investorShares')}</h2>
-          <span className="text-xs text-muted-foreground mr-auto">{t('totalShares')}: {totalShares.toFixed(2)}%</span>
+          <span className="text-xs text-muted-foreground ms-auto">{t('totalShares')}: {totalShares.toFixed(2)}%</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-[11px] lg:text-sm">
             <thead><tr className="bg-muted/40 text-muted-foreground text-xs">
-              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('investorName')}</th>
-              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('sharePct')}</th>
-              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('revShare')}</th>
-              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('expShare')}</th>
-              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{lang === 'ar' ? 'نصيب الادخار' : 'Savings Share'}</th>
-              <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('netShare')}</th>
+              <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('investorName')}</th>
+              <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('sharePct')}</th>
+              <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('revShare')}</th>
+              <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('expShare')}</th>
+              <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{lang === 'ar' ? 'نصيب الادخار' : 'Savings Share'}</th>
+              <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('netShare')}</th>
             </tr></thead>
             <tbody>
               {investors.sort((a, b) => b.share_percentage - a.share_percentage).map((inv, i) => {

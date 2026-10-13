@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Drawer } from 'vaul';
 import { Check, ChevronDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import useBackClose from '@/hooks/useBackClose';
 
 // Detect mobile
 function useIsMobile() {
@@ -34,6 +35,7 @@ export default function MobileDrawerSelect({
 }) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   // If children passed (SelectItem), build options list from them
   const items = options.length > 0 ? options : [];

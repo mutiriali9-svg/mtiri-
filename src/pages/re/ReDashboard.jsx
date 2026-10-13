@@ -78,7 +78,7 @@ export default function ReDashboard() {
   const totalExpensesSum = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const totalSavings = expenses.filter(e => e.category === 'savings' && inKpiRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
   const netIncome = totalCollected - totalExpensesSum;
-  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString(isAr ? 'ar-AE' : 'en-GB') : n.toLocaleString(isAr ? 'ar-AE' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const occupiedUnits = units.filter(u => u.status === 'occupied').length;
   const occupancyRate = units.length ? Math.round((occupiedUnits / units.length) * 100) : 0;
 
@@ -216,7 +216,7 @@ export default function ReDashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-52 flex items-center justify-center text-muted-foreground text-sm">{t('noDataForYear') || 'لا توجد بيانات لهذا العام'}</div>
+            <div className="h-52 flex items-center justify-center text-muted-foreground text-sm">{t('noDataForYear') || (isAr ? 'لا توجد بيانات لهذا العام' : 'No data for this year')}</div>
           )}
         </div>
 
@@ -264,10 +264,10 @@ export default function ReDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('tenant')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('unit')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('paymentDate')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('tenant')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('unit')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('paymentDate')}</th>
               </tr>
             </thead>
             <tbody className="table-striped">
@@ -290,7 +290,7 @@ export default function ReDashboard() {
                 <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</p>
                 <p className="text-xs text-muted-foreground">{t('unit')}: {p.unit_number || '-'}</p>
               </div>
-              <div className="text-left flex-shrink-0">
+              <div className="text-end flex-shrink-0">
                 <p className="text-sm font-semibold" style={{ color: '#2A9D8F' }}>{fmt(p.amount || 0)} AED</p>
                 <p className="text-xs text-muted-foreground">{p.payment_date}</p>
               </div>
@@ -313,10 +313,10 @@ export default function ReDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'البيان' : 'Description'}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التصنيف' : 'Category'}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('date')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'البيان' : 'Description'}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التصنيف' : 'Category'}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('date')}</th>
               </tr>
             </thead>
             <tbody className="table-striped">
@@ -341,7 +341,7 @@ export default function ReDashboard() {
                 <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{e.description}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{expCategoryAr[e.category] || e.category || '-'}</p>
               </div>
-              <div className="text-left flex-shrink-0">
+              <div className="text-end flex-shrink-0">
                 <p className="text-sm font-semibold" style={{ color: '#E63946' }}>{fmt(e.amount || 0)} AED</p>
                 <p className="text-xs text-muted-foreground">{e.expense_date}</p>
               </div>

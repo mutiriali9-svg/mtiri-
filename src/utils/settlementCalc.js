@@ -13,6 +13,7 @@ export const propLabel = (type, ar) => {
 export const REFUND_KINDS = [
   { value: 'tenant_refund',    label: { ar: 'خروج مبكر لمستأجر',   en: 'Early Tenant Exit' },    color: '#7C3AED', settlement: true  },
   { value: 'eviction',         label: { ar: 'إخلاء مستأجر',        en: 'Tenant Eviction' },      color: '#E63946', settlement: true  },
+  { value: 'expiry',           label: { ar: 'انتهاء مدة العقد',     en: 'Contract Term Ended' },  color: '#0EA5E9', settlement: true  },
   { value: 'gov_deduction',    label: { ar: 'خصم جهة حكومية',      en: 'Government Deduction' }, color: '#E63946', settlement: false, hidden: true },
   { value: 'rent_discount',    label: { ar: 'خصم إيجار متفق عليه', en: 'Agreed Rent Discount' }, color: '#C9A84C', settlement: false, hidden: true },
   { value: 'other',            label: { ar: 'أخرى',                 en: 'Other' },                color: '#64748B', settlement: true  },
@@ -20,7 +21,7 @@ export const REFUND_KINDS = [
 
 export const VISIBLE_REFUND_KINDS = REFUND_KINDS.filter(k => !k.hidden);
 
-export const autoReasonKind = (kind) => kind === 'tenant_refund';
+export const autoReasonKind = (kind) => kind === 'tenant_refund' || kind === 'expiry';
 
 export const reasonFieldLabel = (kind, ar) => {
   if (kind === 'eviction') return ar ? 'سبب الإخلاء *' : 'Eviction reason *';
@@ -74,7 +75,7 @@ const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const day = (s) => { if (!s) return null; const d = parseISO(s); return isValid(d) ? d : null; };
 
 export const emptySettlement = {
-  paidTotal: '', periodStart: '', periodEnd: '', exitDate: '',
+  paidTotal: '', annualRent: '', periodStart: '', periodEnd: '', exitDate: '',
   penalty: '', penaltyReason: '', items: [],
 };
 
@@ -87,9 +88,21 @@ export const itemsTotal = (items) => r2(cleanItems(items).reduce((s, i) => s + i
 const blank = (error) => ({
   ok: false, error,
   totalDays: 0, consumedDays: 0, remainingDays: 0,
-  dailyRate: 0, consumedAmount: 0, remainingAmount: 0,
+  dailyRate: 0, consumedAmount: 0, remainingAmount: 0, owedAmount: 0, rentBased: false,
   penalty: 0, itemsTotal: 0, items: [], netRefund: 0,
 });
+
+export const rentDailyRate = (annualRent, totalDays) => {
+  const annual = num(annualRent);
+  if (annual <= 0 || totalDays <= 0) return 0;
+  const years = Math.round(totalDays / 365.25);
+  return years >= 1 && Math.abs(totalDays - years * 365.25) <= 3
+    ? (annual * years) / totalDays
+    : annual / 365;
+};
+
+const consumedFor = (rate, days, totalDays) =>
+  (days >= totalDays ? r2(rate * totalDays) : r2(r4(rate) * days));
 
 export function settle(input, ar = true) {
   const paidTotal = num(input.paidTotal);
@@ -119,16 +132,40 @@ export function settle(input, ar = true) {
   const consumedDays = Math.min(totalDays, Math.max(0, differenceInCalendarDays(exit, start) + 1));
   const remainingDays = totalDays - consumedDays;
 
-  const dailyRate = r4(paidTotal / totalDays);
-  const consumedAmount = r2(dailyRate * consumedDays);
-  const remainingAmount = r2(paidTotal - consumedAmount);
+  const rentRate = rentDailyRate(input.annualRent, totalDays);
+  const rate = rentRate > 0 ? rentRate : paidTotal / totalDays;
+  const dailyRate = r4(rate);
+  const consumedAmount = consumedFor(rate, consumedDays, totalDays);
+  const balance = r2(paidTotal - consumedAmount);
+  const remainingAmount = Math.max(0, balance);
+  const owedAmount = Math.max(0, r2(-balance));
   const netRefund = Math.max(0, r2(remainingAmount - penalty - total));
 
   return {
     ok: true, error: '',
     totalDays, consumedDays, remainingDays,
-    dailyRate, consumedAmount, remainingAmount,
+    dailyRate, consumedAmount, remainingAmount, owedAmount, rentBased: rentRate > 0,
     penalty, itemsTotal: total, items, netRefund,
+  };
+}
+
+export function settleFromPosition(pos, input, ar = true) {
+  const penalty = Math.max(0, num(input.penalty));
+  const items = cleanItems(input.items);
+  const total = itemsTotal(items);
+  if (penalty > 0 && !(input.penaltyReason || '').trim()) {
+    return blank(ar ? 'يُرجى كتابة سبب الخصم' : 'Enter the deduction reason');
+  }
+  if (items.find(i => i.amount <= 0 || i.reason === '')) {
+    return blank(ar ? 'كل خصم يحتاج سبباً ومبلغاً أكبر من صفر' : 'Every deduction needs a reason and an amount');
+  }
+  const remainingAmount = r2(pos.credit);
+  return {
+    ok: true, error: '', byMonths: true,
+    totalDays: 0, consumedDays: 0, remainingDays: 0,
+    dailyRate: pos.dayRate, consumedAmount: pos.consumed, remainingAmount, owedAmount: r2(pos.owed), rentBased: true,
+    penalty, itemsTotal: total, items,
+    netRefund: Math.max(0, r2(remainingAmount - penalty - total)),
   };
 }
 
@@ -222,7 +259,7 @@ export const destColor = (v) => (DEDUCTION_DESTINATIONS.find(x => x.value === v)
 const emptyUnconsumed = (reason) => ({
   ok: false, reason,
   totalDays: 0, elapsedDays: 0, remainingDays: 0,
-  paid: 0, consumed: 0, balance: 0, payments: [],
+  paid: 0, consumed: 0, balance: 0, due: 0, dailyRate: 0, payments: [],
 });
 
 export function unconsumed(unit, payments, unitNumber, asOf, ar = true) {
@@ -257,8 +294,10 @@ export function unconsumed(unit, payments, unitNumber, asOf, ar = true) {
     return emptyUnconsumed(ar ? 'لا توجد دفعات مسجّلة داخل فترة العقد' : 'No payments inside the contract period');
   }
 
-  const consumed = r2(paid * (elapsedDays / totalDays));
+  const rate = rentDailyRate(unit?.annual_rent, totalDays) || paid / totalDays;
+  const consumed = consumedFor(rate, elapsedDays, totalDays);
   const balance = r2(Math.max(0, paid - consumed));
+  const due = r2(Math.max(0, consumed - paid));
 
   let toConsume = consumed;
   const rows = mine.map(p => {
@@ -271,7 +310,7 @@ export function unconsumed(unit, payments, unitNumber, asOf, ar = true) {
   return {
     ok: true, reason: '',
     totalDays, elapsedDays, remainingDays,
-    paid, consumed, balance,
+    paid, consumed, balance, due, dailyRate: r4(rate),
     payments: rows.filter(p => p.remaining > 0).reverse(),
   };
 }

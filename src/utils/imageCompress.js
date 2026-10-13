@@ -7,7 +7,37 @@ export const IMAGE_BUDGETS = {
 export const PDF_MAX_BYTES = 5 * 1024 * 1024;
 
 const SKIP_UNDER_BYTES = 120 * 1024;
-const PASS_THROUGH = ['image/gif', 'image/svg+xml'];
+const PASS_THROUGH = ['image/gif'];
+
+export const UPLOAD_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/avif': 'avif',
+  'application/pdf': 'pdf',
+};
+
+export function uploadExtFor(file, ar = true) {
+  const ext = UPLOAD_TYPES[String(file?.type || '').toLowerCase()];
+  if (!ext) {
+    throw new Error(ar
+      ? 'نوع الملف غير مسموح به، فالمسموح الصور وملفات PDF فقط'
+      : 'This file type is not allowed; only images and PDF files are accepted');
+  }
+  return ext;
+}
+
+export function uploadToken() {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID().replace(/-/g, '');
+  const bytes = new Uint8Array(16);
+  c.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 export function pdfTooLargeMessage(ar = true) {
   return ar

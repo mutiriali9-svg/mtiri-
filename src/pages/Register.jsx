@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2, User, Phone, Globe, AtSign } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import { useLang } from "@/lib/LanguageContext";
 
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://www.mteiri-bm.com';
@@ -25,6 +26,7 @@ const t = {
     hasAccount: 'لديك حساب بالفعل؟', login: 'تسجيل الدخول',
     or: 'أو', continueGoogle: 'المتابعة مع Google', language: 'English',
     fillAll: 'يرجى ملء جميع الحقول المطلوبة',
+    failed: 'تعذّر إتمام التسجيل',
   },
   en: {
     title: 'Create your account', subtitle: 'Enter your details to send a registration request',
@@ -38,11 +40,12 @@ const t = {
     hasAccount: 'Already have an account?', login: 'Log in',
     or: 'or', continueGoogle: 'Continue with Google', language: 'عربي',
     fillAll: 'Please fill all required fields',
+    failed: 'Registration failed',
   }
 };
 
 export default function Register() {
-  const [lang, setLang] = useState(() => localStorage.getItem('app_lang') || 'ar');
+  const { lang, setLang } = useLang();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
@@ -95,7 +98,7 @@ export default function Register() {
       }
       window.location.href = '/pending-approval';
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || tx.failed);
     } finally {
       setLoading(false);
     }
@@ -118,7 +121,7 @@ export default function Register() {
         </button>
       </div>
       <Button variant="outline" className="w-full h-12 text-sm font-medium mb-6" onClick={handleGoogle}>
-        <GoogleIcon className="w-5 h-5 mr-2" />{tx.continueGoogle}
+        <GoogleIcon className="w-5 h-5 me-2" />{tx.continueGoogle}
       </Button>
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
@@ -132,55 +135,55 @@ export default function Register() {
           <div className="space-y-2">
             <Label>{tx.firstName} *</Label>
             <div className="relative">
-              <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input type="text" placeholder={tx.firstNamePh} value={firstName} onChange={e => setFirstName(e.target.value)} className="pr-10 h-12" required />
+              <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input type="text" placeholder={tx.firstNamePh} value={firstName} onChange={e => setFirstName(e.target.value)} className="ps-10 h-12" required />
             </div>
           </div>
           <div className="space-y-2">
             <Label>{tx.lastName} *</Label>
             <div className="relative">
-              <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input type="text" placeholder={tx.lastNamePh} value={lastName} onChange={e => setLastName(e.target.value)} className="pr-10 h-12" required />
+              <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input type="text" placeholder={tx.lastNamePh} value={lastName} onChange={e => setLastName(e.target.value)} className="ps-10 h-12" required />
             </div>
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.username} *</Label>
           <div className="relative">
-            <AtSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="text" placeholder={tx.usernamePh} value={username} onChange={e => setUsername(e.target.value)} className="pr-10 h-12" required />
+            <AtSign className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input type="text" placeholder={tx.usernamePh} value={username} onChange={e => setUsername(e.target.value)} className="ps-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.email} *</Label>
           <div className="relative">
-            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pr-10 h-12" required />
+            <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="ps-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.phone} *</Label>
           <div className="relative">
-            <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="tel" autoComplete="tel" placeholder={tx.phonePh} value={phone} onChange={e => setPhone(e.target.value)} className="pr-10 h-12" required />
+            <Phone className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input type="tel" autoComplete="tel" placeholder={tx.phonePh} value={phone} onChange={e => setPhone(e.target.value)} className="ps-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.password} *</Label>
           <div className="relative">
-            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pr-10 h-12" required />
+            <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="ps-10 h-12" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label>{tx.confirmPassword} *</Label>
           <div className="relative">
-            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="password" autoComplete="new-password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pr-10 h-12" required />
+            <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input type="password" autoComplete="new-password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="ps-10 h-12" required />
           </div>
         </div>
         <Button type="submit" className="w-full h-12 font-medium text-base text-white" disabled={loading} style={{ backgroundColor: '#1B2B4B' }}>
-          {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{tx.creating}</> : tx.createAccount}
+          {loading ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />{tx.creating}</> : tx.createAccount}
         </Button>
       </form>
     </AuthLayout>

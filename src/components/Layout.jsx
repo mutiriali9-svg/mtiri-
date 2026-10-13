@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRef } from 'react';
 import {
   LayoutDashboard, Building2, CreditCard, Receipt,
-  BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft, StickyNote, ShieldCheck, RotateCcw
+  BarChart3, LogOut, Menu, X, PlusCircle, Users, Wallet, Globe, ClipboardList, ChevronUp, ChevronDown, Home, Bell, BellRing, History, ChevronRight, ChevronLeft, StickyNote, ShieldCheck, RotateCcw, Archive
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { base44, supabase } from '@/api/base44Client';
@@ -14,6 +14,8 @@ import RouteTransition from '@/components/RouteTransition';
 import MobileHeader from '@/components/MobileHeader';
 import SectionTabs, { sectionActive } from '@/components/SectionTabs';
 import NotificationDropdown from '@/components/NotificationDropdown';
+import useBackClose from '@/hooks/useBackClose';
+import useGoBack from '@/hooks/useGoBack';
 
 const adminNavKeys = [
   { path: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
@@ -25,12 +27,14 @@ const adminNavKeys = [
   { path: '/savings', key: 'savings', icon: Wallet },
   { path: '/deposits', key: 'deposits', icon: ShieldCheck },
   { path: '/refunds', key: 'refunds', icon: RotateCcw },
+  { path: '/archive', key: 'archive', icon: Archive },
 ];
 
 const dataEntryNavKeys = [
   { path: '/smart-alerts', key: 'smartAlerts', icon: BellRing },
   { path: '/units', key: 'units', icon: Building2 },
   { path: '/my-payments', key: 'myPayments', icon: CreditCard },
+  { path: '/archive', key: 'archive', icon: Archive },
 ];
 
 const investorQaryaNavKeys = [
@@ -94,7 +98,8 @@ const navLabels = {
     userManagement: 'إدارة الحسابات',
     notes: 'الملاحظات',
     deposits: 'التأمينات',
-    refunds: 'الاسترجاعات والخصومات',
+    refunds: 'تسويات العقود',
+    archive: 'أرشيف العقود',
   },
   en: {
     dashboard: 'Dashboard',
@@ -122,7 +127,8 @@ const navLabels = {
     userManagement: 'User Management',
     notes: 'Notes',
     deposits: 'Deposits',
-    refunds: 'Refunds & Deductions',
+    refunds: 'Contract Settlements',
+    archive: 'Contract Archive',
   },
 };
 
@@ -154,6 +160,9 @@ export default function Layout() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  useBackClose(mobileOpen, () => setMobileOpen(false));
+  useBackClose(showDeleteConfirm, () => setShowDeleteConfirm(false));
+  const goBack = useGoBack();
 
   const isDataEntry = user?.role === 'data_entry';
   const isInvestor = user?.role === 'investor';
@@ -283,6 +292,7 @@ useEffect(() => {
   const navKeys = isDataEntry ? dataEntryNavKeys : isInvestor ? investorNavKeys : adminNavKeys;
   const isRtl = lang === 'ar';
   const navLabel = (key) => navLabels[lang]?.[key] || key;
+  const archiveActive = /^\/(re-)?archive$/.test(location.pathname) || /^\/(re-units|units)\/archive\//.test(location.pathname);
 
  useEffect(() => {
   if (location.pathname === '/notifications') {
@@ -303,7 +313,8 @@ useEffect(() => {
   location.pathname.startsWith('/smart-alerts') ||
   location.pathname === '/my-payments' ||
   location.pathname === '/profile' ||
-  location.pathname === '/notes';
+  location.pathname === '/notes' ||
+  location.pathname === '/archive';
 
   if (user && isDataEntry && !isAllowedDataEntry) {
     return <Navigate to="/smart-alerts" replace />;
@@ -401,7 +412,7 @@ useEffect(() => {
                   style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                   <Building2 size={16} style={{ color: '#C9A84C' }} />
                 </div>
-                <span className="flex-1 text-right font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>
+                <span className="flex-1 text-start font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>
                   {navLabel('realEstate')}
                 </span>
                 {qaryaOpen
@@ -415,7 +426,7 @@ useEffect(() => {
               >
                 <div className="space-y-1 mt-1">
                   {adminNavKeys.filter(item => item.key !== 'registrationRequests').map((item) => {
-                    const isActive = sectionActive(item.path, location.pathname);
+                    const isActive = item.key === 'archive' ? archiveActive : sectionActive(item.path, location.pathname);
                     const Icon = item.icon;
                     return (
                       <Link onClick={() => setMobileOpen(false)}
@@ -449,7 +460,7 @@ useEffect(() => {
                   style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                   <Bell size={16} style={{ color: '#C9A84C' }} />
                 </div>
-                <span className="flex-1 text-right font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
+                <span className="flex-1 text-start font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>{navLabel('alerts')}</span>
                 {alertsOpen
                   ? <ChevronUp size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
                   : <ChevronDown size={15} className="text-white/40 group-hover:text-white/70 transition-colors" />
@@ -523,7 +534,7 @@ useEffect(() => {
                     style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)' }}>
                     <Building2 size={16} style={{ color: '#C9A84C' }} />
                   </div>
-                  <span className="flex-1 text-right font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>{navLabel('realEstate')}</span>
+                  <span className="flex-1 text-start font-bold text-sm sm:text-base" style={{ color: '#C9A84C' }}>{navLabel('realEstate')}</span>
                   {qaryaOpen ? <ChevronUp size={15} className="text-white/40" /> : <ChevronDown size={15} className="text-white/40" />}
                 </button>
                 <div className="overflow-hidden transition-all duration-300 ease-in-out"
@@ -581,7 +592,7 @@ useEffect(() => {
           {isDataEntry && (
             <div className="space-y-1">
               {dataEntryNavKeys.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = item.key === 'archive' ? archiveActive : location.pathname === item.path;
                 const Icon = item.icon;
                 return (
                   <Link onClick={() => setMobileOpen(false)} key={item.path} to={item.path}
@@ -625,14 +636,14 @@ useEffect(() => {
           <div className="flex items-center gap-3 px-3 py-2">
             <button
               onClick={(e) => { e.stopPropagation(); navigate('/profile'); }}
-              className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all text-right"
+              className="flex items-center gap-3 flex-1 min-w-0 hover:bg-white/5 p-1 rounded-xl transition-all text-start"
             >
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                 style={{ backgroundColor: '#C9A84C', color: '#0E1A30' }}>
-                {user?.full_name?.[0] || 'م'}
+                {user?.full_name?.[0] || (lang === 'ar' ? 'م' : 'O')}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-medium truncate">{user?.full_name || 'المدير'}</p>
+                <p className="text-white text-xs font-medium truncate">{user?.full_name || (lang === 'ar' ? 'المدير' : 'Owner')}</p>
                 <p className="text-white/40 text-xs truncate">{roleLabel}</p>
               </div>
             </button>
@@ -709,7 +720,7 @@ useEffect(() => {
             >
               <div className="w-9 h-9 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                 style={{ backgroundColor: '#1B2B4B', color: '#C9A84C' }}>
-                {user?.full_name?.[0] || 'م'}
+                {user?.full_name?.[0] || (lang === 'ar' ? 'م' : 'O')}
               </div>
               <span className="text-sm font-medium text-foreground hidden sm:block">{user?.username || user?.full_name || (lang === 'ar' ? 'المدير' : 'Owner')}</span>
             </button>
@@ -719,23 +730,22 @@ useEffect(() => {
         {/* Page Content */}
         <main
   ref={mainRef}
-  className="flex-1 p-4 lg:p-6 overflow-auto max-w-7xl mx-auto w-full"
+  className={`flex-1 p-4 lg:p-6 overflow-auto max-w-7xl mx-auto w-full ${isDataEntry ? '' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}`}
 >
           {(() => {
-            const noDashboardRoutes = ['/', '/dashboard', '/re-dashboard'];
-            if (noDashboardRoutes.includes(location.pathname)) return null;
-            const isRePage = location.pathname.startsWith('/re-');
-            const dashTarget = isDataEntry ? '/smart-alerts' : (isRePage ? '/re-dashboard' : '/dashboard');
-            const BackIcon = isRtl ? ChevronLeft : ChevronRight;
+            const units = location.pathname.match(/^\/(re-units|units)(\/[^/]+)?$/);
+            const inBranch = units && units[2];
+            if (!inBranch) return null;
+            const BackIcon = isRtl ? ChevronRight : ChevronLeft;
             return (
               <button
-                onClick={() => navigate(dashTarget)}
-                className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white border border-border bg-white/80 shadow-sm"
+                onClick={() => goBack(`/${units[1]}`)}
+                className="flex items-center gap-1.5 mb-4 px-3 py-2 min-h-[40px] rounded-lg text-sm font-medium transition-colors hover:bg-white border border-border bg-white/80 shadow-sm"
                 style={{ color: '#1B2B4B' }}
                 dir={isRtl ? 'rtl' : 'ltr'}
               >
                 <BackIcon size={16} />
-                <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>
+                <span>{lang === 'ar' ? 'رجوع' : 'Back'}</span>
               </button>
             );
           })()}
@@ -754,7 +764,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5 animate-fade-in-up"
-            dir="rtl"
+            dir={isRtl ? 'rtl' : 'ltr'}
           >
             <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
               <X size={28} style={{ color: '#E63946' }} />

@@ -44,7 +44,7 @@ export default function StatCard({ title, titleEn, value, subtitle, icon: Icon, 
     return (
       <Link
         to={href}
-        className={`card-bevel rounded-xl p-5 animate-fade-in-up border-r-4 ${c.cardBg} ${c.border} select-none block hover:opacity-90 transition-opacity cursor-pointer`}
+        className={`card-bevel rounded-xl p-5 animate-fade-in-up border-s-4 ${c.cardBg} ${c.border} select-none block hover:opacity-90 transition-opacity cursor-pointer`}
         style={{ animationDelay: `${delay}ms` }}
       >
         {inner}
@@ -57,7 +57,7 @@ export default function StatCard({ title, titleEn, value, subtitle, icon: Icon, 
       <button
         type="button"
         onClick={onClick}
-        className={`card-bevel rounded-xl p-5 animate-fade-in-up border-r-4 ${c.cardBg} ${c.border} select-none block w-full text-right hover:opacity-90 transition-opacity cursor-pointer min-h-[44px]`}
+        className={`card-bevel rounded-xl p-5 animate-fade-in-up border-s-4 ${c.cardBg} ${c.border} select-none block w-full text-start hover:opacity-90 transition-opacity cursor-pointer min-h-[44px]`}
         style={{ animationDelay: `${delay}ms` }}
       >
         {inner}
@@ -67,7 +67,7 @@ export default function StatCard({ title, titleEn, value, subtitle, icon: Icon, 
 
   return (
     <div
-      className={`card-bevel rounded-xl p-5 animate-fade-in-up border-r-4 ${c.cardBg} ${c.border} select-none`}
+      className={`card-bevel rounded-xl p-5 animate-fade-in-up border-s-4 ${c.cardBg} ${c.border} select-none`}
       style={{ animationDelay: `${delay}ms` }}
     >
       {inner}

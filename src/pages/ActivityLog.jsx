@@ -98,9 +98,9 @@ export default function ActivityLogPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pr-8"
+            className="ps-8"
             placeholder={isAr ? 'بحث...' : 'Search...'}
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -173,7 +173,7 @@ export default function ActivityLogPage() {
                   <span className="text-xs text-muted-foreground">
                     {log.performed_by_name}
                     {log.performed_by_role && (
-                      <span className="mr-1 text-slate-400">({log.performed_by_role})</span>
+                      <span className="ms-1 text-slate-400">({log.performed_by_role})</span>
                     )}
                   </span>
                 </div>

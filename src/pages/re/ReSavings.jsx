@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 const INIT = { description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], notes: '', category: 'savings' };
-const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function ReSavings() {
   const [records, setRecords] = useState([]);
@@ -18,6 +17,7 @@ export default function ReSavings() {
   const [formData, setFormData] = useState(INIT);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { t, lang } = useLang();
+  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB') : n.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const fetchData = () => {
     base44.entities.ReExpense.filter({ category: 'savings' }).then(data => {
@@ -62,7 +62,7 @@ export default function ReSavings() {
             <Wallet size={20} style={{ color: '#C9A84C' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{t('savingsTitle')} — العقارات</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{t('savingsTitle')} — {lang === 'ar' ? 'العقارات' : 'Real Estate'}</h1>
             <p className="text-xs text-muted-foreground">{t('savingsSubTitle')}</p>
           </div>
         </div>
@@ -89,11 +89,11 @@ export default function ReSavings() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="bg-muted/40 text-muted-foreground text-xs">
-                <th className="text-right px-5 py-3 font-medium">{t('description_col')}</th>
-                <th className="text-right px-5 py-3 font-medium">{t('amount')}</th>
-                <th className="text-right px-5 py-3 font-medium">{t('date')}</th>
-                <th className="text-right px-5 py-3 font-medium">{t('notes')}</th>
-                <th className="text-right px-5 py-3 font-medium">{t('delete')}</th>
+                <th className="text-start px-5 py-3 font-medium">{t('description_col')}</th>
+                <th className="text-start px-5 py-3 font-medium">{t('amount')}</th>
+                <th className="text-start px-5 py-3 font-medium">{t('date')}</th>
+                <th className="text-start px-5 py-3 font-medium">{t('notes')}</th>
+                <th className="text-start px-5 py-3 font-medium">{t('delete')}</th>
               </tr></thead>
               <tbody>
                 {records.map((s, i) => (

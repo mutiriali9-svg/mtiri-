@@ -23,6 +23,8 @@ import Expenses from '@/pages/Expenses';
 import Reports from '@/pages/Reports';
 import Savings from '@/pages/Savings';
 import UnitDetails from '@/pages/UnitDetails';
+import ContractArchiveDetails from '@/pages/ContractArchiveDetails';
+import ContractArchivePage from '@/pages/ContractArchivePage';
 import DataEntry from '@/pages/DataEntry.jsx';
 import Investors from '@/pages/Investors';
 import RegistrationRequests from '@/pages/RegistrationRequests';
@@ -108,6 +110,9 @@ if (user?.role === 'delete_request') {
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/units/:unitNumber" element={<UnitDetails />} />
+        <Route path="/archive" element={<ContractArchivePage />} />
+        <Route path="/re-archive" element={<ContractArchivePage />} />
+        <Route path="/units/archive/:archiveId" element={<ContractArchiveDetails />} />
         <Route path="/data-entry" element={<DataEntry />} />
         <Route path="/investors" element={<Investors />} />
         <Route path="/savings" element={<Savings />} />
@@ -116,6 +121,7 @@ if (user?.role === 'delete_request') {
         <Route path="/re-dashboard" element={<ReDashboard />} />
         <Route path="/re-units" element={<ReUnits />} />
         <Route path="/re-units/:unitNumber" element={<ReUnitDetails />} />
+        <Route path="/re-units/archive/:archiveId" element={<ContractArchiveDetails />} />
         <Route path="/re-payments" element={<RePayments />} />
         <Route path="/re-expenses" element={<ReExpenses />} />
         <Route path="/re-reports" element={<ReReports />} />

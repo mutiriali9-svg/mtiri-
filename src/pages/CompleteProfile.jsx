@@ -4,16 +4,19 @@ import { supabase } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLang } from '@/lib/LanguageContext';
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
+  const { lang } = useLang();
+  const isAr = lang === 'ar';
   const [form, setForm] = useState({ full_name: '', username: '', phone: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     if (!form.full_name.trim() || !form.username.trim() || !form.phone.trim()) {
-      setError('يرجى تعبئة جميع الحقول');
+      setError(isAr ? 'يرجى تعبئة جميع الحقول' : 'Please fill in all fields');
       return;
     }
     setSaving(true);
@@ -53,31 +56,31 @@ export default function CompleteProfile() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>أكمل بياناتك</h1>
-          <p className="text-sm text-muted-foreground">يرجى تعبئة البيانات التالية لإكمال التسجيل</p>
+          <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{isAr ? 'أكمل بياناتك' : 'Complete Your Profile'}</h1>
+          <p className="text-sm text-muted-foreground">{isAr ? 'يرجى تعبئة البيانات التالية لإكمال التسجيل' : 'Please fill in the following details to complete your registration'}</p>
         </div>
 
         {error && (
           <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm text-center">{error}</div>
         )}
 
-        <div className="space-y-4" dir="rtl">
+        <div className="space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
           <div className="space-y-1.5">
-            <Label>الاسم الكامل</Label>
-            <Input placeholder="علي محمد" value={form.full_name} onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))} />
+            <Label>{isAr ? 'الاسم الكامل' : 'Full Name'}</Label>
+            <Input placeholder={isAr ? 'علي محمد' : 'Ali Mohammed'} value={form.full_name} onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))} />
           </div>
           <div className="space-y-1.5">
-            <Label>اسم المستخدم</Label>
+            <Label>{isAr ? 'اسم المستخدم' : 'Username'}</Label>
             <Input placeholder="ali123" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} />
           </div>
           <div className="space-y-1.5">
-            <Label>رقم الهاتف</Label>
+            <Label>{isAr ? 'رقم الهاتف' : 'Phone Number'}</Label>
             <Input placeholder="05xxxxxxxx" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
           </div>
         </div>
 
         <Button onClick={handleSubmit} disabled={saving} className="w-full h-12" style={{ backgroundColor: '#1B2B4B' }}>
-          {saving ? 'جاري الإرسال...' : 'إرسال الطلب'}
+          {saving ? (isAr ? 'جاري الإرسال...' : 'Sending...') : (isAr ? 'إرسال الطلب' : 'Submit Request')}
         </Button>
       </div>
     </div>

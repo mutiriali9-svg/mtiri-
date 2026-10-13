@@ -4,6 +4,11 @@ import { base44, supabase, uploadFile } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { logActivity } from '@/utils/activityLogger';
+import { archiveContract, contractEnded, owedAsOf, vacateUnit } from '@/utils/contractArchive';
+import { isOtherTenantsExitPayment } from '@/utils/contractPeriods';
+import { positionNote, positionPeriod, rentPosition } from '@/utils/rentPosition';
+import { monthLabel } from '@/utils/dueMonths';
+import RentPositionBox from '@/components/RentPositionBox';
 import {
   RotateCcw, Plus, Trash2, Search, X, Upload, FileImage,
   Building2, Home, AlertTriangle, CheckCircle2,
@@ -17,7 +22,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   REFUND_KINDS, VISIBLE_REFUND_KINDS, SETTLEMENT_MODES, autoReasonKind, reasonFieldLabel,
   PAY_METHODS, kindLabel, kindColor, needsSettlement, methodLabel, propLabel,
-  settle, settlementColumns, emptySettlement, depositBalance, unconsumed, cleanItems, itemsTotal,
+  settle, settleFromPosition, settlementColumns, emptySettlement, depositBalance, unconsumed, cleanItems, itemsTotal,
   dueMonthsLabel, defaultAppliesTo, crossesYear, fmtNum,
 } from '@/utils/settlementCalc';
 
@@ -58,6 +63,8 @@ export default function Refunds() {
   const [input, setInput] = useState(emptySettlement);
   const [smode, setSmode] = useState('full');
   const [vacate, setVacate] = useState(false);
+  const [gapsConfirmed, setGapsConfirmed] = useState(false);
+  const [afterSave, setAfterSave] = useState('');
   const [receiptUrl, setReceiptUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -98,10 +105,14 @@ export default function Refunds() {
 
     const unitKey = q.get('unit');
     const type = q.get('prop') || 'qarya';
+    const kind = q.get('kind') === 'expiry' ? 'expiry' : emptyForm.kind;
+    const exit = /^\d{4}-\d{2}-\d{2}$/.test(q.get('exit') || '') ? q.get('exit') : '';
+    const after = q.get('after') === 'newTenant' ? 'newTenant' : '';
+    const exiting = kind === 'expiry' || q.get('vacate') === '1' || !!after;
     window.history.replaceState({}, '', window.location.pathname);
 
     setProp(type);
-    setSmode('full'); setVacate(false); setReceiptUrl(''); setInlineError('');
+    setSmode(kind === 'expiry' ? 'simple' : 'full'); setVacate(exiting); setReceiptUrl(''); setInlineError(''); setAfterSave(after);
 
     const u = [
       ...units.map(x => ({ ...x, _type: 'qarya' })),
@@ -110,30 +121,15 @@ export default function Refunds() {
 
     setForm({
       ...emptyForm,
+      kind,
       property_type: type,
       unit_number: unitKey || '',
       tenant_name: u?.tenant_name || '',
       refund_date: today,
     });
 
-    if (u) {
-      const list = (type === 'real_estate' ? rePayments : payments)
-        .filter(p => p.unit_number === unitKey && (!p.status || p.status === 'paid'))
-        .filter(p => {
-          const d = p.payment_date || '';
-          return (!u.contract_start || d >= u.contract_start) && (!u.contract_end || d <= u.contract_end);
-        });
-      const paidTotal = list.reduce((s, p) => s + (Number(p.amount) || 0), 0) || Number(u.annual_rent) || 0;
-      setInput({
-        ...emptySettlement,
-        paidTotal: paidTotal || '',
-        periodStart: u.contract_start || '',
-        periodEnd: u.contract_end || '',
-        exitDate: today,
-      });
-    } else {
-      setInput(emptySettlement);
-    }
+    setInput(u ? { ...settlementInputFor(u, type, unitKey), ...(exit ? { exitDate: exit } : {}) } : emptySettlement);
+    setGapsConfirmed(false);
     setDialogOpen(true);
   }, [loading, units.length, reUnits.length]);
 
@@ -169,25 +165,40 @@ export default function Refunds() {
 
   const selectedUnit = allUnits.find(u => u._type === form.property_type && u.unit_number === form.unit_number) || null;
   const usesSettlement = needsSettlement(form.kind);
-  const plain = smode === 'simple';
-  const waived = smode === 'waiver';
-  const baseSettlement = settle({ ...input, penalty: 0, penaltyReason: '', items: [] }, isAr);
+  const unitPays = selectedUnit
+    ? paymentsFor(form.property_type).filter(p => p.unit_number === form.unit_number && !isOtherTenantsExitPayment(p, selectedUnit.tenant_name))
+    : [];
+  const pos = usesSettlement && selectedUnit && input.exitDate
+    ? rentPosition({ unit: selectedUnit, payments: unitPays, exitDate: input.exitDate, confirmGaps: gapsConfirmed })
+    : { ok: false };
+  const byMonths = pos.ok;
+  const settleNow = (inp) => (byMonths ? settleFromPosition(pos, inp, isAr) : settle(inp, isAr));
+  const baseSettlement = settleNow({ ...input, penalty: 0, penaltyReason: '', items: [] });
   const waiverAmount = baseSettlement.ok ? baseSettlement.remainingAmount : 0;
+  const noBalance = baseSettlement.ok && waiverAmount <= 0;
+  const mode = smode === 'waiver' && noBalance ? 'full' : smode;
+  const plain = mode === 'simple';
+  const waived = mode === 'waiver';
+  const expiryEarly = form.kind === 'expiry' && !!selectedUnit && !contractEnded(selectedUnit, today);
+  const heldDeposit = selectedUnit ? depositBalance(deposits, deductions, form.property_type, form.unit_number).balance : 0;
+  const owedWithDeposit = usesSettlement && vacate && byMonths && pos.owed > 0 && heldDeposit > 0;
   const effInput = plain
     ? { ...input, penalty: 0, penaltyReason: '', items: [] }
     : waived
       ? { ...input, penalty: waiverAmount, penaltyReason: (input.penaltyReason || '').trim(), items: [] }
       : input;
-  const settlement = settle(effInput, isAr);
+  const settlement = settleNow(effInput);
   const amount = usesSettlement ? settlement.netRefund : itemsTotal(input.items);
-  const toCompany = Math.max(0, (Number(input.paidTotal) || 0) - amount);
+  const toCompany = Math.max(0, (byMonths ? pos.paidTotal : (Number(input.paidTotal) || 0)) - amount);
   const deductedNow = settlement.penalty + settlement.itemsTotal;
 
 
   const asOf = usesSettlement && effInput.exitDate ? effInput.exitDate : (form.refund_date || today);
-  const unconsumedInfo = unconsumed(
-    selectedUnit, paymentsFor(form.property_type), form.unit_number, asOf, isAr,
-  );
+  const unconsumedInfo = byMonths
+    ? { ok: true, byMonths: true, balance: pos.credit, due: pos.owed, payments: pos.creditPayments }
+    : unconsumed(
+      selectedUnit, paymentsFor(form.property_type).filter(p => !isOtherTenantsExitPayment(p, selectedUnit?.tenant_name)), form.unit_number, asOf, isAr,
+    );
   const unitPayments = unconsumedInfo.payments;
   const linkedPayment = unitPayments.find(p => p.id === form.payment_id) || null;
   const appliesTo = form.applies_to_date
@@ -201,14 +212,35 @@ export default function Refunds() {
   const openAdd = () => {
     setForm({ ...emptyForm, property_type: prop, refund_date: today });
     setInput(emptySettlement);
-    setSmode('full'); setVacate(false); setReceiptUrl(''); setInlineError('');
+    setSmode('full'); setVacate(false); setReceiptUrl(''); setInlineError(''); setGapsConfirmed(false); setAfterSave('');
     setDialogOpen(true);
+  };
+
+  const settlementInputFor = (u, type, unitNumber) => {
+    const list = (type === 'real_estate' ? rePayments : payments)
+      .filter(p => p.unit_number === unitNumber && (!p.status || p.status === 'paid'))
+      .filter(p => !isOtherTenantsExitPayment(p, u?.tenant_name))
+      .filter(p => {
+        const d = p.payment_date || '';
+        return (!u?.contract_start || d >= u.contract_start) && (!u?.contract_end || d <= u.contract_end);
+      });
+    const paidTotal = list.reduce((s, p) => s + (Number(p.amount) || 0), 0) || Number(u?.annual_rent) || 0;
+    return {
+      ...emptySettlement,
+      paidTotal: paidTotal || '',
+      annualRent: Number(u?.annual_rent) || '',
+      periodStart: u?.contract_start || '',
+      periodEnd: u?.contract_end || '',
+      exitDate: today,
+    };
   };
 
   const setKind = (kind) => {
     setForm(f => ({ ...f, kind, amount: '', reason: '', payment_id: '', applies_to_date: '' }));
-    setInput(emptySettlement);
-    setSmode('full'); setVacate(false); setInlineError('');
+    setInput(needsSettlement(kind) && selectedUnit
+      ? settlementInputFor(selectedUnit, form.property_type, form.unit_number)
+      : emptySettlement);
+    setSmode(kind === 'expiry' ? 'simple' : 'full'); setVacate(kind === 'expiry'); setInlineError(''); setGapsConfirmed(false);
   };
 
   const pickUnit = (key) => {
@@ -224,22 +256,8 @@ export default function Refunds() {
       applies_to_date: '',
       amount: '',
     }));
-    if (needsSettlement(form.kind)) {
-      const list = (type === 'real_estate' ? rePayments : payments)
-        .filter(p => p.unit_number === unitNumber && (!p.status || p.status === 'paid'))
-        .filter(p => {
-          const d = p.payment_date || '';
-          return (!u?.contract_start || d >= u.contract_start) && (!u?.contract_end || d <= u.contract_end);
-        });
-      const paidTotal = list.reduce((s, p) => s + (Number(p.amount) || 0), 0) || Number(u?.annual_rent) || 0;
-      setInput({
-        ...emptySettlement,
-        paidTotal: paidTotal || '',
-        periodStart: u?.contract_start || '',
-        periodEnd: u?.contract_end || '',
-        exitDate: today,
-      });
-    }
+    setGapsConfirmed(false);
+    if (needsSettlement(form.kind)) setInput(settlementInputFor(u, type, unitNumber));
   };
 
   const handleUpload = async (e) => {
@@ -263,12 +281,17 @@ export default function Refunds() {
     if (!autoReasonKind(form.kind) && !form.reason?.trim()) {
       setInlineError(t('يُرجى كتابة السبب أو اسم الحركة', 'Enter the reason or record name')); return;
     }
-    if (amount <= 0 && settlement.itemsTotal <= 0 && settlement.penalty <= 0) {
-      setInlineError(t('لا توجد مبالغ في هذه العملية', 'This record has no amounts')); return;
+    if (amount <= 0 && settlement.itemsTotal <= 0 && settlement.penalty <= 0 && !(form.kind === 'expiry' && vacate)) {
+      setInlineError(pos.ok && pos.owed > 0
+        ? t(`لا يوجد ما يُردّ للمستأجر، وعليه ${fmtNum(pos.owed)} ${currency}. ولإنهاء العقد وتسجيل المستحق عليه استخدم «إخلاء المستأجر» أو «انتهاء مدة العقد» من صفحة الوحدات.`,
+          `Nothing is due back to the tenant, who owes ${fmtNum(pos.owed)} ${currency}. To end the contract and record what is owed, use «Vacate the tenant» or «Contract term ended» on the Units page.`)
+        : t('لا توجد مبالغ في هذه العملية', 'This record has no amounts')); return;
     }
-    const finalReason = autoReasonKind(form.kind)
-      ? `خروج مبكر بتاريخ ${input.exitDate || form.refund_date}`
-      : form.reason.trim();
+    const finalReason = form.kind === 'expiry'
+      ? `انتهاء مدة العقد بتاريخ ${input.exitDate || form.refund_date}`
+      : autoReasonKind(form.kind)
+        ? `خروج مبكر بتاريخ ${input.exitDate || form.refund_date}`
+        : form.reason.trim();
 
     setInlineError(''); setSaving(true);
     try {
@@ -287,14 +310,32 @@ export default function Refunds() {
         is_manual: false,
         receipt_image_url: receiptUrl || null,
         ...(usesSettlement
-          ? settlementColumns(effInput, settlement)
+          ? settlementColumns(byMonths ? { ...effInput, ...positionPeriod(pos) } : effInput, settlement)
           : { other_deductions: amount, deduction_items: items }),
       };
       const { data: created, error: rpcError } = await supabase.rpc('create_refund', {
         p_refund: payload,
-        p_vacate: usesSettlement && vacate,
+        p_vacate: false,
       });
       if (rpcError) throw rpcError;
+
+      let exitError = '';
+      if (usesSettlement && vacate && selectedUnit) {
+        try {
+          let owedNow = pos.ok ? pos.owed : 0;
+          if (!pos.ok) {
+            const exitDay = input.exitDate && input.exitDate < today ? input.exitDate : today;
+            const { data: unitAlerts, error: alertsError } = await supabase.from('payment_alerts').select('*')
+              .eq('unit_number', selectedUnit.unit_number).eq('property_type', form.property_type);
+            if (alertsError) throw alertsError;
+            owedNow = owedAsOf(unitAlerts, exitDay);
+          }
+          await archiveContract(selectedUnit, form.property_type, form.kind === 'expiry' ? 'expiry' : 'vacate', user, finalReason, owedNow, 0, positionNote(pos));
+          await vacateUnit(form.property_type, selectedUnit.unit_number);
+        } catch (e) {
+          exitError = e?.message || 'error';
+        }
+      }
 
       await logActivity(
         'Refund', 'create',
@@ -324,9 +365,20 @@ export default function Refunds() {
       const depLeft = Math.max(0, Math.round((held - usedUp) * 100) / 100);
 
       setDialogOpen(false); setForm(emptyForm); setInput(emptySettlement);
-      setSmode('full'); setVacate(false); setReceiptUrl('');
-      if (depLeft > 0) setHandoff({ unit: savedUnit, prop: savedProp, amount: depLeft });
+      setSmode('full'); setVacate(false); setReceiptUrl(''); setGapsConfirmed(false);
+      const returnTo = afterSave === 'newTenant' && vacate && !exitError
+        ? `${savedProp === 'real_estate' ? '/re-units' : '/units'}?newTenant=${encodeURIComponent(savedUnit)}`
+        : '';
+      setAfterSave('');
+      if (depLeft > 0 && !exitError) setHandoff({ unit: savedUnit, prop: savedProp, amount: depLeft, returnTo });
+      else if (returnTo) { navigate(returnTo); return created; }
       await load();
+      if (exitError) {
+        setPageError(t(
+          `سُجّلت التسوية ${created?.receipt_number || ''}، لكن تعذّر حفظ العقد في الأرشيف أو تفريغ الوحدة. أكمل إنهاء العقد من صفحة الوحدات دون تسجيل تسوية جديدة. (${exitError})`,
+          `Settlement ${created?.receipt_number || ''} was saved, but the contract could not be archived or the unit vacated. Finish ending the contract from the Units page without recording a new settlement. (${exitError})`,
+        ));
+      }
       return created;
     } catch (e) {
       setInlineError(e?.message || t('تعذّر الحفظ', 'Save failed'));
@@ -373,7 +425,7 @@ export default function Refunds() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#1B2B4B' }}>
-            {t('الاسترجاعات والخصومات', 'Refunds & Deductions')}
+            {t('تسويات العقود', 'Contract Settlements')}
           </h1>
           <p className="text-xs sm:text-sm mt-0.5" style={{ color: '#64748B' }}>
             {t('مبالغ تُطرح من الإيراد أو تُحتسب ضمنه — وليست مصاريف تشغيل', 'Deducted from or booked into revenue — not operating expenses')}
@@ -381,7 +433,7 @@ export default function Refunds() {
         </div>
         {isAdmin && (
           <Button onClick={openAdd} className="text-white shrink-0" style={{ backgroundColor: '#7C3AED', minHeight: 44 }}>
-            <Plus size={15} className="ml-1" />
+            <Plus size={15} className="me-1" />
             {t('إضافة', 'Add')}
           </Button>
         )}
@@ -568,7 +620,7 @@ export default function Refunds() {
                   ].filter(r => r.value != null && r.value !== '' && r.value !== 0).map(r => (
                     <div key={r.label} className="flex justify-between gap-2 text-xs">
                       <span style={{ color: '#94A3B8' }}>{r.label}</span>
-                      <span className="font-medium text-left" style={{ color: '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>
+                      <span className="font-medium text-end" style={{ color: '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>
                         {r.raw ? String(r.value) : fmtNum(Number(r.value))}
                       </span>
                     </div>
@@ -595,11 +647,6 @@ export default function Refunds() {
                     <span className="font-bold" style={{ color: '#1B2B4B' }}>{t('الصافي المحسوب', 'Computed net')}</span>
                     <span className="font-bold" style={{ color: '#7C3AED' }}>{fmtNum(Number(viewItem.computed_amount) || 0)}</span>
                   </div>
-                  {viewItem.is_manual && (
-                    <p className="text-[10px] font-medium" style={{ color: '#C9A84C' }}>
-                      {t('المبلغ عُدِّل يدوياً ويختلف عن الحساب التلقائي', 'Manually overridden')}
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -617,7 +664,7 @@ export default function Refunds() {
                 ].filter(r => r.value).map(r => (
                   <div key={r.label} className="flex justify-between gap-2 text-xs">
                     <span style={{ color: '#94A3B8' }}>{r.label}</span>
-                    <span className="font-medium text-left" style={{ color: '#1B2B4B' }}>{r.value}</span>
+                    <span className="font-medium text-end" style={{ color: '#1B2B4B' }}>{r.value}</span>
                   </div>
                 ))}
               </div>
@@ -638,7 +685,7 @@ export default function Refunds() {
                 {isAdmin && (
                   <Button variant="outline" onClick={() => askDelete(viewItem)}
                     className="flex-1" style={{ borderColor: 'rgba(230,57,70,0.35)', color: '#E63946', minHeight: 44 }}>
-                    <Trash2 size={14} className="ml-1" /> {t('حذف', 'Delete')}
+                    <Trash2 size={14} className="me-1" /> {t('حذف', 'Delete')}
                   </Button>
                 )}
                 <Button variant="outline" onClick={() => setViewItem(null)} className="flex-1" style={{ minHeight: 44 }}>
@@ -655,7 +702,7 @@ export default function Refunds() {
           <DialogContent className="max-w-md w-full" dir={isAr ? 'rtl' : 'ltr'}
             style={{ maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <DialogHeader className="flex-shrink-0 pb-2 border-b">
-              <DialogTitle className="text-base">{t('إضافة استرجاع أو خصم', 'Add Refund / Deduction')}</DialogTitle>
+              <DialogTitle className="text-base">{t('إضافة تسوية', 'Add Settlement')}</DialogTitle>
             </DialogHeader>
 
             <div className="overflow-y-auto flex-1 py-3 space-y-3">
@@ -679,6 +726,14 @@ export default function Refunds() {
                   })}
                 </div>
               </div>
+
+              {form.kind === 'expiry' && (
+                <p className="text-[11px] leading-relaxed rounded-xl px-3 py-2.5"
+                  style={{ backgroundColor: 'rgba(14,165,233,0.07)', border: '1px solid rgba(14,165,233,0.25)', color: '#0369A1' }}>
+                  {t('انتهى العقد: لا يُخصم شرط الإخطار. ويُحسب ما بعد آخر شهر مسدَّد حتى تاريخ الخروج، فما دفعه زيادةً يُعاد له، وما سكنه دون دفع يبقى عليه. وتُفرَّغ الوحدة ويُحفظ العقد في الأرشيف بسبب «انتهاء العقد»، ثم يُسوّى التأمين من صفحة التأمينات.',
+                    'The contract has ended: no notice deduction. Everything after the last paid month is counted up to the exit date; anything paid beyond it is returned and anything lived unpaid stays owed. The unit is vacated and the contract archived as «Contract ended», then the deposit is settled on the Deposits page.')}
+                </p>
+              )}
 
               {!autoReasonKind(form.kind) && (
                 <div className="space-y-1">
@@ -717,6 +772,17 @@ export default function Refunds() {
                 )}
               </div>
 
+              {expiryEarly && (
+                <p className="text-[11px] font-bold leading-relaxed rounded-xl px-3 py-2.5"
+                  style={{ backgroundColor: 'rgba(230,57,70,0.06)', border: '1px solid rgba(230,57,70,0.3)', color: '#B91C1C' }}>
+                  {selectedUnit.contract_end
+                    ? t(`ينتهي عقد الوحدة ${form.unit_number} في ${selectedUnit.contract_end}، فلا يُسجَّل انتهاء مدة العقد قبل ذلك. وللخروج قبله اختر «خروج مبكر لمستأجر» أو «إخلاء مستأجر».`,
+                      `Unit ${form.unit_number}'s contract ends on ${selectedUnit.contract_end}, so its end cannot be recorded before then. To leave earlier, choose «Early Tenant Exit» or «Tenant Eviction».`)
+                    : t(`لا يوجد تاريخ نهاية لعقد الوحدة ${form.unit_number}، فلا يُسجَّل انتهاء مدة العقد. وللخروج اختر «خروج مبكر لمستأجر» أو «إخلاء مستأجر».`,
+                      `Unit ${form.unit_number}'s contract has no end date, so its end cannot be recorded. To leave, choose «Early Tenant Exit» or «Tenant Eviction».`)}
+                </p>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-muted-foreground">{t('المستأجر', 'Tenant')}</Label>
@@ -737,10 +803,11 @@ export default function Refunds() {
                   style={{ backgroundColor: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.25)' }}>
                   <div className="flex gap-1.5 p-1 rounded-xl" style={{ backgroundColor: '#fff' }}>
                     {SETTLEMENT_MODES.map(m => {
-                      const on = smode === m.value;
+                      const on = mode === m.value;
+                      const off = m.value === 'waiver' && noBalance;
                       return (
-                        <button key={m.value} onClick={() => setSmode(m.value)}
-                          className="flex-1 rounded-lg text-[11px] font-bold transition px-1"
+                        <button key={m.value} onClick={() => setSmode(m.value)} disabled={off}
+                          className="flex-1 rounded-lg text-[11px] font-bold transition px-1 disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ minHeight: 38, backgroundColor: on ? m.color : 'transparent', color: on ? '#fff' : '#64748B' }}>
                           {m.label[isAr ? 'ar' : 'en']}
                         </button>
@@ -748,9 +815,29 @@ export default function Refunds() {
                     })}
                   </div>
                   <p className="text-[11px] leading-relaxed" style={{ color: '#64748B' }}>
-                    {(SETTLEMENT_MODES.find(m => m.value === smode) || SETTLEMENT_MODES[0]).hint[isAr ? 'ar' : 'en']}
+                    {(SETTLEMENT_MODES.find(m => m.value === mode) || SETTLEMENT_MODES[0]).hint[isAr ? 'ar' : 'en']}
                   </p>
+                  {noBalance && (
+                    <p className="text-[11px] font-bold leading-relaxed rounded-lg px-2.5 py-2"
+                      style={{ color: '#B91C1C', backgroundColor: 'rgba(230,57,70,0.06)', border: '1px solid rgba(230,57,70,0.25)' }}>
+                      {baseSettlement.owedAmount > 0
+                        ? t(`لا يوجد رصيد غير مستهلك، وعلى المستأجر ${fmtNum(baseSettlement.owedAmount)} ${currency} عن أيام سكنه حتى تاريخ الخروج. لذلك لا يتاح «خصم المتبقي كاملاً».`,
+                          `There is no unconsumed balance; the tenant owes ${fmtNum(baseSettlement.owedAmount)} ${currency} for the days occupied up to the exit date, so «Deduct the full balance» is unavailable.`)
+                        : t('لا يوجد رصيد غير مستهلك، لذلك لا يتاح «خصم المتبقي كاملاً».', 'There is no unconsumed balance, so «Deduct the full balance» is unavailable.')}
+                    </p>
+                  )}
 
+                  {byMonths ? (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-semibold text-muted-foreground">{t('تاريخ الخروج الفعلي *', 'Actual exit *')}</Label>
+                        <Input type="date" value={input.exitDate}
+                          onChange={e => { setInput(p => ({ ...p, exitDate: e.target.value })); setGapsConfirmed(false); }}
+                          className="text-sm bg-white" style={{ minHeight: 40 }} />
+                      </div>
+                      <RentPositionBox pos={pos} isAr={isAr} confirmed={gapsConfirmed} onConfirm={setGapsConfirmed} />
+                    </>
+                  ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-semibold text-muted-foreground">{t('المدفوع عن الفترة', 'Paid for the period')}</Label>
@@ -778,10 +865,17 @@ export default function Refunds() {
                         className="text-sm bg-white" style={{ minHeight: 40 }} />
                     </div>
                   </div>
+                  )}
 
                   <p className="text-[11px] leading-relaxed" style={{ color: '#94A3B8' }}>
-                    {t('«المدفوع عن الفترة» يُقرأ من دفعات الوحدة المسجَّلة داخل العقد ولا يُعدَّل هنا — يُقسَّم على أيام الفترة لاحتساب المستهلَك.',
-                      'Paid for the period is read from the recorded payments and cannot be edited here — it is divided over the period days.')}
+                    {byMonths
+                      ? t('تُقرأ الأشهر المسدَّدة من «مستحق لشهر» في دفعات المستأجر، ويُحسب ما بعد آخر شهر مسدَّد حتى تاريخ الخروج. وقيمة اليوم = إيجار الشهر من العقد ÷ أيام الشهر.',
+                        'Paid months are read from the payments’ due months, and everything after the last paid month is counted up to the exit date. A day is the contract’s monthly rent ÷ the days of that month.')
+                      : Number(input.annualRent) > 0
+                      ? t(`«المدفوع عن الفترة» يُقرأ من دفعات الوحدة المسجَّلة داخل العقد ولا يُعدَّل هنا. ويُحتسب المستهلَك بسعر الإيجار: الإيجار السنوي ${fmtNum(Number(input.annualRent))} ${currency} موزّعاً على أيام السنة، مضروباً في أيام السكن.`,
+                        `Paid for the period is read from the recorded payments and cannot be edited here. Consumption is priced at the rent rate: the annual rent of ${fmtNum(Number(input.annualRent))} ${currency} spread over the year, times the occupied days.`)
+                      : t('«المدفوع عن الفترة» يُقرأ من دفعات الوحدة المسجَّلة داخل العقد ولا يُعدَّل هنا. ولا يوجد إيجار سنوي مسجَّل للوحدة، فيُقسَّم المدفوع على أيام الفترة لاحتساب المستهلَك.',
+                        'Paid for the period is read from the recorded payments and cannot be edited here. The unit has no annual rent recorded, so the payment is divided over the period days.')}
                   </p>
 
                   {waived && (
@@ -793,6 +887,12 @@ export default function Refunds() {
                         </span>
                         <span className="text-sm font-bold" style={{ color: '#E63946' }}>{fmtNum(waiverAmount)} {currency}</span>
                       </div>
+                      <p className="text-[11px] leading-relaxed" style={{ color: '#64748B' }}>
+                        {byMonths
+                          ? t('هذا ما دفعه المستأجر عن أيام وأشهر بعد تاريخ الخروج، فهو كل ما بقي له.', 'This is what the tenant paid for days and months after the exit date, so it is all that is left.')
+                          : t(`دفع المستأجر ${fmtNum(Number(input.paidTotal) || 0)}، واستهلك منها حتى تاريخ الخروج ${fmtNum(baseSettlement.consumedAmount)}، فهذا كل ما بقي من دفعاته.`,
+                            `The tenant paid ${fmtNum(Number(input.paidTotal) || 0)} and consumed ${fmtNum(baseSettlement.consumedAmount)} of it up to the exit date, so this is all that is left.`)}
+                      </p>
                       <div className="space-y-1">
                         <Label className="text-[10px] font-semibold text-muted-foreground">{t('سبب الخصم الكامل *', 'Reason for the full deduction *')}</Label>
                         <Input value={input.penaltyReason}
@@ -872,20 +972,33 @@ export default function Refunds() {
                     </span>
                   </label>
 
+                  {owedWithDeposit && (
+                    <p className="text-[11px] font-bold leading-relaxed rounded-lg px-2.5 py-2"
+                      style={{ color: '#B91C1C', backgroundColor: 'rgba(230,57,70,0.06)', border: '1px solid rgba(230,57,70,0.25)' }}>
+                      {t(`على المستأجر ${fmtNum(pos.owed)} ${currency}، وله تأمين ${fmtNum(heldDeposit)} ${currency}. ولتفريغ الوحدة مع خصم المستحق من التأمين وردّ الباقي استخدم «إخلاء المستأجر» أو «انتهاء مدة العقد» من صفحة الوحدات، أو أزل علامة «اجعل الوحدة شاغرة».`,
+                        `The tenant owes ${fmtNum(pos.owed)} ${currency} and has a ${fmtNum(heldDeposit)} ${currency} deposit. To vacate while taking what is owed from the deposit and returning the rest, use «Vacate the tenant» or «Contract term ended» on the Units page, or untick «Mark the unit vacant».`)}
+                    </p>
+                  )}
+
                   {settlement.ok ? (
                     <div className="rounded-lg bg-white px-2.5 py-2 space-y-1" style={{ border: '1px solid rgba(124,58,237,0.2)' }}>
                       {[
-                        { l: t('أيام الفترة / أيام السكن', 'Period / occupied'), v: `${settlement.totalDays} / ${settlement.consumedDays}`, raw: true },
-                        { l: t('المعدل اليومي', 'Daily rate'), v: fmtNum(settlement.dailyRate) },
-                        { l: t('المستهلَك', 'Consumed'), v: fmtNum(settlement.consumedAmount) },
-                        { l: t('المتبقي', 'Remaining'), v: fmtNum(settlement.remainingAmount) },
+                        ...(settlement.byMonths ? [
+                          { l: t('غير المستهلك', 'Unconsumed'), v: fmtNum(settlement.remainingAmount) },
+                        ] : [
+                          { l: t('أيام الفترة / أيام السكن', 'Period / occupied'), v: `${settlement.totalDays} / ${settlement.consumedDays}`, raw: true },
+                          { l: settlement.rentBased ? t('المعدل اليومي من الإيجار السنوي', 'Daily rate from the annual rent') : t('المعدل اليومي', 'Daily rate'), v: fmtNum(settlement.dailyRate) },
+                          { l: t('المستهلَك', 'Consumed'), v: fmtNum(settlement.consumedAmount) },
+                          { l: t('المتبقي', 'Remaining'), v: fmtNum(settlement.remainingAmount) },
+                        ]),
+                        ...(settlement.owedAmount > 0 ? [{ l: t('على المستأجر', 'Owed by the tenant'), v: fmtNum(settlement.owedAmount), red: true }] : []),
                         ...(settlement.penalty > 0
                           ? [{ l: input.penaltyReason.trim() || t('خصم', 'Deduction'), v: '− ' + fmtNum(settlement.penalty) }] : []),
                         ...settlement.items.map(it => ({ l: it.reason, v: '− ' + fmtNum(it.amount) })),
                       ].map((r, i) => (
                         <div key={`${r.l}-${i}`} className="flex justify-between gap-2 text-[11px]">
                           <span className="truncate" style={{ color: '#94A3B8' }}>{r.l}</span>
-                          <span className="font-medium shrink-0" style={{ color: '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>{r.v}</span>
+                          <span className="font-medium shrink-0" style={{ color: r.red ? '#E63946' : '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>{r.v}</span>
                         </div>
                       ))}
                       <div className="flex justify-between gap-2 text-xs pt-1 border-t" style={{ borderColor: '#F1F5F9' }}>
@@ -909,18 +1022,23 @@ export default function Refunds() {
                     <p className="text-[11px] font-medium" style={{ color: '#C9A84C' }}>{unconsumedInfo.reason}</p>
                   ) : unitPayments.length === 0 ? (
                     <p className="text-[11px] font-bold" style={{ color: '#E63946' }}>
-                      {t('المبالغ المدفوعة استُهلكت بالكامل — لا يوجد رصيد غير مستهلك يمكن الخصم منه',
-                        'Everything paid is already consumed')}
+                      {unconsumedInfo.due > 0
+                        ? t(`المبالغ المدفوعة استُهلكت بالكامل، فلا يوجد رصيد غير مستهلك يمكن الخصم منه، وعلى المستأجر ${fmtNum(unconsumedInfo.due)} ${currency}.`,
+                          `Everything paid is already consumed; the tenant owes ${fmtNum(unconsumedInfo.due)} ${currency}.`)
+                        : t('المبالغ المدفوعة استُهلكت بالكامل — لا يوجد رصيد غير مستهلك يمكن الخصم منه',
+                          'Everything paid is already consumed')}
                     </p>
                   ) : (
                     <>
                       <div className="rounded-lg bg-white px-2.5 py-2 space-y-1" style={{ border: '1px solid #E2E8F0' }}>
-                        {[
+                        {(unconsumedInfo.byMonths ? [
+                          { l: t('مسدَّد حتى', 'Paid up to'), v: monthLabel(pos.paidTo, isAr) },
+                        ] : [
                           { l: t('أيام العقد / المنقضية', 'Contract / elapsed'), v: `${unconsumedInfo.totalDays} / ${unconsumedInfo.elapsedDays}`, raw: true },
                           { l: t('المدفوع داخل العقد', 'Paid within contract'), v: fmtNum(unconsumedInfo.paid) },
                           { l: usesSettlement ? t('المستهلَك حتى تاريخ الخروج', 'Consumed to the exit date') : t('المستهلَك حتى اليوم', 'Consumed to date'),
                             v: '− ' + fmtNum(unconsumedInfo.consumed) },
-                        ].map(r => (
+                        ]).map(r => (
                           <div key={r.l} className="flex justify-between gap-2 text-[11px]">
                             <span style={{ color: '#94A3B8' }}>{r.l}</span>
                             <span className="font-medium" style={{ color: '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>{r.v}</span>
@@ -1060,9 +1178,9 @@ export default function Refunds() {
               )}
 
               <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={saving || uploading}
+                <Button onClick={handleSave} disabled={saving || uploading || expiryEarly || owedWithDeposit}
                   className="flex-1 text-white" style={{ backgroundColor: '#7C3AED', minHeight: 44 }}>
-                  <CheckCircle2 size={15} className="ml-1" />
+                  <CheckCircle2 size={15} className="me-1" />
                   {saving ? t('جاري الحفظ...', 'Saving...') : t('حفظ', 'Save')}
                 </Button>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1" style={{ minHeight: 44 }}>
@@ -1074,7 +1192,7 @@ export default function Refunds() {
         </Dialog>
       )}
 
-      <Dialog open={!!handoff} onOpenChange={(v) => { if (!v) setHandoff(null); }}>
+      <Dialog open={!!handoff} onOpenChange={(v) => { if (!v) { const h = handoff; setHandoff(null); if (h?.returnTo) navigate(h.returnTo); } }}>
         <DialogContent className="max-w-sm font-cairo" dir={isAr ? 'rtl' : 'ltr'}>
           <DialogHeader>
             <DialogTitle className="text-base">{t('بقي تأمين على الوحدة', 'A deposit is still held')}</DialogTitle>
@@ -1095,12 +1213,12 @@ export default function Refunds() {
                   'The rent is settled, but the tenant deposit is still held. Refund it from the Deposits page to close the file.')}
               </p>
               <div className="flex flex-col gap-2">
-                <Button onClick={() => { const h = handoff; setHandoff(null); navigate(`/deposits?open=1&prop=${h.prop}&unit=${encodeURIComponent(h.unit)}`); }}
+                <Button onClick={() => { const h = handoff; setHandoff(null); navigate(`/deposits?open=1&prop=${h.prop}&unit=${encodeURIComponent(h.unit)}${h.returnTo ? `&after=${encodeURIComponent(h.returnTo)}` : ''}`); }}
                   className="w-full text-white" style={{ backgroundColor: '#0EA5E9', minHeight: 44 }}>
                   {t('اذهب لإرجاع التأمين', 'Go refund the deposit')}
                 </Button>
-                <Button variant="outline" onClick={() => setHandoff(null)} className="w-full" style={{ minHeight: 44 }}>
-                  {t('لاحقاً', 'Later')}
+                <Button variant="outline" onClick={() => { const h = handoff; setHandoff(null); if (h?.returnTo) navigate(h.returnTo); }} className="w-full" style={{ minHeight: 44 }}>
+                  {handoff.returnTo ? t('لاحقاً، وأكمل بيانات المستأجر الجديد', 'Later, and continue with the new tenant') : t('لاحقاً', 'Later')}
                 </Button>
               </div>
             </div>

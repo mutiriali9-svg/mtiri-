@@ -4,9 +4,9 @@ import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import {
   Plus, Trash2, ImagePlus, X, FileText, CheckCircle2,
-  Loader2, StickyNote, ArrowRight, Image, User, Phone, Building2, Calendar
+  Loader2, StickyNote, Image, User, Phone, Building2, Calendar
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import useBackClose from '@/hooks/useBackClose';
 import { logActivity } from '@/utils/activityLogger';
 
 const NOTE_TYPES = {
@@ -37,7 +37,7 @@ function NoteRow({ icon, label, value, multiline }) {
   return (
     <div className={`flex ${multiline ? 'flex-col gap-1' : 'items-center justify-between gap-3'} py-2 border-b border-border/50 last:border-0`}>
       <span className="text-xs text-muted-foreground flex items-center gap-1.5">{icon} {label}</span>
-      <span className={`text-sm font-medium text-foreground ${multiline ? 'leading-relaxed' : 'text-right'}`}>{value}</span>
+      <span className={`text-sm font-medium text-foreground ${multiline ? 'leading-relaxed' : 'text-start'}`}>{value}</span>
     </div>
   );
 }
@@ -46,7 +46,6 @@ export default function Notes() {
   const { user } = useAuth();
   const { lang } = useLang();
   const isAr = lang === 'ar';
-  const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -58,6 +57,9 @@ export default function Notes() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [inlineError, setInlineError] = useState('');
   const fileRef = useRef();
+  useBackClose(dialogOpen, () => setDialogOpen(false));
+  useBackClose(!!selectedNote, () => setSelectedNote(null));
+  useBackClose(!!confirmDelete, () => setConfirmDelete(null));
 
   const canWrite = user?.role === 'admin' || user?.role === 'data_entry';
   const typeLabels = NOTE_TYPES[lang] || NOTE_TYPES.ar;
@@ -125,9 +127,6 @@ export default function Notes() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/dashboard')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
-          <ArrowRight size={18} />
-        </button>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(168,178,192,0.15)' }}>
           <StickyNote size={20} style={{ color: '#A8B2C0' }} />
         </div>

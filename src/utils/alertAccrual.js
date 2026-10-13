@@ -40,8 +40,8 @@ export function paidAheadLabel(periods, plan, lang) {
     : `مدفوع مقدماً — ${periods} دورات (${label})`;
 }
 
-export function getAccrued(a) {
-  const todayStr = new Date().toISOString().split('T')[0];
+export function getAccrued(a, asOf) {
+  const todayStr = asOf || new Date().toISOString().split('T')[0];
   const monthly = Number(a?.original_amount || 0);
   const storedAcc = Number(a?.accumulated_amount || 0);
   const plan = a?.payment_plan || 'monthly';
@@ -70,11 +70,11 @@ export function getAccrued(a) {
   return { missedCycles, accrued, currentDueDate: cursor, periodsOverdue };
 }
 
-export function getAlertState(a) {
+export function getAlertState(a, asOf) {
   const monthly = Number(a?.original_amount || 0);
   const storedAcc = Number(a?.accumulated_amount || 0);
   const storedRemaining = Number(a?.remaining_balance ?? monthly);
-  const { accrued, missedCycles, periodsOverdue, currentDueDate } = getAccrued(a);
+  const { accrued, missedCycles, periodsOverdue, currentDueDate } = getAccrued(a, asOf);
   const remaining = Math.max(0, storedRemaining + (accrued - storedAcc));
   const storedPaid = Math.max(0, Number(a?.cycle_paid_amount) || 0);
   const legacyPaid = Math.max(0, monthly + storedAcc - storedRemaining);

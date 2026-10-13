@@ -168,7 +168,7 @@ export default function Reports() {
 
   const drillTitle = !drill ? '' : ({
     revenue: lang === 'ar' ? 'تفاصيل صافي الإيراد' : 'Net revenue details',
-    refunds: lang === 'ar' ? 'تفاصيل الاسترجاعات والخصومات' : 'Refunds & deductions',
+    refunds: lang === 'ar' ? 'تفاصيل تسويات العقود' : 'Contract settlements',
     expenses: lang === 'ar' ? 'تفاصيل المصاريف' : 'Expense details',
     savings: lang === 'ar' ? 'تفاصيل الادخار' : 'Savings details',
   }[drill.kind] || '');
@@ -235,7 +235,7 @@ export default function Reports() {
         <Button variant="outline" className="text-xs h-11 sm:h-8 px-3" onClick={resetRange}>
           <RotateCcw size={14} /> {t('reset')}
         </Button>
-        <span className="text-xs text-muted-foreground mr-auto self-center">
+        <span className="text-xs text-muted-foreground ms-auto self-center">
           {lang === 'ar' ? 'الفترة' : 'Period'}: <span dir="ltr">{rangeLabel}</span>
         </span>
       </div>
@@ -249,7 +249,7 @@ export default function Reports() {
             : `${grossRevenue.toLocaleString()} − ${totalRefunds.toLocaleString()}`}
           icon={TrendingUp} accentColor="navy" delay={0}
           onClick={() => setDrill({ kind: 'revenue' })} />
-        <StatCard title="الاسترجاعات والخصومات" titleEn="Refunds & Deductions"
+        <StatCard title="تسويات العقود" titleEn="Contract Settlements"
           value={`${totalRefunds.toLocaleString()} AED`}
           subtitle={`${yearRefunds.length}`}
           icon={RotateCcw} accentColor="gold" delay={40}
@@ -270,7 +270,7 @@ export default function Reports() {
       </div>
 
       <button type="button" onClick={() => setDrill({ kind: 'savings' })}
-        className="bg-white card-bevel rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap w-full text-right hover:opacity-90 transition-opacity cursor-pointer min-h-[44px]">
+        className="bg-white card-bevel rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap w-full text-start hover:opacity-90 transition-opacity cursor-pointer min-h-[44px]">
         <div className="flex items-center gap-2">
           <PiggyBank size={18} style={{ color: '#059669' }} />
           <span className="text-sm font-bold" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'الادخار' : 'Savings'}</span>
@@ -400,7 +400,7 @@ export default function Reports() {
             <thead>
               <tr className="border-b border-border">
                 {[t('month'), t('revenue'), t('totalExpensesR'), (lang === 'ar' ? 'الادخار' : 'Savings'), t('net'), t('margin')].map(h => (
-                  <th key={h} className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{h}</th>
+                  <th key={h} className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -521,10 +521,10 @@ export default function Reports() {
             <table className="w-full text-[11px] lg:text-sm">
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-xs">
-                  <th className="text-right px-2.5 lg:px-4 py-2 font-medium whitespace-nowrap">{t('date')}</th>
-                  <th className="text-right px-2.5 lg:px-4 py-2 font-medium">{lang === 'ar' ? 'البيان' : 'Description'}</th>
-                  <th className="text-right px-2.5 lg:px-4 py-2 font-medium">{lang === 'ar' ? 'التفاصيل' : 'Details'}</th>
-                  <th className="text-right px-2.5 lg:px-4 py-2 font-medium whitespace-nowrap">{t('amount')}</th>
+                  <th className="text-start px-2.5 lg:px-4 py-2 font-medium whitespace-nowrap">{t('date')}</th>
+                  <th className="text-start px-2.5 lg:px-4 py-2 font-medium">{lang === 'ar' ? 'البيان' : 'Description'}</th>
+                  <th className="text-start px-2.5 lg:px-4 py-2 font-medium">{lang === 'ar' ? 'التفاصيل' : 'Details'}</th>
+                  <th className="text-start px-2.5 lg:px-4 py-2 font-medium whitespace-nowrap">{t('amount')}</th>
                 </tr>
               </thead>
               <tbody>

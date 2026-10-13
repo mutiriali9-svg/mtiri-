@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
 import { Plus, Search, Edit2, Trash2, ImagePlus, X, FileText, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import DueMonthsPicker from '@/components/DueMonthsPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -81,7 +82,7 @@ export default function Payments() {
       const result = await uploadFile(file);
       setReceiptUrl(result.file_url);
     } catch {
-      toast({ description: 'فشل رفع الملف، حاول مجدداً', variant: 'destructive' });
+      toast({ description: isAr ? 'فشل رفع الملف، حاول مجدداً' : 'File upload failed. Please try again.', variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -148,13 +149,13 @@ export default function Payments() {
 
   const handleSave = async () => {
     const missing = [];
-    if (!form.tenant_name?.trim()) missing.push('اسم المستأجر');
-    if (!form.amount || parseFloat(form.amount) <= 0) missing.push('المبلغ');
-    if (!form.payment_date) missing.push('تاريخ الدفع');
-    if (!form.due_months?.trim()) missing.push('مستحق لشهر');
-    if (!receiptUrl && !receiptOptional) missing.push('صورة الإيصال');
+    if (!form.tenant_name?.trim()) missing.push(isAr ? 'اسم المستأجر' : 'Tenant Name');
+    if (!form.amount || parseFloat(form.amount) <= 0) missing.push(isAr ? 'المبلغ' : 'Amount');
+    if (!form.payment_date) missing.push(isAr ? 'تاريخ الدفع' : 'Payment Date');
+    if (!form.due_months?.trim()) missing.push(isAr ? 'مستحق لشهر' : 'Due Month');
+    if (!receiptUrl && !receiptOptional) missing.push(isAr ? 'صورة الإيصال' : 'Receipt Image');
     if (missing.length > 0) {
-      setInlineError(`⚠️ يرجى تعبئة: ${missing.join(' — ')}`);
+      setInlineError(isAr ? `⚠️ يرجى تعبئة: ${missing.join(' — ')}` : `⚠️ Please fill in: ${missing.join(' — ')}`);
       setTimeout(() => setInlineError(''), 4000);
       return;
     }
@@ -195,7 +196,7 @@ export default function Payments() {
 
   const handleDelete = (id) => {
     const payment = payments.find(p => p.id === id);
-    setConfirmDelete({ message: 'هل تريد حذف هذه الدفعة؟', onConfirm: async () => {
+    setConfirmDelete({ message: isAr ? 'هل تريد حذف هذه الدفعة؟' : 'Are you sure you want to delete this payment?', onConfirm: async () => {
       setPayments(prev => prev.filter(p => p.id !== id));
       setConfirmDelete(null);
       await base44.entities.Payment.delete(id);
@@ -238,12 +239,12 @@ export default function Payments() {
 
       <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div className="relative flex-1 min-w-44">
-          <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
+          <Search size={15} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
           <Input
             placeholder={t('searchPayments')}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pr-9 text-sm h-9"
+            className="ps-9 text-sm h-9"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -259,7 +260,7 @@ export default function Payments() {
         </Select>
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-28 h-9 text-sm">
-            <SelectValue placeholder="السنة" />
+            <SelectValue placeholder={isAr ? 'السنة' : 'Year'} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
@@ -268,17 +269,17 @@ export default function Payments() {
         </Select>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">من:</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">{isAr ? 'من:' : 'From:'}</span>
             <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-32 text-sm h-9" />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">إلى:</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">{isAr ? 'إلى:' : 'To:'}</span>
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-32 text-sm h-9" />
           </div>
           {(dateFrom || dateTo || yearFilter !== 'all' || search) && (
             <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5"
               onClick={() => { setDateFrom(''); setDateTo(''); setYearFilter('all'); setSearch(''); }}>
-              <X size={13} /> مسح
+              <X size={13} /> {isAr ? 'مسح' : 'Clear'}
             </Button>
           )}
         </div>
@@ -302,7 +303,7 @@ export default function Payments() {
             <thead style={{ backgroundColor: '#1B2B4B' }}>
               <tr>
                 {[t('tenant'), t('unit'), t('amount'), t('date'), t('dueMonth'), t('paymentMethod'), t('status'), ''].map(h => (
-                  <th key={h} className="text-right py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-start py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -389,9 +390,9 @@ export default function Payments() {
                     )}
                   </div>
                 </div>
-                <div className="text-left shrink-0">
+                <div className="text-end shrink-0">
                   <p className="text-sm font-bold" style={{ color: '#2A9D8F' }}>{(p.amount || 0).toLocaleString()}</p>
-                  <p className="text-[10px] text-muted-foreground text-left">AED</p>
+                  <p className="text-[10px] text-muted-foreground text-end">AED</p>
                 </div>
               </div>
             </div>
@@ -404,28 +405,28 @@ export default function Payments() {
       {/* View Dialog */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
-          <DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isAr ? 'بيانات الدفعة' : 'Payment Details'}</DialogTitle></DialogHeader>
           {viewItem && (() => {
             const sc = statusConfig[viewItem.status] || statusConfig.paid;
             return (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة او المنزل</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">الحالة</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">تاريخ الدفع</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">مستحق لشهر</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">طريقة الدفع</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الإيصال</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
-                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">ملاحظات</p><p className="font-medium">{viewItem.notes}</p></div>}
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'اسم المستأجر' : 'Tenant Name'}</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة او المنزل' : 'Unit Number'}</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'المبلغ' : 'Amount'}</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'الحالة' : 'Status'}</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'تاريخ الدفع' : 'Payment Date'}</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'مستحق لشهر' : 'Due Month'}</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'طريقة الدفع' : 'Payment Method'}</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'رقم الإيصال' : 'Receipt No.'}</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
+                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'ملاحظات' : 'Notes'}</p><p className="font-medium">{viewItem.notes}</p></div>}
                 </div>
                 {viewItem.receipt_image_url && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground font-medium">صورة الإيصال</p>
+                    <p className="text-xs text-muted-foreground font-medium">{isAr ? 'صورة الإيصال' : 'Receipt Image'}</p>
                     <div className="rounded-lg border border-border overflow-hidden">
                       {viewItem.receipt_image_url.toLowerCase().endsWith('.pdf') ? (
-                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
+                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'View PDF'}</a></div>
                       ) : (
                         <img src={viewItem.receipt_image_url} alt="receipt" className="w-full max-h-64 object-contain p-2 bg-muted" />
                       )}
@@ -436,8 +437,8 @@ export default function Payments() {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewItem(null)}>إغلاق</Button>
-            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> تعديل</Button>}
+            <Button variant="outline" onClick={() => setViewItem(null)}>{isAr ? 'إغلاق' : 'Close'}</Button>
+            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> {isAr ? 'تعديل' : 'Edit'}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -461,27 +462,27 @@ export default function Payments() {
             const payDate = form.payment_date || today;
             const isPaidEarly = payDate < alertDate;
             const planObjPay = PAYMENT_PLANS.find(pl => pl.value === (unitAlert.payment_plan || 'monthly'));
-            const planLabelPay = planObjPay?.label[lang] || planObjPay?.label.ar || 'الشهري';
+            const planLabelPay = planObjPay?.label[lang] || planObjPay?.label.ar || (isAr ? 'الشهري' : 'Monthly');
             return (
               <div className="rounded-xl p-3 space-y-2 mb-1" style={{ backgroundColor: 'rgba(27,43,75,0.04)', border: '1px solid rgba(201,168,76,0.25)' }}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <AlertTriangle size={14} style={{ color: '#C9A84C' }} />
-                  <span className="text-xs font-bold" style={{ color: '#1B2B4B' }}>التنبيه الذكي — وحدة {unitAlert.unit_number}</span>
-                  <span className="text-xs text-muted-foreground">الاستحقاق: {alertDate}</span>
+                  <span className="text-xs font-bold" style={{ color: '#1B2B4B' }}>{isAr ? 'التنبيه الذكي — وحدة' : 'Smart Alert — Unit'} {unitAlert.unit_number}</span>
+                  <span className="text-xs text-muted-foreground">{isAr ? 'الاستحقاق:' : 'Due:'} {alertDate}</span>
                   {periodsOverdue > 1 && (
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(230,57,70,0.12)', color: '#E63946' }}>
-                      {periodsOverdue} دورات مستحقة
+                      {periodsOverdue} {isAr ? 'دورات مستحقة' : 'periods due'}
                     </span>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-center">
                   <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(42,157,143,0.07)' }}><p className="text-muted-foreground">{planLabelPay}</p><p className="font-bold" style={{ color: '#2A9D8F' }}>{monthly.toLocaleString()}</p></div>
                   {overdueAmt > 0 ? (
-                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.07)' }}><p className="text-muted-foreground">متأخر{periodsOverdue > 1 ? ` (${periodsOverdue})` : ''}</p><p className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p></div>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.07)' }}><p className="text-muted-foreground">{isAr ? 'متأخر' : 'Overdue'}{periodsOverdue > 1 ? ` (${periodsOverdue})` : ''}</p><p className="font-bold" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p></div>
                   ) : (
-                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.04)' }}><p className="text-muted-foreground">الحالة</p><p className="font-bold text-[10px]" style={{ color: '#2A9D8F' }}>نشط</p></div>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.04)' }}><p className="text-muted-foreground">{isAr ? 'الحالة' : 'Status'}</p><p className="font-bold text-[10px]" style={{ color: '#2A9D8F' }}>{isAr ? 'نشط' : 'Active'}</p></div>
                   )}
-                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}><p className="text-muted-foreground">المستحق</p><p className="font-bold" style={{ color: '#1B2B4B' }}>{currentBalance.toLocaleString()}</p></div>
+                  <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}><p className="text-muted-foreground">{isAr ? 'المستحق' : 'Amount Due'}</p><p className="font-bold" style={{ color: '#1B2B4B' }}>{currentBalance.toLocaleString()}</p></div>
                 </div>
                 {paidNow > 0 && (() => {
                   const preview = applyAlertPayment(unitAlert, paidNow, payDate);
@@ -490,21 +491,21 @@ export default function Payments() {
                   const isPartialPay = !isFullPay;
                   const balanceColor = hasCredit ? '#C9A84C' : isPartialPay ? '#E63946' : '#2A9D8F';
                   const statusLabel = isPartialPay
-                    ? '⚠️ دفعة جزئية'
-                    : (hasCredit || preview.summary.periodsAdvanced > 1) ? '✅ تسوية + دفع مسبقاً' : '✅ تسوية كاملة';
+                    ? (isAr ? '⚠️ دفعة جزئية' : '⚠️ Partial payment')
+                    : (hasCredit || preview.summary.periodsAdvanced > 1) ? (isAr ? '✅ تسوية + دفع مسبقاً' : '✅ Settlement + paid ahead') : (isAr ? '✅ تسوية كاملة' : '✅ Full settlement');
                   const statusColor = isPartialPay ? '#E63946' : '#2A9D8F';
                   return (
                     <div className="rounded-lg p-2.5 space-y-1.5 border-t pt-2" style={{ backgroundColor: isFullPay ? 'rgba(42,157,143,0.06)' : 'rgba(230,57,70,0.04)' }}>
                       <p className="text-xs font-bold" style={{ color: statusColor }}>{statusLabel}</p>
-                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">المدفوع</span><span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} د.إ</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">{isAr ? 'المدفوع' : 'Paid'}</span><span className="font-bold" style={{ color: '#2A9D8F' }}>{paidNow.toLocaleString()} {isAr ? 'د.إ' : 'AED'}</span></div>
                       {isPartialPay && preview.summary.cyclePaidAfter > paidNow && (
-                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">الإجمالي المدفوع بالدورة</span><span className="font-bold" style={{ color: '#B8860B' }}>{preview.summary.cyclePaidAfter.toLocaleString()} د.إ</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">{isAr ? 'الإجمالي المدفوع بالدورة' : 'Total paid this cycle'}</span><span className="font-bold" style={{ color: '#B8860B' }}>{preview.summary.cyclePaidAfter.toLocaleString()} {isAr ? 'د.إ' : 'AED'}</span></div>
                       )}
                       {isFullPay && (
-                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">الدورات المغطاة</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.periodsAdvanced}</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-muted-foreground">{isAr ? 'الدورات المغطاة' : 'Periods covered'}</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.periodsAdvanced}</span></div>
                       )}
-                      <div className="flex justify-between text-xs border-t pt-1"><span className="text-muted-foreground">تاريخ الاستحقاق القادم</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.newDate}</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">{hasCredit ? 'الرصيد' : 'الرصيد القادم'}</span><span className="font-bold" style={{ color: balanceColor }}>{(hasCredit ? preview.summary.credit : preview.summary.newBalance).toLocaleString()} د.إ{hasCredit ? ' (كريديت)' : ''}{isPartialPay ? ' (متأخر)' : ''}</span></div>
+                      <div className="flex justify-between text-xs border-t pt-1"><span className="text-muted-foreground">{isAr ? 'تاريخ الاستحقاق القادم' : 'Next due date'}</span><span className="font-bold" style={{ color: '#1B2B4B' }}>{preview.summary.newDate}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">{hasCredit ? (isAr ? 'الرصيد' : 'Credit') : (isAr ? 'الرصيد القادم' : 'Next balance')}</span><span className="font-bold" style={{ color: balanceColor }}>{(hasCredit ? preview.summary.credit : preview.summary.newBalance).toLocaleString()} {isAr ? 'د.إ' : 'AED'}{hasCredit ? (isAr ? ' (كريديت)' : ' (credit)') : ''}{isPartialPay ? (isAr ? ' (متأخر)' : ' (overdue)') : ''}</span></div>
                     </div>
                   );
                 })()}
@@ -515,7 +516,7 @@ export default function Payments() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <div className="sm:col-span-2" ref={comboRef}>
               <div className="relative">
-                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   value={comboQuery}
                   onChange={e => {
@@ -526,13 +527,13 @@ export default function Payments() {
                     setUnitAlert(null);
                   }}
                   onClick={() => setComboOpen(true)}
-                  placeholder="ابحث برقم الوحدة أو اسم المستأجر..."
-                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  placeholder={isAr ? 'ابحث برقم الوحدة أو اسم المستأجر...' : 'Search by unit number or tenant name...'}
+                  className="w-full ps-9 pe-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                 />
                 {comboQuery && (
                   <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setUnitAlert(null); setComboOpen(false); }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <X size={13} />
                   </button>
                 )}
@@ -540,7 +541,7 @@ export default function Payments() {
                   <div className="absolute w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto" style={{ zIndex: 9999 }}>
                     {filteredComboUnits.map(u => (
                       <button key={u.id} type="button" onClick={() => handleUnitSelect(u)}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
+                        className="w-full text-start px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
                         <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
                         {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
                       </button>
@@ -552,7 +553,11 @@ export default function Payments() {
 
             <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>{t('paymentDate')} *</Label><Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label>{t('dueMonth')} *</Label><Input value={form.due_months} onChange={e => setForm(p => ({ ...p, due_months: e.target.value }))} placeholder="مثال: يوليو 2026" /></div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label>{t('dueMonths')} *</Label>
+              <DueMonthsPicker value={form.due_months} onChange={v => setForm(p => ({ ...p, due_months: v }))}
+                unitNumber={form.unit_number} excludeId={editItem?.id} suggest={!editItem} />
+            </div>
             <div className="space-y-1.5">
               <Label>{t('paymentMethod')}</Label>
               <Select value={form.payment_method} onValueChange={v => setForm(p => ({ ...p, payment_method: v }))}>
@@ -587,19 +592,19 @@ export default function Payments() {
               {receiptUrl ? (
                 <div className="w-full rounded-lg border border-border bg-muted overflow-hidden">
                   {receiptUrl.toLowerCase().endsWith('.pdf') ? (
-                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
+                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'View PDF'}</a></div>
                   ) : (
                     <img src={receiptUrl} alt="receipt" className="w-full max-h-52 object-contain p-2" />
                   )}
                   <div className="flex items-center justify-between px-3 py-2 bg-green-50 border-t border-green-100">
-                    <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> تم رفع الإيصال بنجاح</span>
-                    <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><X size={12} /> حذف</button>
+                    <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> {isAr ? 'تم رفع الإيصال بنجاح' : 'Receipt uploaded successfully'}</span>
+                    <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><X size={12} /> {isAr ? 'حذف' : 'Remove'}</button>
                   </div>
                 </div>
               ) : (
                 <label className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:border-amber-400 hover:bg-amber-50/40 transition-colors cursor-pointer">
                   <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>جارٍ الرفع...</span></> : <><ImagePlus size={22} style={{ color: '#C9A84C' }} /><span>اضغط لرفع صورة الإيصال أو PDF</span></>}
+                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>{isAr ? 'جارٍ الرفع...' : 'Uploading...'}</span></> : <><ImagePlus size={22} style={{ color: '#C9A84C' }} /><span>{isAr ? 'اضغط لرفع صورة الإيصال أو PDF' : 'Click to upload a receipt image or PDF'}</span></>}
                 </label>
               )}
             </div>

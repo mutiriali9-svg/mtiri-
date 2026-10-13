@@ -124,7 +124,7 @@ export default function ReReports() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <StatCard title="صافي الإيراد" titleEn="Net Revenue" value={`${totalRevenue.toLocaleString()} AED`} subtitle={totalRecovery > 0 ? `${grossRevenue.toLocaleString()} + ${totalRecovery.toLocaleString()} − ${totalRefunds.toLocaleString()}` : `${grossRevenue.toLocaleString()} − ${totalRefunds.toLocaleString()}`} icon={TrendingUp} accentColor="navy" delay={0} />
-        <StatCard title="الاسترجاعات والخصومات" titleEn="Refunds & Deductions" value={`${totalRefunds.toLocaleString()} AED`} subtitle={`${yearRefunds.length}`} icon={RotateCcw} accentColor="gold" delay={40} />
+        <StatCard title="تسويات العقود" titleEn="Contract Settlements" value={`${totalRefunds.toLocaleString()} AED`} subtitle={`${yearRefunds.length}`} icon={RotateCcw} accentColor="gold" delay={40} />
         <StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${totalExpenses.toLocaleString()} AED`} subtitle={`${yearExpenses.length}`} icon={Receipt} accentColor="urgent" delay={80} />
         <StatCard title="صافي الربح" titleEn="Net Profit" value={`${netProfit.toLocaleString()} AED`} subtitle={lang === 'ar' ? 'صافي الإيراد − المصاريف' : 'Net revenue − expenses'} icon={DollarSign} accentColor="success" delay={160} />
         <StatCard title="هامش الربح" titleEn="Profit Margin" value={`${profitMargin}%`} subtitle="" icon={Percent} accentColor="gold" delay={240} />
@@ -224,7 +224,7 @@ export default function ReReports() {
             <thead>
               <tr className="border-b border-border">
                 {[t('month'), t('revenue'), t('totalExpensesR'), (lang === 'ar' ? 'الادخار' : 'Savings'), t('net'), t('margin')].map(h => (
-                  <th key={h} className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{h}</th>
+                  <th key={h} className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{h}</th>
                 ))}
               </tr>
             </thead>

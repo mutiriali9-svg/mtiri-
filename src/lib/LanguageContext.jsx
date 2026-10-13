@@ -27,7 +27,7 @@ export const t_data = {
 
     // Expense categories
     maintenance_cat: 'صيانة', salary: 'رواتب', utilities: 'خدمات', equipment: 'معدات',
-    cleaning: 'نظافة', admin: 'إدارية', marketing: 'تسويق', insurance: 'تأمين',
+    cleaning: 'نظافة', admin: 'إدارية', marketing: 'تسويق',
     savings_cat: 'مدخر في وديعة', other_cat: 'أخرى',
 
     // Dashboard
@@ -64,7 +64,7 @@ export const t_data = {
     searchPayments: 'بحث باسم المستأجر أو رقم الشقة او المنزل...',
     totalShown: 'إجمالي المبالغ المعروضة', paymentCount: 'عدد الدفعات',
     dueMonth: 'مستحق لشهر', paymentMethod: 'طريقة الدفع',
-    receiptNumber: 'رقم الإيصال', receiptImage: 'صورة الإيصال *',
+    receiptNumber: 'رقم الإيصال', receiptImage: 'صورة الإيصال',
     uploadReceipt: 'رفع صورة الإيصال', editPayment: 'تعديل الدفعة',
     addPayment: 'تسجيل دفعة جديدة', savePayment: 'حفظ الدفعة',
     noPayments: 'لا توجد دفعات', deletePaymentConfirm: 'هل أنت متأكد من حذف هذه الدفعة؟',
@@ -146,151 +146,6 @@ export const t_data = {
     tryLogout: 'تسجيل الخروج وإعادة الدخول',
   },
   en: {
-    // Nav
-    dashboard: 'Dashboard', units: 'Units', payments: 'Payments',
-    expenses: 'Expenses', reports: 'Reports', investors: 'Investors',
-    savings: 'Savings', dataEntry: 'Data Entry',
-    owner: 'Owner', dataEntryRole: 'Data Entry', logout: 'Logout',
-
-    // Common
-    add: 'Add', save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit',
-    search: 'Search', all: 'All', notes: 'Notes', date: 'Date',
-    amount: 'Amount', saving_: 'Saving...', uploading: 'Uploading...',
-    apply: 'Apply Filter', reset: 'Reset', clear: 'Clear', year: 'Year',
-    total: 'Total', status: 'Status', actions: '',
-    noData: 'No data', from: 'From', to: 'To', details: 'Details',
-
-    // Status
-    occupied: 'Occupied', vacant: 'Vacant', maintenance: 'Maintenance',
-    paid: 'Paid', pending: 'Pending', late: 'Late',
-
-    // Payment methods
-    cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque', other: 'Other',
-
-    // Expense categories
-    maintenance_cat: 'Maintenance', salary: 'Salary', utilities: 'Utilities', equipment: 'Equipment',
-    cleaning: 'Cleaning', admin: 'Admin', marketing: 'Marketing', insurance: 'Insurance',
-    savings_cat: 'Deposit Savings', other_cat: 'Other',
-
-    // Dashboard
-    dashTitle: 'Dashboard', dashSub: 'Comprehensive view of real estate portfolio performance',
-    netIncome: 'Net Income', totalCollected: 'Total Collected',
-    totalExpenses_: 'Total Expenses', occupancyRate: 'Occupancy Rate',
-    revenueMinusExpenses: 'Revenue - Expenses',
-    monthlyPayments: 'Monthly Collections', expiringContracts: 'Expiring Contracts',
-    noPaymentsYet: 'No payment data yet', noExpiring: 'No contracts expiring within 90 days',
-    recentPayments: 'Recent Payments', viewAll: 'View All',
-    tenant: 'Tenant', unit: 'Unit', paymentDate: 'Date',
-    noPaymentsRegistered: 'No payments registered',
-    fromDate: 'From Date', toDate: 'To Date',
-    days: 'days',
-    paymentsCount: 'payments',
-    expensesCount: 'expenses',
-
-    // Units
-    unitsTitle: 'Residential Units', addUnit: 'Add Unit',
-    unitNumber: 'Unit No.', tenantName: 'Tenant Name', nationality: 'Nationality',
-    annualRent: 'Annual Rent', paymentPlan: 'Payment Plan', contractEnd: 'Contract End',
-    searchUnits: 'Search by unit number or tenant name...',
-    allStatuses: 'All Statuses', editUnit: 'Edit Unit', addNewUnit: 'Add New Unit',
-    floor: 'Floor', insurance: 'Insurance', ownerPhone: 'Owner Phone',
-    contractStart: 'Contract Start Date', contractEndDate: 'Contract End Date',
-    contractImage: 'Contract Image', uploadContract: 'Upload Contract',
-    viewContract: 'View Contract', noUnitsFound: 'No units match search',
-    deleteUnitConfirm: 'Are you sure you want to delete this unit?',
-    unitUpdated: 'Unit updated', unitAdded: 'Unit added successfully',
-    unitDeleted: 'Unit deleted', expired: 'Expired',
-    edit: 'Edit', delete: 'Delete',
-    uploading: 'Uploading...', saving_: 'Saving...', save: 'Save', cancel: 'Cancel', addNewUnit: 'Add New Unit',
-
-    // Payments
-    paymentsTitle: 'Payment Ledger', registerPayment: 'Register Payment',
-    searchPayments: 'Search by tenant name or unit number...',
-    totalShown: 'Total Amount Shown', paymentCount: 'Payment Count',
-    dueMonth: 'Due Month', paymentMethod: 'Payment Method',
-    receiptNumber: 'Receipt No.', receiptImage: 'Receipt Image (Optional)',
-    uploadReceipt: 'Upload Receipt', editPayment: 'Edit Payment',
-    addPayment: 'Register New Payment', savePayment: 'Save Payment',
-    noPayments: 'No payments', deletePaymentConfirm: 'Are you sure you want to delete this payment?',
-    paymentUpdated: 'Payment updated', paymentAdded: 'Payment added successfully ✓',
-    paymentDeleted: 'Payment deleted', noneUnit: '— None —',
-    allStatuses_pay: 'All Statuses', amountAED: 'Amount (AED) *',
-
-    // Expenses
-    expensesTitle: 'Expenses & Costs', addExpense: 'Add Expense',
-    searchExpenses: 'Search by description or vendor...', totalExpensesShown: 'Total Expenses Shown',
-    expenseCount: 'Expense Count', category: 'Category', vendor: 'Vendor',
-    invoiceNumber: 'Invoice No.', invoiceImage: 'Invoice Image',
-    uploadInvoice: 'Upload Invoice', editExpense: 'Edit Expense',
-    addNewExpense: 'Add New Expense', saveExpense: 'Save Expense',
-    expenseDetails: 'Expense Details *', noExpenses: 'No expenses',
-    deleteExpenseConfirm: 'Are you sure you want to delete this expense?',
-    expenseUpdated: 'Expense updated', expenseAdded: 'Expense added successfully',
-    expenseDeleted: 'Expense deleted', allCategories: 'All Categories',
-    optionalUnit: 'Unit No. (Optional)',
-
-    // Reports
-    reportsTitle: 'Financial Reports', reportsSubTitle: 'Comprehensive financial analysis of the real estate portfolio',
-    totalRevenue: 'Total Revenue', totalExpensesR: 'Total Expenses',
-    netProfit: 'Net Profit', profitMargin: 'Profit Margin',
-    monthlyRevenueVsExpenses: 'Monthly Revenue vs Expenses',
-    noDataForYear: 'No data for this year', monthlyNetProfit: 'Monthly Net Profit',
-    expenseByCategory: 'Expense Breakdown by Category', noExpenseData: 'No expenses',
-    monthlyFinancialSummary: 'Monthly Financial Summary', month: 'Month',
-    revenue: 'Revenue', net: 'Net', margin: 'Profit Margin', totalRow: 'Total',
-    monthlyNetProfitSub: 'Monthly Net Profit', expenseCategorySub: 'Expense Breakdown by Category',
-
-    // Investors - English
-    investorsTitle_en: 'Investors', filterByDate_en: 'Filter by Date',
-    totalRevenueI_en: 'Total Revenue', totalExpensesI_en: 'Total Expenses',
-    netProfitI_en: 'Net Profit', clickForDetails_en: 'Click for details',
-    revenueDetails_en: 'Revenue Details', expensesDetails_en: 'Expenses Details',
-    profitSummary_en: 'Net Profit Summary', investorShares_en: 'Investor Shares',
-    totalShares_en: 'Total Shares', investorName_en: 'Investor', sharePct_en: 'Share %',
-    revShare_en: 'Revenue Share', expShare_en: 'Expense Share', netShare_en: 'Net Share',
-    totalRow_i_en: 'Total', noPaymentsPeriod_en: 'No payments in this period',
-    noExpensesPeriod_en: 'No expenses in this period',
-    description_col_en: 'Description', subTotal_en: 'Total',
-    year_en: 'Year', selectYear_en: 'Select Year',
-
-    // Savings - English
-    savingsTitle_en: 'Savings', savingsSubTitle_en: 'Amounts saved in deposit',
-    addSaving: 'Add Saving', totalSavings: 'Total Savings in Deposit',
-    savingsRecord: 'Savings Record', noSavings: 'No savings yet',
-    addSavingTitle: 'Add Saving Amount', savingsDescription: 'Description *',
-    savingsAmount: 'Amount *', savingsDate: 'Date *', savingAdded: 'Added successfully',
-    savingDeleted: 'Deleted successfully', confirmDeleteSaving: 'Delete this saving amount?',
-    fillRequired: 'Please fill all required fields',
-
-    // DataEntry - English
-    dataEntryTitle_en: 'Data Entry', registerPaymentTab_en: 'Register Payment',
-    addExpenseTab: 'Add Expense', fullName: 'Full Name',
-    savePaymentDE: 'Save Payment', saveExpenseDE: 'Save Expense',
-    paymentSavedSuccess: 'Payment saved successfully!', expenseSavedSuccess: 'Expense saved successfully!',
-    dueMonths: 'Due Months', uploadOrCapture: 'Upload receipt or capture',
-    uploadOrCaptureInvoice: 'Upload invoice or capture',
-
-    // UnitDetails - English
-    backToUnits_en: 'Back to Units', unitLabel_en: 'Unit',
-    noTenant: 'No Tenant', annualRentLabel: 'Annual Rent',
-    contractStartLabel: 'Contract Start', contractEndLabel: 'Contract End',
-    ownerPhoneLabel: 'Owner Phone', paymentPlanLabel: 'Payment Plan',
-    notesLabel: 'Notes', totalCollectedLabel: 'Total Collected',
-    paymentCountLabel: 'Payment Count', lastPayment: 'Last Payment',
-    paymentRecord: 'Payment Record', fromLabel: 'From', toLabel: 'To',
-    periodTotal: 'Total collected in this period', noPaymentsUnit: 'No payments for this unit',
-    noMatchingResults: 'No matching results', unitNotFound: 'Unit not found',
-
-    // Access error - English
-    accessRestricted_en: 'Access Restricted',
-    notRegistered_en: 'You are not registered to use this application. Please contact the app administrator.',
-    ifError_en: 'If you believe this is an error, you can:',
-    checkAccount_en: 'Verify you are logged in with the correct account',
-    contactAdmin_en: 'Contact the app administrator for access',
-    tryLogout_en: 'Try logging out and back in again',
-  },
-
-  en: {
     // Navigation
     dashboard: 'Dashboard', units: 'Units', payments: 'Payments',
     expenses: 'Expenses', reports: 'Reports', savings: 'Savings',
@@ -305,7 +160,7 @@ export const t_data = {
     monthlyRevenue: 'Monthly Revenue', upcomingExpirations: 'Upcoming Contract Expirations',
     contractEnding: 'contracts ending', days: 'days', viewDetails: 'View Details',
     recentPayments: 'Recent Payments', noRecentPayments: 'No recent payments',
-    tenant: 'Tenant', amount: 'Amount', date: 'Date', status: 'Status',
+    tenant: 'Tenant', amount: 'Amount', date: 'Date',
     paid: 'Paid', pending: 'Pending', late: 'Late',
 
     // Units
@@ -334,7 +189,7 @@ export const t_data = {
     searchPayments: 'Search by tenant name or unit number...',
     totalShown: 'Total Amount Shown', paymentCount: 'Payment Count',
     dueMonth: 'Due Month', paymentMethod: 'Payment Method',
-    receiptNumber: 'Receipt No.', receiptImage: 'Receipt Image (Optional)',
+    receiptNumber: 'Receipt No.', receiptImage: 'Receipt Image',
     uploadReceipt: 'Upload Receipt', editPayment: 'Edit Payment',
     addPayment: 'Register New Payment', savePayment: 'Save Payment',
     noPayments: 'No payments', deletePaymentConfirm: 'Are you sure you want to delete this payment?',
@@ -415,6 +270,35 @@ export const t_data = {
     checkAccount: 'Verify you are logged in with the correct account',
     contactAdmin: 'Contact the app administrator for access',
     tryLogout: 'Try logging out and back in again',
+
+    // Nav
+    owner: 'Owner', dataEntryRole: 'Data Entry',
+
+    // Common
+    add: 'Add', search: 'Search', all: 'All', apply: 'Apply Filter', reset: 'Reset',
+    clear: 'Clear', total: 'Total', actions: '', noData: 'No data', from: 'From', to: 'To',
+    details: 'Details',
+
+    // Payment methods
+    cash: 'Cash', bank_transfer: 'Bank Transfer', cheque: 'Cheque', other: 'Other',
+
+    // Expense categories
+    maintenance_cat: 'Maintenance', salary: 'Salary', utilities: 'Utilities',
+    equipment: 'Equipment', cleaning: 'Cleaning', admin: 'Admin', marketing: 'Marketing',
+    savings_cat: 'Deposit Savings', other_cat: 'Other',
+
+    // Dashboard
+    dashTitle: 'Dashboard', dashSub: 'Comprehensive view of real estate portfolio performance',
+    totalExpenses_: 'Total Expenses', revenueMinusExpenses: 'Revenue - Expenses',
+    monthlyPayments: 'Monthly Collections', expiringContracts: 'Expiring Contracts',
+    noPaymentsYet: 'No payment data yet', noExpiring: 'No contracts expiring within 90 days',
+    viewAll: 'View All', unit: 'Unit', paymentDate: 'Date',
+    noPaymentsRegistered: 'No payments registered', fromDate: 'From Date', toDate: 'To Date',
+    paymentsCount: 'payments', expensesCount: 'expenses',
+
+    // Units
+    contractEnd: 'Contract End',
+    deleteUnitConfirm: 'Are you sure you want to delete this unit?',
   }
 };
 

@@ -35,6 +35,8 @@ export default function Dashboard() {
   const [units, setUnits] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [refunds, setRefunds] = useState([]);
+  const [recoveries, setRecoveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -54,14 +56,18 @@ export default function Dashboard() {
   const MONTHS = isAr ? MONTHS_AR : MONTHS_EN;
 
   const loadData = useCallback(async () => {
-    const [u, p, e] = await Promise.all([
+    const [u, p, e, r, dd] = await Promise.all([
       base44.entities.Unit.list(),
       base44.entities.Payment.list(),
       base44.entities.Expense.list(),
+      base44.entities.Refund.list().catch(() => []),
+      base44.entities.DepositDeduction.list().catch(() => []),
     ]);
     setUnits(u);
     setPayments(p);
     setExpenses(e);
+    setRefunds((r || []).filter(x => x.property_type === 'qarya'));
+    setRecoveries((dd || []).filter(x => x.property_type === 'qarya' && x.destination === 'owner_recovery'));
     setLoading(false);
   }, []);
 
@@ -91,8 +97,18 @@ export default function Dashboard() {
 
   const totalCollected = filteredPayments.reduce((s, p) => s + (p.amount || 0), 0);
   const totalExpenses = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-  const netIncome = totalCollected - totalExpenses;
-  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const inKpi = (d) => {
+    if (!d) return false;
+    if (kpiYearFilter !== 'all' && !d.startsWith(kpiYearFilter)) return false;
+    if (!filtered || (!dateFrom && !dateTo)) return true;
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
+    return true;
+  };
+  const totalRefunds = refunds.filter(r => inKpi(r.applies_to_date || r.refund_date)).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const totalRecovery = recoveries.filter(x => inKpi(x.deduction_date)).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const netIncome = totalCollected + totalRecovery - totalRefunds - totalExpenses;
+  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString(isAr ? 'ar-AE' : 'en-GB') : n.toLocaleString(isAr ? 'ar-AE' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const occupiedUnits = units.filter(u => u.status === 'occupied').length;
   const vacantUnits = units.filter(u => u.status === 'vacant').length;
   const maintenanceUnits = units.filter(u => u.status === 'maintenance').length;
@@ -134,7 +150,10 @@ export default function Dashboard() {
     const exp = expenses
       .filter(e => e.expense_date && e.category !== 'savings' && isValid(parseISO(e.expense_date)) && getYear(parseISO(e.expense_date)) === yearFilter && getMonth(parseISO(e.expense_date)) === idx)
       .reduce((s, e) => s + (e.amount || 0), 0);
-    return { name, revenue, expenses: exp };
+    const inMonth = (d) => d && isValid(parseISO(d)) && getYear(parseISO(d)) === yearFilter && getMonth(parseISO(d)) === idx;
+    const refunded = refunds.filter(r => inMonth(r.applies_to_date || r.refund_date)).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    const recovered = recoveries.filter(x => inMonth(x.deduction_date)).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    return { name, revenue: revenue + recovered - refunded, expenses: exp };
   }).filter(m => m.revenue > 0 || m.expenses > 0);
 
   if (loading) {
@@ -199,7 +218,11 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} subtitle={t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
+        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} subtitle={totalRefunds || totalRecovery
+          ? (isAr
+            ? `بعد خصم تسويات العقود ${fmt(totalRefunds)}${totalRecovery ? ` وإضافة استردادات التأمين ${fmt(totalRecovery)}` : ''}`
+            : `After ${fmt(totalRefunds)} in contract settlements${totalRecovery ? ` and ${fmt(totalRecovery)} in deposit recoveries` : ''}`)
+          : t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
 <StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} ${currency}`} subtitle={`${filteredPayments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/payments" />
 <StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpenses)} ${currency}`} subtitle={`${filteredExpenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/expenses" />
         <StatCard title="نسبة الإشغال" titleEn="Occupancy Rate" value={`${occupancyRate}%`} subtitle={`${occupiedUnits} / ${units.length}`} icon={Building2} accentColor="gold" delay={240} href="/units"
@@ -294,10 +317,10 @@ export default function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('tenant')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('unit')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{t('paymentDate')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('tenant')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('unit')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('amount')}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{t('paymentDate')}</th>
               </tr>
             </thead>
             <tbody className="table-striped">
@@ -322,7 +345,7 @@ export default function Dashboard() {
                 <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{maskName(p.tenant_name)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{t('unit')}: {p.unit_number || '-'}</p>
               </div>
-              <div className="text-left flex-shrink-0">
+              <div className="text-end flex-shrink-0">
                 <p className="text-sm font-semibold" style={{ color: '#2A9D8F' }}>{fmt(p.amount || 0)} AED</p>
                 <p className="text-xs text-muted-foreground">{p.payment_date}</p>
               </div>
@@ -344,10 +367,10 @@ export default function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'البيان' : 'Description'}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التصنيف' : 'Category'}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'المبلغ' : 'Amount'}</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التاريخ' : 'Date'}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'البيان' : 'Description'}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التصنيف' : 'Category'}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'المبلغ' : 'Amount'}</th>
+                <th className="text-start py-2 px-3 text-muted-foreground font-medium text-xs">{isAr ? 'التاريخ' : 'Date'}</th>
               </tr>
             </thead>
             <tbody className="table-striped">
@@ -372,7 +395,7 @@ export default function Dashboard() {
                 <p className="font-medium text-sm truncate" style={{ color: '#1B2B4B' }}>{e.description}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{expCategoryAr[e.category] || e.category || '-'}</p>
               </div>
-              <div className="text-left flex-shrink-0">
+              <div className="text-end flex-shrink-0">
                 <p className="text-sm font-semibold" style={{ color: '#E63946' }}>{fmt(e.amount || 0)} AED</p>
                 <p className="text-xs text-muted-foreground">{e.expense_date}</p>
               </div>

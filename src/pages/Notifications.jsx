@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Bell, CreditCard, Receipt, ArrowRight, X, Image, FileText, Calendar, Hash, Building2, User, ShieldCheck, RotateCcw, MinusCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Bell, CreditCard, Receipt, X, Image, FileText, Calendar, Hash, Building2, User, ShieldCheck, RotateCcw, MinusCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -45,7 +44,6 @@ export default function Notifications() {
   const { user } = useAuth();
   const { lang } = useLang();
   const isAr = lang === 'ar';
-  const navigate = useNavigate();
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -87,9 +85,6 @@ export default function Notifications() {
   return (
     <div className="space-y-5 animate-fade-in-up overflow-x-hidden" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/dashboard')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-          <ArrowRight size={18} />
-        </button>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(201,168,76,0.15)' }}>
           <Bell size={20} style={{ color: '#C9A84C' }} />
         </div>

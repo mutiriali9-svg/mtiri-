@@ -16,6 +16,7 @@ import MobileDrawerSelect from '@/components/MobileDrawerSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import DueMonthsPicker from '@/components/DueMonthsPicker';
 import {
   PAYMENT_PLANS, getNextDateFromPlan,
   paidAheadLabel, applyAlertPayment, getAccrued, getAlertState,
@@ -72,6 +73,7 @@ export default function SmartAlerts() {
   const isInvestor = user?.role === 'investor';
 
   const t = (ar, en) => lang === 'en' ? en : ar;
+  const isAr = lang !== 'en';
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -294,7 +296,7 @@ export default function SmartAlerts() {
 
     const plan = alertRec.payment_plan || 'monthly';
     const planObj = PAYMENT_PLANS.find(p => p.value === plan);
-    const planLabel = planObj?.label[lang] || planObj?.label.ar || 'شهري';
+    const planLabel = planObj?.label[lang] || planObj?.label.ar || (isAr ? 'شهري' : 'Monthly');
     const result = applyAlertPayment(alertRec, paidAmount, paymentInput.payment_date);
 
     const alertUpdatePayload = { ...result.payload };
@@ -492,7 +494,7 @@ export default function SmartAlerts() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto" dir="rtl">
+    <div className="space-y-6 animate-fade-in-up max-w-7xl mx-auto" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -572,7 +574,7 @@ export default function SmartAlerts() {
                     <span className="text-sm">{a.tenant_name}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>{planLabel}</span>
                     {daysInfo && (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full mr-auto"
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full ms-auto"
                         style={{ backgroundColor: `${daysInfo.color}18`, color: daysInfo.color }}>
                         {daysInfo.text}
                       </span>
@@ -585,7 +587,7 @@ export default function SmartAlerts() {
 
                     {/* أزرار العمل */}
                     {(isAdmin || isDataEntry) && (
-                      <div className="flex items-center gap-2 mr-auto">
+                      <div className="flex items-center gap-2 ms-auto">
                         <Button size="sm" onClick={() => openPaymentModal(a)}
                           className="text-xs h-7 gap-1"
                           style={{ backgroundColor: '#2A9D8F' }}>
@@ -653,9 +655,9 @@ export default function SmartAlerts() {
         <div className="flex-1 min-w-48">
           <Label className="text-xs text-muted-foreground mb-1 block">{t('بحث بالمستأجر / الوحدة', 'Search tenant / unit')}</Label>
           <div className="relative">
-            <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input value={searchTenant} onChange={e => setSearchTenant(e.target.value)}
-              placeholder={t('اسم المستأجر أو رقم الوحدة...', 'Tenant name or unit number...')} className="pr-9 text-sm" />
+              placeholder={t('اسم المستأجر أو رقم الوحدة...', 'Tenant name or unit number...')} className="ps-9 text-sm" />
           </div>
         </div>
         <div>
@@ -664,10 +666,10 @@ export default function SmartAlerts() {
             value={filterProperty}
             onValueChange={setFilterProperty}
             triggerClassName="w-40 text-sm"
-            dir="rtl"
+            dir={isAr ? 'rtl' : 'ltr'}
             options={[
               { value: 'all', label: t('الكل', 'All') },
-              { value: 'qarya', label: t('بناية القرية', 'Qarya Villa') },
+              { value: 'qarya', label: t('بناية القرية', 'Qarya') },
               { value: 'real_estate', label: t('العقارات', 'Real Estate') },
             ]}
           />
@@ -678,7 +680,7 @@ export default function SmartAlerts() {
             value={filterUnit}
             onValueChange={setFilterUnit}
             triggerClassName="w-36 text-sm"
-            dir="rtl"
+            dir={isAr ? 'rtl' : 'ltr'}
             options={[
               { value: 'all', label: t('الكل', 'All') },
               ...uniqueUnits.map(u => ({ value: u, label: `${t('وحدة', 'Unit')} ${u}` })),
@@ -691,7 +693,7 @@ export default function SmartAlerts() {
             value={filterStatus}
             onValueChange={setFilterStatus}
             triggerClassName="w-32 text-sm"
-            dir="rtl"
+            dir={isAr ? 'rtl' : 'ltr'}
             options={[
               { value: 'all', label: t('الكل', 'All') },
               { value: 'active', label: t('نشط', 'Active') },
@@ -728,7 +730,7 @@ export default function SmartAlerts() {
             return (
               <div key={alertRec.id} onClick={() => setViewAlert(alertRec)} className="bg-white card-bevel rounded-xl overflow-hidden transition-all cursor-pointer hover:shadow-md"
                 style={{
-                  borderRight: isOverdue ? '4px solid #E63946' : '4px solid transparent',
+                  borderInlineStart: isOverdue ? '4px solid #E63946' : '4px solid transparent',
                   backgroundColor: isOverdue ? 'rgba(230,57,70,0.02)' : undefined,
                 }}>
                 <div className="p-4 flex items-center gap-4 flex-wrap">
@@ -820,7 +822,7 @@ export default function SmartAlerts() {
 
       {/* View Alert Detail Dialog */}
       <Dialog open={!!viewAlert} onOpenChange={(v) => { if (!v) setViewAlert(null); }}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md" dir={isAr ? 'rtl' : 'ltr'}>
           <DialogHeader>
             <DialogTitle>{t('تفاصيل التنبيه', 'Alert Details')} — {t('وحدة', 'Unit')} {viewAlert?.unit_number}</DialogTitle>
           </DialogHeader>
@@ -896,7 +898,7 @@ export default function SmartAlerts() {
 
       {/* Unit Detail Modal */}
       <Dialog open={!!unitDetailModal} onOpenChange={(v) => { if (!v) setUnitDetailModal(null); }}>
-        <DialogContent className="max-w-sm" dir="rtl">
+        <DialogContent className="max-w-sm" dir={isAr ? 'rtl' : 'ltr'}>
           <DialogHeader>
             <DialogTitle>{t('بيانات الوحدة', 'Unit Details')} — {unitDetailModal?.unit_number}</DialogTitle>
           </DialogHeader>
@@ -916,7 +918,7 @@ export default function SmartAlerts() {
                 ].filter(r => r.value).map(row => (
                   <div key={row.label} className="flex justify-between gap-2">
                     <span className="text-muted-foreground text-xs">{row.label}</span>
-                    <span className="font-medium text-xs text-right" style={{ color: '#1B2B4B' }}>{row.value}</span>
+                    <span className="font-medium text-xs text-start" style={{ color: '#1B2B4B' }}>{row.value}</span>
                   </div>
                 ))}
               </div>
@@ -948,7 +950,7 @@ export default function SmartAlerts() {
 
       {/* Data Entry Payment Modal */}
       <Dialog open={!!paymentModal} onOpenChange={(v) => { if (!v && !paymentSaving) { setPaymentModal(null); setPaymentError(''); } }}>
-        <DialogContent className="max-w-sm" dir="rtl" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <DialogContent className="max-w-sm" dir={isAr ? 'rtl' : 'ltr'} style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <DialogHeader className="flex-shrink-0 pb-2 border-b">
             <DialogTitle>{t('رفع دفعة جديدة', 'Submit Payment')}</DialogTitle>
           </DialogHeader>
@@ -1014,12 +1016,12 @@ export default function SmartAlerts() {
 
                 {/* مستحق لشهر - إجباري */}
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold">{t('مستحق لشهر *', 'Due Month *')}</Label>
-                  <Input
+                  <Label className="text-sm font-semibold">{t('الأشهر المستحقة *', 'Due Months *')}</Label>
+                  <DueMonthsPicker
                     value={paymentInput.due_months || ''}
-                    onChange={e => setPaymentInput(p => ({ ...p, due_months: e.target.value }))}
-                    placeholder={t('مثال: يوليو 2026', 'e.g. July 2026')}
-                    className="text-sm"
+                    onChange={v => setPaymentInput(p => ({ ...p, due_months: v }))}
+                    unitNumber={paymentModal.unit_number}
+                    suggest
                   />
                 </div>
 
@@ -1031,7 +1033,7 @@ export default function SmartAlerts() {
                     onValueChange={v => setPaymentInput(p => ({ ...p, payment_method: v }))}
                     placeholder={t('اختر طريقة الدفع...', 'Select method...')}
                     triggerClassName="text-sm w-full"
-                    dir="rtl"
+                    dir={isAr ? 'rtl' : 'ltr'}
                     options={PAYMENT_METHODS.map(m => ({ value: m.value, label: m.label[lang] }))}
                   />
                 </div>
@@ -1135,9 +1137,9 @@ export default function SmartAlerts() {
                     </div>
                   ) : paymentInput.receipt_url ? (
                     <div className="relative">
-                      <img src={paymentInput.receipt_url} alt="إيصال" className="w-full max-h-48 object-contain rounded-xl border border-border" />
+                      <img src={paymentInput.receipt_url} alt={isAr ? 'إيصال' : 'Receipt'} className="w-full max-h-48 object-contain rounded-xl border border-border" />
                       <button type="button" onClick={() => setPaymentInput(p => ({ ...p, receipt_url: '' }))}
-                        className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5">
+                        className="absolute top-2 end-2 bg-red-500 text-white rounded-full p-0.5">
                         <X size={14} />
                       </button>
                     </div>
@@ -1177,7 +1179,7 @@ export default function SmartAlerts() {
 
                 <div className="flex gap-2 pt-1 pb-1">
                   <Button onClick={handleDataEntryPaid}
-                    disabled={paymentSaving || receiptUploading || !paymentInput.amount || !paymentInput.payment_date || !paymentInput.payment_method || !paymentInput.receipt_url}
+                    disabled={paymentSaving || receiptUploading || !paymentInput.amount || !paymentInput.payment_date || !paymentInput.payment_method || (!paymentInput.receipt_url && !isAdmin)}
                     className="flex-1 gap-2" style={{ backgroundColor: '#2A9D8F' }}>
                     <CheckCircle2 size={15} />
                     {paymentSaving ? t('جاري الحفظ...', 'Saving...') : t('تأكيد الدفعة', 'Confirm Payment')}
@@ -1193,7 +1195,7 @@ export default function SmartAlerts() {
       {/* Form Dialog - Admin Only */}
       {isAdmin && (
         <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-md w-full" dir="rtl" style={{ maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <DialogContent className="max-w-md w-full" dir={isAr ? 'rtl' : 'ltr'} style={{ maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <DialogHeader className="flex-shrink-0 pb-2 border-b">
               <DialogTitle className="text-base">{editing ? t('تعديل التنبيه', 'Edit Alert') : t('إضافة تنبيه دفعة', 'Add Payment Alert')}</DialogTitle>
             </DialogHeader>
@@ -1208,7 +1210,7 @@ export default function SmartAlerts() {
                   onValueChange={handleUnitSelect}
                   placeholder={t('اختر وحدة...', 'Select unit...')}
                   triggerClassName="text-sm h-9 w-full"
-                  dir="rtl"
+                  dir={isAr ? 'rtl' : 'ltr'}
                   options={allUnits.filter(u => u.tenant_name).map(u => ({
                     value: u.unit_number,
                     label: `${u.unit_number} — ${u.tenant_name} (${u._type === 'qarya' ? t('القرية', 'Qarya') : t('العقارات', 'RE')})`,
@@ -1230,7 +1232,7 @@ export default function SmartAlerts() {
                     value={form.property_type}
                     onValueChange={v => setForm(f => ({ ...f, property_type: v }))}
                     triggerClassName="text-sm h-9 w-full"
-                    dir="rtl"
+                    dir={isAr ? 'rtl' : 'ltr'}
                     options={[
                       { value: 'qarya', label: t('بناية القرية', 'Qarya') },
                       { value: 'real_estate', label: t('العقارات', 'Real Estate') },
@@ -1247,7 +1249,7 @@ export default function SmartAlerts() {
                     value={form.payment_plan}
                     onValueChange={v => setForm(f => ({ ...f, payment_plan: v }))}
                     triggerClassName="text-sm h-9 w-full"
-                    dir="rtl"
+                    dir={isAr ? 'rtl' : 'ltr'}
                     options={PAYMENT_PLANS.map(p => ({ value: p.value, label: p.label[lang] }))}
                   />
                 </div>

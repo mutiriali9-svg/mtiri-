@@ -6,6 +6,7 @@ import { PlusCircle, CheckCircle2, CreditCard, Camera, X, ImagePlus, Clock, Aler
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import DueMonthsPicker from '@/components/DueMonthsPicker';
 const PLAN_MONTHS = { monthly: 1, quarterly: 3, biannual: 6, annual: 12 };
 
 function calcSmartArrears(alert, paidNow) {
@@ -55,8 +56,10 @@ export default function DataEntry() {
   const [comboOpen, setComboOpen] = useState(false);
   const comboRef = useRef(null);
 
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isAr = lang === 'ar';
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -140,7 +143,7 @@ export default function DataEntry() {
       const { file_url } = await uploadFile(file);
       setPaymentImage(file_url);
     } catch {
-      showError('فشل رفع الصورة، حاول مرة أخرى');
+      showError(isAr ? 'فشل رفع الصورة، حاول مرة أخرى' : 'Image upload failed. Please try again.');
     }
     setUploadingP(false);
   };
@@ -150,15 +153,15 @@ export default function DataEntry() {
     const paidAmount = parseFloat(paymentForm.amount) || 0;
 
     const errors = [];
-    if (!paymentForm.tenant_name.trim()) errors.push('اسم المستأجر');
-    if (!paidAmount || paidAmount <= 0) errors.push('المبلغ');
-    if (!paymentForm.payment_date) errors.push('تاريخ الدفعة');
-    if (!paymentForm.payment_method) errors.push('طريقة الدفع');
-    if (!paymentForm.due_months.trim()) errors.push('الأشهر المستحقة');
-    if (!paymentImage) errors.push('صورة الإيصال');
+    if (!paymentForm.tenant_name.trim()) errors.push(isAr ? 'اسم المستأجر' : 'Tenant name');
+    if (!paidAmount || paidAmount <= 0) errors.push(isAr ? 'المبلغ' : 'Amount');
+    if (!paymentForm.payment_date) errors.push(isAr ? 'تاريخ الدفعة' : 'Payment date');
+    if (!paymentForm.payment_method) errors.push(isAr ? 'طريقة الدفع' : 'Payment method');
+    if (!paymentForm.due_months.trim()) errors.push(isAr ? 'الأشهر المستحقة' : 'Due months');
+    if (!paymentImage && !isAdmin) errors.push(isAr ? 'صورة الإيصال' : 'Receipt image');
 
     if (errors.length > 0) {
-      return showError(`يرجى إكمال: ${errors.join(' · ')}`);
+      return showError(isAr ? `يرجى إكمال: ${errors.join(' · ')}` : `Please complete: ${errors.join(' · ')}`);
     }
 
     setSaving(true);
@@ -227,9 +230,9 @@ export default function DataEntry() {
       setPaymentForm({ ...emptyPayment, payment_date: new Date().toISOString().split('T')[0] });
       setPaymentImage(null);
       setComboQuery('');
-      showSuccess('تم تسجيل الدفعة بنجاح ✓');
+      showSuccess(isAr ? 'تم تسجيل الدفعة بنجاح ✓' : 'Payment recorded successfully ✓');
     } catch (err) {
-      showError('حدث خطأ أثناء الحفظ، حاول مرة أخرى');
+      showError(isAr ? 'حدث خطأ أثناء الحفظ، حاول مرة أخرى' : 'An error occurred while saving. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -265,9 +268,9 @@ export default function DataEntry() {
 
           {/* Combobox: Unit + Tenant combined */}
           <div className="col-span-2 space-y-1.5" ref={comboRef}>
-            <Label>الوحدة / المستأجر</Label>
+            <Label>{isAr ? 'الوحدة / المستأجر' : 'Unit / Tenant'}</Label>
             <div className="relative">
-              <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 value={comboQuery}
                 onChange={e => {
@@ -277,14 +280,14 @@ export default function DataEntry() {
                   if (!e.target.value) handleClearUnit();
                 }}
                 onFocus={() => setComboOpen(true)}
-                placeholder="ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً..."
-                className="w-full pr-9 pl-8 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-0"
+                placeholder={isAr ? 'ابحث برقم الوحدة أو اسم المستأجر، أو اكتب اسماً جديداً...' : 'Search by unit number or tenant name, or type a new name...'}
+                className="w-full ps-9 pe-8 h-10 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-0"
                 style={{ '--tw-ring-color': 'rgba(27,43,75,0.3)' }}
                 autoComplete="off"
               />
               {comboQuery && (
                 <button type="button" onClick={handleClearUnit}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   <X size={14} />
                 </button>
               )}
@@ -294,7 +297,7 @@ export default function DataEntry() {
                 <div className="absolute z-50 w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-56 overflow-y-auto">
                   {filteredUnits.length === 0 ? (
                     <div className="px-4 py-3 text-sm text-muted-foreground">
-                      لا توجد وحدات — سيتم الحفظ باسم جديد
+                      {isAr ? 'لا توجد وحدات — سيتم الحفظ باسم جديد' : 'No units found — will be saved under a new name'}
                     </div>
                   ) : (
                     filteredUnits.map(u => (
@@ -302,7 +305,7 @@ export default function DataEntry() {
                         key={u.id}
                         type="button"
                         onClick={() => handleUnitSelect(u)}
-                        className="w-full text-right px-4 py-2.5 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors"
+                        className="w-full text-start px-4 py-2.5 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors"
                       >
                         <span>
                           <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
@@ -310,7 +313,7 @@ export default function DataEntry() {
                         </span>
                         <span className="text-xs px-1.5 py-0.5 rounded-full"
                           style={{ backgroundColor: 'rgba(201,168,76,0.1)', color: '#C9A84C' }}>
-                          {u._type === 're' ? 'عقارات' : 'القرية'}
+                          {u._type === 're' ? (isAr ? 'عقارات' : 'Real Estate') : (isAr ? 'القرية' : 'Qarya')}
                         </span>
                       </button>
                     ))
@@ -323,9 +326,9 @@ export default function DataEntry() {
                         setPaymentForm(f => ({ ...f, tenant_name: comboQuery, unit_number: '' }));
                         setComboOpen(false);
                       }}
-                      className="w-full text-right px-4 py-2.5 text-sm border-t hover:bg-muted/50 transition-colors flex items-center gap-2"
+                      className="w-full text-start px-4 py-2.5 text-sm border-t hover:bg-muted/50 transition-colors flex items-center gap-2"
                     >
-                      <span className="text-muted-foreground">استخدام:</span>
+                      <span className="text-muted-foreground">{isAr ? 'استخدام:' : 'Use:'}</span>
                       <span className="font-medium" style={{ color: '#1B2B4B' }}>"{comboQuery}"</span>
                     </button>
                   )}
@@ -335,7 +338,7 @@ export default function DataEntry() {
             {/* Show selected unit_number & tenant separately if selected */}
             {paymentForm.unit_number && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-                <span>وحدة: <strong style={{ color: '#1B2B4B' }}>{paymentForm.unit_number}</strong></span>
+                <span>{isAr ? 'وحدة:' : 'Unit:'} <strong style={{ color: '#1B2B4B' }}>{paymentForm.unit_number}</strong></span>
                 {paymentForm.tenant_name && <span>· {paymentForm.tenant_name}</span>}
               </div>
             )}
@@ -350,7 +353,7 @@ export default function DataEntry() {
           {/* Smart Arrears Card */}
           {alertLoading && (
             <div className="col-span-2 flex items-center gap-2 text-sm text-muted-foreground py-2">
-              <Clock size={14} className="animate-spin" /> جاري حساب المتأخرات...
+              <Clock size={14} className="animate-spin" /> {isAr ? 'جاري حساب المتأخرات...' : 'Calculating arrears...'}
             </div>
           )}
           {activeAlert && !alertLoading && (() => {
@@ -362,44 +365,44 @@ export default function DataEntry() {
               <div className="col-span-2 rounded-xl p-3 space-y-2.5 border" style={{ backgroundColor: 'rgba(230,57,70,0.04)', borderColor: 'rgba(230,57,70,0.2)' }}>
                 <div className="flex items-center gap-2 mb-1">
                   <AlertTriangle size={15} style={{ color: '#E63946' }} />
-                  <span className="font-bold text-sm" style={{ color: '#E63946' }}>حسبة ذكية للمتأخرات</span>
+                  <span className="font-bold text-sm" style={{ color: '#E63946' }}>{isAr ? 'حسبة ذكية للمتأخرات' : 'Smart Arrears Calculation'}</span>
                   {isPaidEarly && (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium mr-auto"
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium ms-auto"
                       style={{ backgroundColor: 'rgba(42,157,143,0.1)', color: '#2A9D8F' }}>
-                      دفع مبكر
+                      {isAr ? 'دفع مبكر' : 'Early Payment'}
                     </span>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(27,43,75,0.06)' }}>
-                    <p className="text-muted-foreground">الشهري</p>
+                    <p className="text-muted-foreground">{isAr ? 'الشهري' : 'Monthly'}</p>
                     <p className="font-bold mt-0.5" style={{ color: '#1B2B4B' }}>{monthly.toLocaleString()}</p>
                   </div>
                   {overdueAmt > 0 && (
                     <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(230,57,70,0.1)' }}>
-                      <p className="text-muted-foreground">متأخرات</p>
+                      <p className="text-muted-foreground">{isAr ? 'متأخرات' : 'Arrears'}</p>
                       <p className="font-bold mt-0.5" style={{ color: '#E63946' }}>{overdueAmt.toLocaleString()}</p>
                     </div>
                   )}
                   <div className="rounded-lg p-2" style={{ backgroundColor: 'rgba(201,168,76,0.12)' }}>
-                    <p className="text-muted-foreground">الإجمالي المستحق</p>
+                    <p className="text-muted-foreground">{isAr ? 'الإجمالي المستحق' : 'Total Due'}</p>
                     <p className="font-bold mt-0.5" style={{ color: '#C9A84C' }}>{remaining.toLocaleString()}</p>
                   </div>
                 </div>
                 {Number(paymentForm.amount) > 0 && (
                   <div className="space-y-1 pt-1 border-t" style={{ borderColor: 'rgba(230,57,70,0.15)' }}>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1"><Calculator size={12} /> الرصيد بعد الدفع</span>
+                      <span className="text-muted-foreground flex items-center gap-1"><Calculator size={12} /> {isAr ? 'الرصيد بعد الدفع' : 'Balance After Payment'}</span>
                       <span className="font-bold" style={{ color: newBalance <= 0 ? '#2A9D8F' : (isPaidEarly ? '#1B2B4B' : '#E63946') }}>
-                        {newBalance <= 0 ? '✓ مسدد بالكامل' : `${newBalance.toLocaleString()} AED متبقي`}
+                        {newBalance <= 0 ? (isAr ? '✓ مسدد بالكامل' : '✓ Paid in Full') : (isAr ? `${newBalance.toLocaleString()} AED متبقي` : `${newBalance.toLocaleString()} AED remaining`)}
                       </span>
                     </div>
                     {newBalance > 0 && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">نوع الدفعة</span>
+                        <span className="text-muted-foreground">{isAr ? 'نوع الدفعة' : 'Payment Type'}</span>
                         <span className="font-bold px-2 py-0.5 rounded-full text-xs"
                           style={{ backgroundColor: isPaidEarly ? 'rgba(42,157,143,0.1)' : 'rgba(201,168,76,0.12)', color: isPaidEarly ? '#2A9D8F' : '#B8860B' }}>
-                          {isPaidEarly ? 'دفع مبكر جزئي' : 'دفع جزئي'}
+                          {isPaidEarly ? (isAr ? 'دفع مبكر جزئي' : 'Partial Early Payment') : (isAr ? 'دفع جزئي' : 'Partial Payment')}
                         </span>
                       </div>
                     )}
@@ -409,12 +412,12 @@ export default function DataEntry() {
                   <button type="button" onClick={() => setP('amount', remaining)}
                     className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                     style={{ backgroundColor: 'rgba(201,168,76,0.15)', color: '#C9A84C' }}>
-                    سداد الكل ({remaining.toLocaleString()})
+                    {isAr ? 'سداد الكل' : 'Pay All'} ({remaining.toLocaleString()})
                   </button>
                   <button type="button" onClick={() => setP('amount', monthly)}
                     className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                     style={{ backgroundColor: 'rgba(27,43,75,0.08)', color: '#1B2B4B' }}>
-                    شهري فقط ({monthly.toLocaleString()})
+                    {isAr ? 'شهري فقط' : 'Monthly Only'} ({monthly.toLocaleString()})
                   </button>
                 </div>
               </div>
@@ -429,15 +432,16 @@ export default function DataEntry() {
             <Label>{t('date')} *</Label>
             <Input required type="date" value={paymentForm.payment_date} onChange={e => setP('payment_date', e.target.value)} />
           </div>
-          <div className="space-y-1.5">
+          <div className="col-span-2 space-y-1.5">
             <Label>{t('dueMonths')} *</Label>
-            <Input value={paymentForm.due_months} onChange={e => setP('due_months', e.target.value)} placeholder="مثال: يوليو 2026" />
+            <DueMonthsPicker value={paymentForm.due_months} onChange={v => setP('due_months', v)}
+              unitNumber={paymentForm.unit_number} suggest />
           </div>
           <div className="space-y-1.5">
             <Label>{t('paymentMethod')} *</Label>
             <select value={paymentForm.payment_method} onChange={e => setP('payment_method', e.target.value)}
               className="w-full h-9 border border-input rounded-md px-3 text-sm bg-transparent">
-              <option value="">— اختر —</option>
+              <option value="">{isAr ? '— اختر —' : '— Select —'}</option>
               <option value="cash">{t('cash')}</option>
               <option value="bank_transfer">{t('bank_transfer')}</option>
               <option value="cheque">{t('cheque')}</option>
@@ -452,12 +456,16 @@ export default function DataEntry() {
             <Input value={paymentForm.notes} onChange={e => setP('notes', e.target.value)} />
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label>{t('receiptImage')} *</Label>
+            <Label>
+              {t('receiptImage')}{isAdmin
+                ? <span className="text-muted-foreground font-normal"> ({isAr ? 'اختياري' : 'optional'})</span>
+                : ' *'}
+            </Label>
             {paymentImage ? (
               <div className="relative w-full rounded-lg overflow-hidden border border-border">
                 <img src={paymentImage} alt="receipt" className="w-full max-h-48 object-contain bg-muted" />
                 <button type="button" onClick={() => setPaymentImage(null)}
-                  className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                  className="absolute top-2 end-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
                   <X size={14} />
                 </button>
               </div>
@@ -473,7 +481,7 @@ export default function DataEntry() {
 
         <Button type="submit" disabled={saving || uploadingP} className="w-full gap-2" style={{ backgroundColor: '#1B2B4B' }}>
           <PlusCircle size={16} />
-          {saving ? t('saving_') : 'تسجيل الدفعة'}
+          {saving ? t('saving_') : (isAr ? 'تسجيل الدفعة' : 'Record Payment')}
         </Button>
       </form>
     </div>

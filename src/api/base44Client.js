@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { prepareUpload } from '@/utils/imageCompress';
+import { prepareUpload, uploadExtFor, uploadToken } from '@/utils/imageCompress';
 
 const APP_URL = 'https://www.mteiri-bm.com';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -65,13 +65,19 @@ const makeEntity = (tableName) => ({
 
 export const uploadFile = async (file, kind = 'proof') => {
   const prepared = await prepareUpload(file, kind);
-  const fileExt = prepared.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-  const { error } = await supabase.storage.from('mtiri').upload(fileName, prepared, { cacheControl: '3600', upsert: false, contentType: prepared.type || undefined });
+  const fileExt = uploadExtFor(prepared);
+  const fileName = `${Date.now()}-${uploadToken()}.${fileExt}`;
+  const { error } = await supabase.storage.from('mtiri').upload(fileName, prepared, { cacheControl: '3600', upsert: false, contentType: prepared.type });
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from('mtiri').getPublicUrl(fileName);
   return { file_url: publicUrl };
 };
+export const checkRegistration = async (email, username) => {
+  const { data, error } = await supabase.rpc('registration_check', { p_email: email || '', p_username: username || '' });
+  if (error) return { email_taken: false, username_taken: false };
+  return data;
+};
+
 export const base44 = {
   auth: {
     me: async () => {
@@ -129,15 +135,7 @@ export const base44 = {
   },
   integrations: {
     Core: {
-      UploadFile: async ({ file, kind = 'proof' }) => {
-        const prepared = await prepareUpload(file, kind);
-        const fileExt = prepared.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const { error } = await supabase.storage.from('mtiri').upload(fileName, prepared, { cacheControl: '3600', upsert: false, contentType: prepared.type || undefined });
-        if (error) throw error;
-        const { data: { publicUrl } } = supabase.storage.from('mtiri').getPublicUrl(fileName);
-        return { file_url: publicUrl };
-      }
+      UploadFile: ({ file, kind = 'proof' }) => uploadFile(file, kind),
     }
   },
 };

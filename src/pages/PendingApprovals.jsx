@@ -4,17 +4,30 @@ import { CheckCircle2, XCircle, Clock, User, CreditCard, Eye, AlertCircle } from
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLang } from '@/lib/LanguageContext';
 
 const statusColors = {
   pending: 'bg-amber-100 text-amber-700',
   approved: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-700',
 };
-const statusLabels = { pending: 'بانتظار الموافقة', approved: 'مقبول', rejected: 'مرفوض' };
+const statusLabels = {
+  pending: { ar: 'بانتظار الموافقة', en: 'Awaiting Approval' },
+  approved: { ar: 'مقبول', en: 'Approved' },
+  rejected: { ar: 'مرفوض', en: 'Rejected' },
+};
 
-const paymentMethodLabel = { cash: 'نقداً', bank_transfer: 'تحويل بنكي', cheque: 'شيك', other: 'أخرى' };
+const paymentMethodLabel = {
+  cash: { ar: 'نقداً', en: 'Cash' },
+  bank_transfer: { ar: 'تحويل بنكي', en: 'Bank Transfer' },
+  cheque: { ar: 'شيك', en: 'Cheque' },
+  other: { ar: 'أخرى', en: 'Other' },
+};
 
 export default function PendingApprovals() {
+  const { lang } = useLang();
+  const isAr = lang === 'ar';
+  const numLocale = isAr ? 'ar-AE' : 'en-GB';
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
@@ -67,24 +80,24 @@ export default function PendingApprovals() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#1B2B4B' }}>
-            الموافقة على البيانات
+            {isAr ? 'الموافقة على البيانات' : 'Data Approvals'}
             {pendingCount > 0 && (
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white" style={{ backgroundColor: '#E63946' }}>
                 {pendingCount}
               </span>
             )}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">مراجعة البيانات المُدخلة من مدخلي البيانات</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{isAr ? 'مراجعة البيانات المُدخلة من مدخلي البيانات' : 'Review records submitted by data entry staff'}</p>
         </div>
       </div>
 
       {/* Filter Tabs */}
       <div className="flex gap-2 bg-muted/40 rounded-xl p-1 w-fit">
         {[
-          { key: 'pending', label: `بانتظار الموافقة${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
-          { key: 'approved', label: 'مقبول' },
-          { key: 'rejected', label: 'مرفوض' },
-          { key: 'all', label: 'الكل' },
+          { key: 'pending', label: `${isAr ? 'بانتظار الموافقة' : 'Awaiting Approval'}${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
+          { key: 'approved', label: isAr ? 'مقبول' : 'Approved' },
+          { key: 'rejected', label: isAr ? 'مرفوض' : 'Rejected' },
+          { key: 'all', label: isAr ? 'الكل' : 'All' },
         ].map(tab => (
           <button key={tab.key} onClick={() => setFilter(tab.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === tab.key ? 'bg-white shadow-sm text-navy-deep' : 'text-muted-foreground hover:text-foreground'}`}
@@ -95,11 +108,11 @@ export default function PendingApprovals() {
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">جاري التحميل...</div>
+        <div className="text-center py-16 text-muted-foreground">{isAr ? 'جاري التحميل...' : 'Loading...'}</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Clock size={40} className="mx-auto mb-3 opacity-30" />
-          <p>{filter === 'pending' ? 'لا توجد بيانات بانتظار الموافقة' : 'لا توجد سجلات'}</p>
+          <p>{filter === 'pending' ? (isAr ? 'لا توجد بيانات بانتظار الموافقة' : 'No records awaiting approval') : (isAr ? 'لا توجد سجلات' : 'No records found')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -112,16 +125,16 @@ export default function PendingApprovals() {
                     <CreditCard size={18} style={{ color: '#1B2B4B' }} />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm truncate">{d.tenant_name || '—'} · وحدة {d.unit_number || '—'}</p>
+                    <p className="font-semibold text-sm truncate">{d.tenant_name || '—'} · {isAr ? 'وحدة' : 'Unit'} {d.unit_number || '—'}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(d.amount || 0).toLocaleString('ar-AE')} درهم · {d.payment_date || ''}
-                      {entry.submitted_by_name && <span className="mr-2 flex items-center gap-1 inline-flex"><User size={11} /> {entry.submitted_by_name}</span>}
+                      {(d.amount || 0).toLocaleString(numLocale)} {isAr ? 'درهم' : 'AED'} · {d.payment_date || ''}
+                      {entry.submitted_by_name && <span className="ms-2 flex items-center gap-1 inline-flex"><User size={11} /> {entry.submitted_by_name}</span>}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[entry.status]}`}>
-                    {statusLabels[entry.status]}
+                    {statusLabels[entry.status]?.[lang]}
                   </span>
                   <button onClick={() => setSelected(entry)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
@@ -149,21 +162,21 @@ export default function PendingApprovals() {
       {/* Detail Dialog */}
       {selected && (
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-          <DialogContent className="max-w-md" dir="rtl">
+          <DialogContent className="max-w-md" dir={isAr ? 'rtl' : 'ltr'}>
             <DialogHeader>
-              <DialogTitle>تفاصيل الإدخال</DialogTitle>
+              <DialogTitle>{isAr ? 'تفاصيل الإدخال' : 'Entry Details'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 text-sm">
               {[
-                ['المستأجر', selected.data?.tenant_name],
-                ['رقم الوحدة', selected.data?.unit_number],
-                ['المبلغ', `${(selected.data?.amount || 0).toLocaleString('ar-AE')} درهم`],
-                ['تاريخ الدفع', selected.data?.payment_date],
-                ['طريقة الدفع', paymentMethodLabel[selected.data?.payment_method] || selected.data?.payment_method],
-                ['مستحق لشهر/أشهر', selected.data?.due_months],
-                ['رقم الإيصال', selected.data?.receipt_number],
-                ['ملاحظات', selected.data?.notes],
-                ['مُدخل بواسطة', selected.submitted_by_name],
+                [isAr ? 'المستأجر' : 'Tenant', selected.data?.tenant_name],
+                [isAr ? 'رقم الوحدة' : 'Unit No.', selected.data?.unit_number],
+                [isAr ? 'المبلغ' : 'Amount', `${(selected.data?.amount || 0).toLocaleString(numLocale)} ${isAr ? 'درهم' : 'AED'}`],
+                [isAr ? 'تاريخ الدفع' : 'Payment Date', selected.data?.payment_date],
+                [isAr ? 'طريقة الدفع' : 'Payment Method', paymentMethodLabel[selected.data?.payment_method]?.[lang] || selected.data?.payment_method],
+                [isAr ? 'مستحق لشهر/أشهر' : 'Due Month(s)', selected.data?.due_months],
+                [isAr ? 'رقم الإيصال' : 'Receipt No.', selected.data?.receipt_number],
+                [isAr ? 'ملاحظات' : 'Notes', selected.data?.notes],
+                [isAr ? 'مُدخل بواسطة' : 'Submitted By', selected.submitted_by_name],
               ].filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} className="flex justify-between border-b border-border pb-2">
                   <span className="text-muted-foreground">{k}</span>
@@ -172,18 +185,18 @@ export default function PendingApprovals() {
               ))}
               {selected.data?.receipt_image && (
                 <div>
-                  <p className="text-muted-foreground mb-1">صورة الإيصال</p>
-                  <img src={selected.data.receipt_image} alt="receipt" className="w-full rounded-lg border border-border max-h-48 object-contain bg-muted" />
+                  <p className="text-muted-foreground mb-1">{isAr ? 'صورة الإيصال' : 'Receipt Image'}</p>
+                  <img src={selected.data.receipt_image} alt={isAr ? 'إيصال' : 'Receipt'} className="w-full rounded-lg border border-border max-h-48 object-contain bg-muted" />
                 </div>
               )}
             </div>
             {selected.status === 'pending' && (
               <div className="flex gap-2 pt-2">
                 <Button onClick={() => handleApprove(selected)} disabled={processing} className="flex-1 gap-2 bg-green-600 hover:bg-green-700">
-                  <CheckCircle2 size={16} /> قبول وإضافة للحسابات
+                  <CheckCircle2 size={16} /> {isAr ? 'قبول وإضافة للحسابات' : 'Approve and Add to Accounts'}
                 </Button>
                 <Button onClick={() => handleReject(selected)} disabled={processing} variant="destructive" className="flex-1 gap-2">
-                  <XCircle size={16} /> رفض
+                  <XCircle size={16} /> {isAr ? 'رفض' : 'Reject'}
                 </Button>
               </div>
             )}

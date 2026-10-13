@@ -104,11 +104,11 @@ export default function Savings() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-xs">
-                  <th className="text-right px-5 py-3 font-medium">{t('description_col')}</th>
-                  <th className="text-right px-5 py-3 font-medium">{t('amount')}</th>
-                  <th className="text-right px-5 py-3 font-medium">{t('date')}</th>
-                  <th className="text-right px-5 py-3 font-medium">{t('notes')}</th>
-                  <th className="text-right px-5 py-3 font-medium">{t('delete')}</th>
+                  <th className="text-start px-5 py-3 font-medium">{t('description_col')}</th>
+                  <th className="text-start px-5 py-3 font-medium">{t('amount')}</th>
+                  <th className="text-start px-5 py-3 font-medium">{t('date')}</th>
+                  <th className="text-start px-5 py-3 font-medium">{t('notes')}</th>
+                  <th className="text-start px-5 py-3 font-medium">{t('delete')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +152,7 @@ export default function Savings() {
                     {new Date(s.expense_date).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-US')}
                   </p>
                 </div>
-                <div className="text-left">
+                <div className="text-end">
                   <p className="text-xl font-bold" style={{ color: '#2A9D8F' }}>{fmt(s.amount || 0)} AED</p>
                 </div>
               </div>

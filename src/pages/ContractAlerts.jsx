@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { base44, uploadFile } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { Bell, ArrowRight, Edit2, X, Building2, Calendar, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { useLang } from '@/lib/LanguageContext';
+import { Bell, ArrowRight, ArrowLeft, Edit2, X, Building2, Calendar, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInDays, parseISO, isValid, startOfDay } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -13,6 +14,9 @@ const PREVIEW_COUNT = 5;
 
 export default function ContractAlerts() {
   const { user } = useAuth();
+  const { lang } = useLang();
+  const isAr = lang === 'ar';
+  const BackIcon = isAr ? ArrowRight : ArrowLeft;
   const navigate = useNavigate();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +35,8 @@ export default function ContractAlerts() {
     ]);
 
     const allUnits = [
-      ...units.map(u => ({ ...u, _source: 'qarya', _sourceLabel: 'بناية القرية' })),
-      ...reUnits.map(u => ({ ...u, _source: 're', _sourceLabel: 'العقارات' })),
+      ...units.map(u => ({ ...u, _source: 'qarya', _sourceLabel: { ar: 'بناية القرية', en: 'Qarya Villa' } })),
+      ...reUnits.map(u => ({ ...u, _source: 're', _sourceLabel: { ar: 'العقارات', en: 'Real Estate' } })),
     ];
 
     const filtered = allUnits
@@ -57,14 +61,16 @@ export default function ContractAlerts() {
   useEffect(() => { if (user) loadData(); }, [user]);
 
   if (user?.role !== 'admin' && user?.role !== 'investor') {
-    return <div className="text-center py-20 text-muted-foreground">غير مصرح</div>;
+    return <div className="text-center py-20 text-muted-foreground">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
   }
 
+  const enDays = (n) => `${n} ${n === 1 ? 'day' : 'days'}`;
+
   const getDayStyle = (days) => {
-    if (days < 0) return { color: '#E63946', bg: 'rgba(230,57,70,0.1)', label: `منتهي ${Math.abs(days)} يوم` };
-    if (days === 0) return { color: '#E63946', bg: 'rgba(230,57,70,0.1)', label: 'ينتهي اليوم' };
-    if (days <= 30) return { color: '#E63946', bg: 'rgba(230,57,70,0.08)', label: `${days} يوم` };
-    return { color: '#F97316', bg: 'rgba(249,115,22,0.08)', label: `${days} يوم` };
+    if (days < 0) return { color: '#E63946', bg: 'rgba(230,57,70,0.1)', label: isAr ? `منتهي ${Math.abs(days)} يوم` : `Expired ${enDays(Math.abs(days))} ago` };
+    if (days === 0) return { color: '#E63946', bg: 'rgba(230,57,70,0.1)', label: isAr ? 'ينتهي اليوم' : 'Expires today' };
+    if (days <= 30) return { color: '#E63946', bg: 'rgba(230,57,70,0.08)', label: isAr ? `${days} يوم` : enDays(days) };
+    return { color: '#F97316', bg: 'rgba(249,115,22,0.08)', label: isAr ? `${days} يوم` : enDays(days) };
   };
 
   const openEdit = (u) => {
@@ -85,7 +91,7 @@ export default function ContractAlerts() {
     setSaving(true);
     try {
       if (editUnit._source === 'qarya') {
-        await base44.entities.Unit.update(editUnit.id, editForm);
+        await base44.entities.UnitWrite.update(editUnit.id, editForm);
       } else {
         await base44.entities.ReUnit.update(editUnit.id, editForm);
       }
@@ -109,21 +115,21 @@ export default function ContractAlerts() {
   const soonCount = contracts.filter(u => u.daysLeft >= 0).length;
 
   return (
-    <div className="space-y-5 animate-fade-in-up" dir="rtl">
+    <div className="space-y-5 animate-fade-in-up" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/dashboard')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
-          <ArrowRight size={18} />
+          <BackIcon size={18} />
         </button>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(230,57,70,0.12)' }}>
           <Bell size={20} style={{ color: '#E63946' }} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>تنبيهات العقود</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#1B2B4B' }}>{isAr ? 'تنبيهات العقود' : 'Contract Alerts'}</h1>
           <p className="text-xs text-muted-foreground">
-            {expiredCount > 0 && `${expiredCount} منتهي`}
+            {expiredCount > 0 && (isAr ? `${expiredCount} منتهي` : `${expiredCount} expired`)}
             {expiredCount > 0 && soonCount > 0 && ' · '}
-            {soonCount > 0 && `${soonCount} قريب من الانتهاء`}
+            {soonCount > 0 && (isAr ? `${soonCount} قريب من الانتهاء` : `${soonCount} expiring soon`)}
           </p>
         </div>
       </div>
@@ -140,8 +146,8 @@ export default function ContractAlerts() {
       ) : contracts.length === 0 ? (
         <div className="bg-white rounded-2xl p-10 flex flex-col items-center gap-3 text-center card-bevel">
           <CheckCircle2 size={40} style={{ color: '#2A9D8F' }} />
-          <p className="font-semibold" style={{ color: '#1B2B4B' }}>لا توجد عقود منتهية أو قريبة من الانتهاء</p>
-          <p className="text-xs text-muted-foreground">كل العقود خلال 90 يوم القادمة</p>
+          <p className="font-semibold" style={{ color: '#1B2B4B' }}>{isAr ? 'لا توجد عقود منتهية أو قريبة من الانتهاء' : 'No expired or expiring contracts'}</p>
+          <p className="text-xs text-muted-foreground">{isAr ? 'كل العقود خلال 90 يوم القادمة' : 'Covers all contracts ending within the next 90 days'}</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl overflow-hidden card-bevel">
@@ -151,7 +157,7 @@ export default function ContractAlerts() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(230,57,70,0.12)' }}>
                 <Building2 size={16} style={{ color: '#E63946' }} />
               </div>
-              <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>العقود المنتهية والقريبة من الانتهاء</span>
+              <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>{isAr ? 'العقود المنتهية والقريبة من الانتهاء' : 'Expired and Expiring Contracts'}</span>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(230,57,70,0.1)', color: '#E63946' }}>
               {contracts.length}
@@ -172,14 +178,14 @@ export default function ContractAlerts() {
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleClick(u)}>
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm" style={{ color: '#1B2B4B' }}>
-                        {u.tenant_name || `وحدة ${u.unit_number}`}
+                        {u.tenant_name || `${isAr ? 'وحدة' : 'Unit'} ${u.unit_number}`}
                       </p>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'rgba(27,43,75,0.08)', color: '#1B2B4B' }}>
-                        {u._sourceLabel}
+                        {u._sourceLabel[lang]}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <p className="text-xs text-muted-foreground">وحدة {u.unit_number}</p>
+                      <p className="text-xs text-muted-foreground">{isAr ? 'وحدة' : 'Unit'} {u.unit_number}</p>
                       <div className="flex items-center gap-1 text-xs" style={{ color: '#64748B' }}>
                         <Calendar size={10} />
                         <span>{u.contract_end}</span>
@@ -193,7 +199,7 @@ export default function ContractAlerts() {
                   </span>
 
                   {/* Edit button - admin only */}
-                  (user?.role === 'admin' || user?.role === 'tester')
+                  {(user?.role === 'admin' || user?.role === 'tester') && (
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(u); }}
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors flex-shrink-0"
@@ -214,7 +220,7 @@ export default function ContractAlerts() {
               className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-semibold hover:bg-muted/50 transition-colors"
               style={{ color: '#E63946' }}
             >
-              {showAll ? 'عرض أقل' : `عرض المزيد (${contracts.length - PREVIEW_COUNT})`}
+              {showAll ? (isAr ? 'عرض أقل' : 'Show less') : (isAr ? `عرض المزيد (${contracts.length - PREVIEW_COUNT})` : `Show more (${contracts.length - PREVIEW_COUNT})`)}
               <ChevronDown size={15} className={`transition-transform ${showAll ? 'rotate-180' : ''}`} />
             </button>
           )}
@@ -223,39 +229,39 @@ export default function ContractAlerts() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editUnit} onOpenChange={() => setEditUnit(null)}>
-        <DialogContent className="max-w-sm font-cairo" dir="rtl">
+        <DialogContent className="max-w-sm font-cairo" dir={isAr ? 'rtl' : 'ltr'}>
           <DialogHeader>
-            <DialogTitle>تعديل العقد — وحدة {editUnit?.unit_number}</DialogTitle>
+            <DialogTitle>{isAr ? 'تعديل العقد — وحدة' : 'Edit Contract — Unit'} {editUnit?.unit_number}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-xs">اسم المستأجر</Label>
+              <Label className="text-xs">{isAr ? 'اسم المستأجر' : 'Tenant Name'}</Label>
               <Input value={editForm.tenant_name || ''} onChange={e => setEditForm(p => ({ ...p, tenant_name: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">بداية العقد</Label>
+                <Label className="text-xs">{isAr ? 'بداية العقد' : 'Contract Start'}</Label>
                 <Input type="date" value={editForm.contract_start || ''} onChange={e => setEditForm(p => ({ ...p, contract_start: e.target.value }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">نهاية العقد</Label>
+                <Label className="text-xs">{isAr ? 'نهاية العقد' : 'Contract End'}</Label>
                 <Input type="date" value={editForm.contract_end || ''} onChange={e => setEditForm(p => ({ ...p, contract_end: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">الإيجار السنوي</Label>
+              <Label className="text-xs">{isAr ? 'الإيجار السنوي' : 'Annual Rent'}</Label>
               <Input type="number" value={editForm.annual_rent || ''} onChange={e => setEditForm(p => ({ ...p, annual_rent: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">خطة الدفع</Label>
+              <Label className="text-xs">{isAr ? 'خطة الدفع' : 'Payment Plan'}</Label>
               <Input value={editForm.payment_plan || ''} onChange={e => setEditForm(p => ({ ...p, payment_plan: e.target.value }))} />
             </div>
           </div>
           <DialogFooter className="gap-2 flex-row-reverse">
             <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#1B2B4B' }}>
-              {saving ? 'جاري الحفظ...' : 'حفظ'}
+              {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ' : 'Save')}
             </Button>
-            <Button variant="outline" onClick={() => setEditUnit(null)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setEditUnit(null)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

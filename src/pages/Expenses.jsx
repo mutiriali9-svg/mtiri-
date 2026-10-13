@@ -66,7 +66,7 @@ export default function Expenses() {
       setImage(file_url);
       setErrors(p => ({ ...p, image: false }));
     } catch (err) {
-      toast({ description: err?.message || 'فشل رفع الصورة، يرجى المحاولة مرة أخرى', variant: 'destructive' });
+      toast({ description: err?.message || (isAr ? 'فشل رفع الصورة، يرجى المحاولة مرة أخرى' : 'Image upload failed. Please try again.'), variant: 'destructive' });
     }
     setUploading(false);
   };
@@ -120,7 +120,7 @@ export default function Expenses() {
 
   const handleDelete = (id) => {
     const expense = expenses.find(e => e.id === id);
-    setConfirmDelete({ message: 'هل تريد حذف هذا المصروف؟', onConfirm: async () => {
+    setConfirmDelete({ message: isAr ? 'هل تريد حذف هذا المصروف؟' : 'Delete this expense?', onConfirm: async () => {
       await base44.entities.Expense.delete(id);
       await logActivity('Expense', 'delete', `${expense.description}`, expense, null, null, user);
       toast({ description: t('expenseDeleted') });
@@ -142,7 +142,7 @@ export default function Expenses() {
   });
 
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
-  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString(isAr ? 'ar-AE' : 'en-GB') : n.toLocaleString(isAr ? 'ar-AE' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const catBreakdown = Object.keys(categoryLabels).map(k => ({
     key: k, label: categoryLabels[k],
@@ -169,7 +169,7 @@ export default function Expenses() {
         {catBreakdown.slice(0, 5).map(c => (
           <div key={c.key} className="bg-white card-bevel rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => setCatFilter(catFilter === c.key ? 'all' : c.key)}
-            style={{ borderRight: `3px solid ${c.color}`, opacity: catFilter !== 'all' && catFilter !== c.key ? 0.5 : 1 }}>
+            style={{ borderInlineStart: `3px solid ${c.color}`, opacity: catFilter !== 'all' && catFilter !== c.key ? 0.5 : 1 }}>
             <p className="text-xs text-muted-foreground">{c.label}</p>
             <p className="font-bold text-sm mt-1" style={{ color: c.color }}>{fmt(c.total)} AED</p>
             <p className="text-xs text-muted-foreground">{c.count}</p>
@@ -179,12 +179,12 @@ export default function Expenses() {
 
       <div className="bg-white card-bevel rounded-xl p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div className="relative flex-1 min-w-44">
-          <Search size={15} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
+          <Search size={15} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
           <Input
             placeholder={t('searchExpenses')}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pr-9 text-sm h-9"
+            className="ps-9 text-sm h-9"
           />
         </div>
         <Select value={catFilter} onValueChange={setCatFilter}>
@@ -200,7 +200,7 @@ export default function Expenses() {
         </Select>
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-28 h-9 text-sm">
-            <SelectValue placeholder="السنة" />
+            <SelectValue placeholder={isAr ? 'السنة' : 'Year'} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
@@ -209,17 +209,17 @@ export default function Expenses() {
         </Select>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">من:</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">{isAr ? 'من:' : 'From:'}</span>
             <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-32 text-sm h-9" />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">إلى:</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">{isAr ? 'إلى:' : 'To:'}</span>
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-32 text-sm h-9" />
           </div>
           {(dateFrom || dateTo || catFilter !== 'all' || search || yearFilter !== 'all') && (
             <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5"
               onClick={() => { setDateFrom(''); setDateTo(''); setCatFilter('all'); setSearch(''); setYearFilter('all'); }}>
-              <X size={13} /> مسح
+              <X size={13} /> {isAr ? 'مسح' : 'Clear'}
             </Button>
           )}
         </div>
@@ -244,7 +244,7 @@ export default function Expenses() {
             <thead style={{ backgroundColor: '#1B2B4B' }}>
               <tr>
                 {[t('details'), t('amount'), t('date'), t('category'), t('vendor'), t('unitNumber'), ''].map(h => (
-                  <th key={h} className="text-right py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-start py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -329,9 +329,9 @@ export default function Expenses() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <div className="text-left">
+                <div className="text-end">
                   <p className="text-sm font-bold" style={{ color: '#E63946' }}>{fmt(e.amount || 0)}</p>
-                  <p className="text-[10px] text-muted-foreground text-left">AED</p>
+                  <p className="text-[10px] text-muted-foreground text-end">AED</p>
                 </div>
                 {canEdit && (
                   <div className="flex items-center gap-0.5" onClick={ev => ev.stopPropagation()}>
@@ -357,24 +357,24 @@ export default function Expenses() {
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-md font-cairo">
           <DialogHeader>
-            <DialogTitle>تفاصيل المصروف</DialogTitle>
+            <DialogTitle>{isAr ? 'تفاصيل المصروف' : 'Expense Details'}</DialogTitle>
           </DialogHeader>
           {viewItem && (
             <div className="space-y-3 py-2">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">التفاصيل</span>
+                <span className="text-muted-foreground text-sm">{isAr ? 'التفاصيل' : 'Details'}</span>
                 <span className="font-bold text-sm" style={{ color: '#1B2B4B' }}>{viewItem.description}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">المبلغ</span>
+                <span className="text-muted-foreground text-sm">{isAr ? 'المبلغ' : 'Amount'}</span>
                 <span className="font-bold text-lg" style={{ color: '#E63946' }}>{fmt(viewItem.amount || 0)} AED</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">التاريخ</span>
+                <span className="text-muted-foreground text-sm">{isAr ? 'التاريخ' : 'Date'}</span>
                 <span className="text-sm">{viewItem.expense_date}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">التصنيف</span>
+                <span className="text-muted-foreground text-sm">{isAr ? 'التصنيف' : 'Category'}</span>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
                   style={{ backgroundColor: `${categoryColors[viewItem.category]}18`, color: categoryColors[viewItem.category] }}>
                   {categoryLabels[viewItem.category] || viewItem.category}
@@ -382,35 +382,35 @@ export default function Expenses() {
               </div>
               {viewItem.vendor && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">المورد</span>
+                  <span className="text-muted-foreground text-sm">{isAr ? 'المورد' : 'Vendor'}</span>
                   <span className="text-sm">{viewItem.vendor}</span>
                 </div>
               )}
               {viewItem.invoice_number && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">رقم الفاتورة</span>
+                  <span className="text-muted-foreground text-sm">{isAr ? 'رقم الفاتورة' : 'Invoice No.'}</span>
                   <span className="text-sm">#{viewItem.invoice_number}</span>
                 </div>
               )}
               {viewItem.unit_number && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">رقم الوحدة</span>
+                  <span className="text-muted-foreground text-sm">{isAr ? 'رقم الوحدة' : 'Unit No.'}</span>
                   <span className="text-sm">{viewItem.unit_number}</span>
                 </div>
               )}
               {viewItem.notes && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">ملاحظات</span>
-                  <span className="text-sm text-left">{viewItem.notes}</span>
+                  <span className="text-muted-foreground text-sm">{isAr ? 'ملاحظات' : 'Notes'}</span>
+                  <span className="text-sm text-end">{viewItem.notes}</span>
                 </div>
               )}
               {viewItem.invoice_image_url && (
                 <div className="space-y-2 pt-1">
-                  <span className="text-muted-foreground text-sm">صورة الفاتورة</span>
+                  <span className="text-muted-foreground text-sm">{isAr ? 'صورة الفاتورة' : 'Invoice Image'}</span>
                   {viewItem.invoice_image_url.toLowerCase().endsWith('.pdf') ? (
                     <a href={viewItem.invoice_image_url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2 text-sm underline" style={{ color: '#1B2B4B' }}>
-                      <FileImage size={16} style={{ color: '#C9A84C' }} /> عرض ملف PDF
+                      <FileImage size={16} style={{ color: '#C9A84C' }} /> {isAr ? 'عرض ملف PDF' : 'Open PDF'}
                     </a>
                   ) : (
                     <img src={viewItem.invoice_image_url} alt="invoice" className="w-full max-h-56 object-contain rounded-lg border border-border" />
@@ -420,7 +420,7 @@ export default function Expenses() {
               {canEdit && (
                 <div className="flex gap-2 pt-2">
                   <Button className="flex-1" onClick={() => { setViewItem(null); openEdit(viewItem); }} style={{ backgroundColor: '#1B2B4B' }}>
-                    <Edit2 size={14} /> تعديل
+                    <Edit2 size={14} /> {isAr ? 'تعديل' : 'Edit'}
                   </Button>
                 </div>
               )}
@@ -439,19 +439,19 @@ export default function Expenses() {
               <Label className={errors.description ? 'text-destructive' : ''}>{t('expenseDetails')} *</Label>
               <Input value={form.description} onChange={e => { setForm(p => ({ ...p, description: e.target.value })); setErrors(p => ({ ...p, description: false })); }}
                 className={errors.description ? 'border-destructive focus-visible:ring-destructive' : ''} />
-              {errors.description && <p className="text-xs text-destructive">هذا الحقل مطلوب</p>}
+              {errors.description && <p className="text-xs text-destructive">{isAr ? 'هذا الحقل مطلوب' : 'This field is required'}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className={errors.amount ? 'text-destructive' : ''}>{t('amountAED') || `${t('amount')} (AED)`} *</Label>
               <Input type="number" value={form.amount} onChange={e => { setForm(p => ({ ...p, amount: e.target.value })); setErrors(p => ({ ...p, amount: false })); }}
                 className={errors.amount ? 'border-destructive focus-visible:ring-destructive' : ''} />
-              {errors.amount && <p className="text-xs text-destructive">أدخل مبلغاً صحيحاً</p>}
+              {errors.amount && <p className="text-xs text-destructive">{isAr ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount'}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className={errors.expense_date ? 'text-destructive' : ''}>{t('date')} *</Label>
               <Input type="date" value={form.expense_date} onChange={e => { setForm(p => ({ ...p, expense_date: e.target.value })); setErrors(p => ({ ...p, expense_date: false })); }}
                 className={errors.expense_date ? 'border-destructive focus-visible:ring-destructive' : ''} />
-              {errors.expense_date && <p className="text-xs text-destructive">هذا الحقل مطلوب</p>}
+              {errors.expense_date && <p className="text-xs text-destructive">{isAr ? 'هذا الحقل مطلوب' : 'This field is required'}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>{t('category')}</Label>
@@ -483,8 +483,8 @@ export default function Expenses() {
               <Input value={form.notes}
                 onChange={e => { setForm(p => ({ ...p, notes: e.target.value })); setErrors(p => ({ ...p, notes: false })); }}
                 className={errors.notes ? 'border-destructive focus-visible:ring-destructive' : ''}
-                placeholder={form.category === 'other' ? 'مطلوب عند اختيار تصنيف أخرى' : ''} />
-              {errors.notes && <p className="text-xs text-destructive">هذا الحقل مطلوب عند اختيار تصنيف أخرى</p>}
+                placeholder={form.category === 'other' ? (isAr ? 'مطلوب عند اختيار تصنيف أخرى' : 'Required when the category is Other') : ''} />
+              {errors.notes && <p className="text-xs text-destructive">{isAr ? 'هذا الحقل مطلوب عند اختيار تصنيف أخرى' : 'This field is required when the category is Other'}</p>}
             </div>
             <div className="sm:col-span-2 space-y-1.5">
               <Label className={errors.image ? 'text-destructive' : ''}>
@@ -494,19 +494,19 @@ export default function Expenses() {
               </Label>
               <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
                 onChange={e => handleImageUpload(e.target.files[0])} />
-              {errors.image && <p className="text-xs text-destructive">صورة الفاتورة مطلوبة</p>}
+              {errors.image && <p className="text-xs text-destructive">{isAr ? 'صورة الفاتورة مطلوبة' : 'Invoice image is required'}</p>}
               {image ? (
                 <div className="relative w-full rounded-lg overflow-hidden border border-border bg-muted p-3">
                   {imageType === 'pdf' ? (
                     <div className="flex items-center gap-2 py-2">
                       <FileImage size={20} style={{ color: '#C9A84C' }} />
-                      <a href={image} target="_blank" rel="noopener noreferrer" className="text-sm underline hover:opacity-70" style={{ color: '#1B2B4B' }}>عرض الملف PDF</a>
+                      <a href={image} target="_blank" rel="noopener noreferrer" className="text-sm underline hover:opacity-70" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض الملف PDF' : 'Open PDF'}</a>
                     </div>
                   ) : (
                     <img src={image} alt="invoice" className="w-full max-h-48 object-contain" />
                   )}
                   <button type="button" onClick={() => { setImage(null); setImageType('image'); }}
-                    className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                    className="absolute top-2 end-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
                     <X size={14} />
                   </button>
                 </div>

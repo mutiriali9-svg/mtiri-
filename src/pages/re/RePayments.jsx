@@ -6,6 +6,7 @@ import { useLang } from '@/lib/LanguageContext';
 import { logActivity } from '@/utils/activityLogger';
 import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import DueMonthsPicker from '@/components/DueMonthsPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -46,6 +47,8 @@ export default function RePayments() {
   const { toast } = useToast();
   const { t, lang } = useLang();
   const isAr = lang === 'ar';    
+  const PrevIcon = isAr ? ChevronRight : ChevronLeft;
+  const NextIcon = isAr ? ChevronLeft : ChevronRight;
   const canEdit = user?.role === 'admin';
 
   const itemsPerPage = 35;
@@ -64,9 +67,9 @@ export default function RePayments() {
     try {
       const result = await uploadFile(file);
       setReceiptUrl(result.file_url);
-      toast({ description: 'تم رفع الإيصال بنجاح ✓' });
+      toast({ description: isAr ? 'تم رفع الإيصال بنجاح ✓' : 'Receipt uploaded successfully ✓' });
     } catch {
-      toast({ description: 'فشل رفع الملف، حاول مجدداً', variant: 'destructive' });
+      toast({ description: isAr ? 'فشل رفع الملف، حاول مجدداً' : 'File upload failed. Please try again.', variant: 'destructive' });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -107,11 +110,11 @@ export default function RePayments() {
 
   const handleSave = async () => {
     const missing = [];
-    if (!form.tenant_name?.trim()) missing.push('اسم المستأجر');
-    if (!form.amount || parseFloat(form.amount) <= 0) missing.push('المبلغ');
-    if (!form.payment_date) missing.push('تاريخ الدفع');
+    if (!form.tenant_name?.trim()) missing.push(isAr ? 'اسم المستأجر' : 'Tenant Name');
+    if (!form.amount || parseFloat(form.amount) <= 0) missing.push(isAr ? 'المبلغ' : 'Amount');
+    if (!form.payment_date) missing.push(isAr ? 'تاريخ الدفع' : 'Payment Date');
     if (missing.length > 0) {
-      setInlineError(`⚠️ يرجى تعبئة: ${missing.join(' — ')}`);
+      setInlineError(isAr ? `⚠️ يرجى تعبئة: ${missing.join(' — ')}` : `⚠️ Please fill in: ${missing.join(' — ')}`);
       setTimeout(() => setInlineError(''), 4000);
       return;
     }
@@ -184,8 +187,8 @@ export default function RePayments() {
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-52">
-          <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-          <Input placeholder={t('searchPayments')} value={search} onChange={e => setSearch(e.target.value)} className="pr-9 text-sm" />
+          <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
+          <Input placeholder={t('searchPayments')} value={search} onChange={e => setSearch(e.target.value)} className="ps-9 text-sm" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-36"><SelectValue placeholder={t('status')} /></SelectTrigger>
@@ -197,7 +200,7 @@ export default function RePayments() {
           </SelectContent>
         </Select>
         <Select value={yearFilter} onValueChange={setYearFilter}>
-          <SelectTrigger className="w-28"><SelectValue placeholder="السنة" /></SelectTrigger>
+          <SelectTrigger className="w-28"><SelectValue placeholder={isAr ? 'السنة' : 'Year'} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -223,7 +226,7 @@ export default function RePayments() {
             <thead style={{ backgroundColor: '#1B2B4B' }}>
               <tr>
                 {[t('tenant'), t('unit'), t('amount'), t('date'), t('dueMonth'), t('paymentMethod'), t('status'), ''].map(h => (
-                  <th key={h} className="text-right py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-start py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -296,7 +299,7 @@ export default function RePayments() {
         <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl card-bevel flex-wrap">
           <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
             className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
-            <ChevronRight size={18} />
+            <PrevIcon size={18} />
           </button>
           <div className="flex items-center gap-2 flex-wrap justify-center">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
@@ -313,9 +316,9 @@ export default function RePayments() {
           </div>
           <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
             className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
-            <ChevronLeft size={18} />
+            <NextIcon size={18} />
           </button>
-          <span className="text-xs text-muted-foreground ml-auto">{isAr ? `الصفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
+          <span className="text-xs text-muted-foreground me-auto">{isAr ? `الصفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
         </div>
       )}
 
@@ -324,28 +327,28 @@ export default function RePayments() {
       {/* View Dialog + Add/Edit Dialog — باقي نفس الأصل بدون تغيير */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-md font-cairo max-h-[85vh] overflow-y-auto flex flex-col">
-          <DialogHeader><DialogTitle>بيانات الدفعة</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isAr ? 'بيانات الدفعة' : 'Payment Details'}</DialogTitle></DialogHeader>
           {viewItem && (() => {
             const sc = statusConfig[viewItem.status] || statusConfig.paid;
             return (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">اسم المستأجر</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الشقة او المنزل</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">المبلغ</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">الحالة</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">تاريخ الدفع</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">مستحق لشهر</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">طريقة الدفع</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
-                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">رقم الإيصال</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
-                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">ملاحظات</p><p className="font-medium">{viewItem.notes}</p></div>}
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'اسم المستأجر' : 'Tenant Name'}</p><p className="font-semibold" style={{ color: '#1B2B4B' }}>{viewItem.tenant_name}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'رقم الشقة او المنزل' : 'Unit Number'}</p><p className="font-semibold">{viewItem.unit_number || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'المبلغ' : 'Amount'}</p><p className="font-bold text-lg" style={{ color: '#2A9D8F' }}>{(viewItem.amount || 0).toLocaleString()} AED</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'الحالة' : 'Status'}</p><span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block" style={{ backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'تاريخ الدفع' : 'Payment Date'}</p><p className="font-medium">{viewItem.payment_date || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'مستحق لشهر' : 'Due Month'}</p><p className="font-medium">{viewItem.due_months || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'طريقة الدفع' : 'Payment Method'}</p><p className="font-medium">{methodLabels[viewItem.payment_method] || '-'}</p></div>
+                  <div className="space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'رقم الإيصال' : 'Receipt No.'}</p><p className="font-medium">{viewItem.receipt_number || '-'}</p></div>
+                  {viewItem.notes && <div className="col-span-2 space-y-0.5"><p className="text-xs text-muted-foreground">{isAr ? 'ملاحظات' : 'Notes'}</p><p className="font-medium">{viewItem.notes}</p></div>}
                 </div>
                 {viewItem.receipt_image_url && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground font-medium">صورة الإيصال</p>
+                    <p className="text-xs text-muted-foreground font-medium">{isAr ? 'صورة الإيصال' : 'Receipt Image'}</p>
                     <div className="rounded-lg border border-border overflow-hidden">
                       {viewItem.receipt_image_url.toLowerCase().endsWith('.pdf') ? (
-                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
+                        <div className="flex items-center gap-3 p-3 bg-muted"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={viewItem.receipt_image_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'View PDF'}</a></div>
                       ) : (
                         <img src={viewItem.receipt_image_url} alt="receipt" className="w-full max-h-64 object-contain p-2 bg-muted" />
                       )}
@@ -356,8 +359,8 @@ export default function RePayments() {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewItem(null)}>إغلاق</Button>
-            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> تعديل</Button>}
+            <Button variant="outline" onClick={() => setViewItem(null)}>{isAr ? 'إغلاق' : 'Close'}</Button>
+            {canEdit && <Button onClick={() => { openEdit(viewItem); setViewItem(null); }} style={{ backgroundColor: '#1B2B4B' }}><Edit2 size={14} /> {isAr ? 'تعديل' : 'Edit'}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -370,7 +373,7 @@ export default function RePayments() {
             <div className="sm:col-span-2" ref={comboRef}>
               <Label className="mb-1.5 block">{t('unit')}</Label>
               <div className="relative">
-                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   value={comboQuery}
                   onChange={e => {
@@ -380,13 +383,13 @@ export default function RePayments() {
                     setForm(p => ({ ...p, tenant_name: val, unit_number: '' }));
                   }}
                   onClick={() => setComboOpen(true)}
-                  placeholder="ابحث برقم الوحدة أو اسم المستأجر..."
-                  className="w-full pr-9 pl-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
+                  placeholder={isAr ? 'ابحث برقم الوحدة أو اسم المستأجر...' : 'Search by unit number or tenant name...'}
+                  className="w-full ps-9 pe-7 h-9 border border-input rounded-md text-sm focus:outline-none focus:ring-1"
                   autoComplete="off"
                 />
                 {comboQuery && (
                   <button type="button" onClick={() => { setComboQuery(''); setForm(p => ({ ...p, tenant_name: '', unit_number: '' })); setComboOpen(false); }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     <Trash2 size={13} />
                   </button>
                 )}
@@ -394,7 +397,7 @@ export default function RePayments() {
                   <div className="absolute w-full mt-1 bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto" style={{ zIndex: 9999 }}>
                     {filteredComboUnits.map(u => (
                       <button key={u.id} type="button" onClick={() => handleUnitComboSelect(u)}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
+                        className="w-full text-start px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between gap-2 transition-colors">
                         <span className="font-bold" style={{ color: '#1B2B4B' }}>{u.unit_number}</span>
                         {u.tenant_name && <span className="text-muted-foreground">— {u.tenant_name}</span>}
                       </button>
@@ -407,7 +410,11 @@ export default function RePayments() {
             <div className="sm:col-span-2 space-y-1.5"><Label>{t('tenantName')} *</Label><Input value={form.tenant_name} onChange={e => setForm(p => ({ ...p, tenant_name: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>{t('amountAED')}</Label><Input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>{t('paymentDate')} *</Label><Input type="date" value={form.payment_date} onChange={e => setForm(p => ({ ...p, payment_date: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label>{t('dueMonth')}</Label><Input value={form.due_months} onChange={e => setForm(p => ({ ...p, due_months: e.target.value }))} placeholder="مثال: يوليو 2026" /></div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label>{t('dueMonths')}</Label>
+              <DueMonthsPicker value={form.due_months} onChange={v => setForm(p => ({ ...p, due_months: v }))}
+                table="re_payments" unitNumber={form.unit_number} excludeId={editItem?.id} suggest={!editItem} />
+            </div>
             <div className="space-y-1.5">
               <Label>{t('paymentMethod')}</Label>
               <Select value={form.payment_method} onValueChange={v => setForm(p => ({ ...p, payment_method: v }))}>
@@ -438,19 +445,19 @@ export default function RePayments() {
               {receiptUrl ? (
                 <div className="w-full rounded-lg border border-border bg-muted overflow-hidden">
                   {receiptUrl.toLowerCase().endsWith('.pdf') ? (
-                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>عرض ملف PDF</a></div>
+                    <div className="flex items-center gap-3 p-3"><FileText size={24} style={{ color: '#C9A84C' }} /><a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline" style={{ color: '#1B2B4B' }}>{isAr ? 'عرض ملف PDF' : 'View PDF'}</a></div>
                   ) : (
                     <img src={receiptUrl} alt="receipt" className="w-full max-h-52 object-contain p-2" />
                   )}
                   <div className="flex items-center justify-between px-3 py-2 bg-green-50 border-t border-green-100">
-                    <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> تم رفع الإيصال بنجاح</span>
-                    <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><Trash2 size={12} /> حذف</button>
+                    <span className="flex items-center gap-1.5 text-xs text-green-700"><CheckCircle2 size={13} /> {isAr ? 'تم رفع الإيصال بنجاح' : 'Receipt uploaded successfully'}</span>
+                    <button type="button" onClick={() => setReceiptUrl('')} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"><Trash2 size={12} /> {isAr ? 'حذف' : 'Remove'}</button>
                   </div>
                 </div>
               ) : (
                 <label className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 text-sm text-muted-foreground hover:border-amber-400 hover:bg-amber-50/40 transition-colors cursor-pointer">
                   <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>جارٍ الرفع...</span></> : <><Plus size={22} style={{ color: '#C9A84C' }} /><span>اضغط لرفع صورة الإيصال أو PDF</span></>}
+                  {uploading ? <><Loader2 size={22} className="animate-spin" style={{ color: '#C9A84C' }} /><span>{isAr ? 'جارٍ الرفع...' : 'Uploading...'}</span></> : <><Plus size={22} style={{ color: '#C9A84C' }} /><span>{isAr ? 'اضغط لرفع صورة الإيصال أو PDF' : 'Click to upload a receipt image or PDF'}</span></>}
                 </label>
               )}
             </div>

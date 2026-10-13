@@ -3,9 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { base44, uploadFile } from '@/api/base44Client';
 import { useLang } from '@/lib/LanguageContext';
 import PhoneInput from '@/components/PhoneInput';
+import DueMonthsPicker from '@/components/DueMonthsPicker';
+import { useContractArchive, ContractArchiveSection } from '@/components/ContractArchive';
+import { hasContract, renewalDraft, listContractArchive } from '@/utils/contractArchive';
+import { exitPaymentName, splitWithCarryOver } from '@/utils/contractPeriods';
+import { rentPosition } from '@/utils/rentPosition';
+import { monthLabel } from '@/utils/dueMonths';
 import { formatPhone } from '@/utils/phone';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowRight, ArrowLeft, Building2, Calendar, Phone, Receipt, Filter, Edit2, Upload, X, FileImage, Loader2 } from 'lucide-react';
+import { Building2, Calendar, Phone, Receipt, Filter, Edit2, Upload, X, FileImage, Loader2 } from 'lucide-react';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +30,7 @@ export default function UnitDetails() {
   const { unitNumber } = useParams();
   const [unit, setUnit] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [archives, setArchives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -31,6 +38,7 @@ export default function UnitDetails() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState(emptyUnit);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [uploadingContract, setUploadingContract] = useState(false);
   const contractFileRef = useRef(null);
   // Payment edit
@@ -40,9 +48,12 @@ export default function UnitDetails() {
   const [savingPayment, setSavingPayment] = useState(false);
   const navigate = useNavigate();
   const { t, lang } = useLang();
+  const isAr = lang === 'ar';
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const canEdit = isAdmin || user?.role === 'data_entry';
+  const { chooseAction, archiveForRenewal, chooserDialog, archiveVersion } = useContractArchive('qarya');
+  const [editMode, setEditMode] = useState('correct');
 
   const statusConfig = {
     occupied: { label: t('occupied'), color: '#2A9D8F', bg: 'rgba(42,157,143,0.1)' },
@@ -70,9 +81,31 @@ export default function UnitDetails() {
   });
 }, [unitNumber]);
 
-  const openEdit = () => {
-    setForm({ ...emptyUnit, ...unit });
+  useEffect(() => {
+    let live = true;
+    listContractArchive('qarya', decodeURIComponent(unitNumber))
+      .then(rows => { if (live) setArchives(rows); })
+      .catch(() => { if (live) setArchives([]); });
+    return () => { live = false; };
+  }, [unitNumber, archiveVersion]);
+
+  const openUnitForm = (mode, values) => {
+    const filled = Object.fromEntries(Object.entries(values).filter(([, v]) => v != null));
+    setSaveError('');
+    setEditMode(mode);
+    setForm({ ...emptyUnit, ...filled });
     setEditOpen(true);
+  };
+
+  const openEdit = () => {
+    if (!hasContract(unit)) return openUnitForm('correct', unit);
+    chooseAction(unit, {
+      renew: () => openUnitForm('renew', renewalDraft(unit)),
+      replace: () => navigate(`/units?replace=${encodeURIComponent(unit.unit_number)}`),
+      vacate: () => navigate(`/units?vacate=${encodeURIComponent(unit.unit_number)}`),
+      expire: () => navigate(`/units?expire=${encodeURIComponent(unit.unit_number)}`),
+      correct: () => openUnitForm('correct', unit),
+    });
   };
 
   const handleContractUpload = async (file) => {
@@ -84,12 +117,43 @@ export default function UnitDetails() {
   };
 
   const handleSave = async () => {
+    if (editMode === 'renew') {
+      if (!form.contract_start || !form.contract_end) {
+        setSaveError(isAr ? 'أدخل تاريخ بداية العقد الجديد ونهايته.' : 'Enter the new contract start and end dates.');
+        return;
+      }
+      setSaving(true);
+      setSaveError('');
+      try {
+        await archiveForRenewal(unit);
+      } catch (e) {
+        setSaving(false);
+        setSaveError((isAr ? 'تعذّر حفظ العقد الحالي في الأرشيف، ولم يُحفظ التجديد. ' : 'Could not archive the current contract, so the renewal was not saved. ') + (e?.message || ''));
+        return;
+      }
+    }
+    return saveUnit();
+  };
+
+  const saveUnit = async () => {
     setSaving(true);
-    const data = { ...form, annual_rent: parseFloat(form.annual_rent) || 0 };
-    await base44.entities.Unit.update(unit.id, data);
-    setUnit(prev => ({ ...prev, ...data }));
-    setSaving(false);
-    setEditOpen(false);
+    setSaveError('');
+    const { id, created_at, ...rest } = form;
+    const data = {
+      ...rest,
+      annual_rent: parseFloat(form.annual_rent) || 0,
+      contract_start: form.contract_start || null,
+      contract_end: form.contract_end || null,
+    };
+    try {
+      await base44.entities.UnitWrite.update(unit.id, data);
+      setUnit(prev => ({ ...prev, ...data }));
+      setEditOpen(false);
+    } catch (e) {
+      setSaveError((isAr ? 'تعذّر حفظ التعديلات. ' : 'Could not save the changes. ') + (e?.message || ''));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openEditPayment = (p) => {
@@ -107,11 +171,17 @@ export default function UnitDetails() {
     setEditPaymentOpen(false);
   };
 
-  const totalPaid = payments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount || 0), 0);
+  const current = splitWithCarryOver(archives, payments, p => p.payment_date, p => p.created_at,
+    exitPaymentName, unit?.tenant_name).current;
 
-  const availableYears = [...new Set(payments.map(p => p.payment_date?.substring(0, 4)).filter(Boolean))].sort((a, b) => b - a);
+  const totalPaid = current.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount || 0), 0);
+  const position = unit?.tenant_name
+    ? rentPosition({ unit, payments: current, exitDate: new Date().toISOString().split('T')[0] })
+    : { ok: false };
 
-  const filteredPayments = payments.filter(p => {
+  const availableYears = [...new Set(current.map(p => p.payment_date?.substring(0, 4)).filter(Boolean))].sort((a, b) => b - a);
+
+  const filteredPayments = current.filter(p => {
     if (dateFrom && p.payment_date < dateFrom) return false;
     if (dateTo && p.payment_date > dateTo) return false;
     if (yearFilter !== 'all' && !p.payment_date?.startsWith(yearFilter)) return false;
@@ -131,15 +201,9 @@ export default function UnitDetails() {
   );
 
   const sc = statusConfig[unit.status] || statusConfig.vacant;
-  const BackIcon = lang === 'ar' ? ArrowRight : ArrowLeft;
 
   return (
     <div className="space-y-5 animate-fade-in-up">
-      {/* Back */}
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-navy transition-colors">
-        <BackIcon size={16} /> {t('backToUnits')}
-      </button>
-
       {/* Header */}
       <div className="bg-white card-bevel rounded-xl p-5">
         <div className="flex items-start justify-between flex-wrap gap-4">
@@ -202,20 +266,33 @@ export default function UnitDetails() {
         </div>
       </div>
 
+      <ContractArchiveSection rows={archives} propertyType="qarya" />
+
       {/* Payments Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-2 gap-4 ${position.ok ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
         <div className="bg-white card-bevel rounded-xl p-4">
-          <p className="text-xs text-muted-foreground">{t('totalCollectedLabel')}</p>
+          <p className="text-xs text-muted-foreground">{archives.length ? (isAr ? 'المحصّل في العقد الحالي' : 'Collected on the current contract') : t('totalCollectedLabel')}</p>
           <p className="text-xl font-bold mt-1" style={{ color: '#2A9D8F' }}>{totalPaid.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">AED</span></p>
         </div>
         <div className="bg-white card-bevel rounded-xl p-4">
           <p className="text-xs text-muted-foreground">{t('paymentCountLabel')}</p>
-          <p className="text-xl font-bold mt-1" style={{ color: '#1B2B4B' }}>{payments.length}</p>
+          <p className="text-xl font-bold mt-1" style={{ color: '#1B2B4B' }}>{current.length}</p>
         </div>
         <div className="bg-white card-bevel rounded-xl p-4">
           <p className="text-xs text-muted-foreground">{t('lastPayment')}</p>
-          <p className="text-sm font-bold mt-1" style={{ color: '#1B2B4B' }}>{payments[0]?.payment_date || '-'}</p>
+          <p className="text-sm font-bold mt-1" style={{ color: '#1B2B4B' }}>{current[0]?.payment_date || '-'}</p>
         </div>
+        {position.ok && (
+          <div className="bg-white card-bevel rounded-xl p-4">
+            <p className="text-xs text-muted-foreground">{isAr ? 'مسدَّد حتى' : 'Paid up to'}</p>
+            <p className="text-sm font-bold mt-1" style={{ color: '#1B2B4B' }}>{monthLabel(position.paidTo, isAr)}</p>
+            {position.owed > 0 && (
+              <p className="text-[11px] font-semibold mt-1" style={{ color: '#E63946' }}>
+                {isAr ? `مستحق حتى اليوم ${position.owed.toLocaleString()} د.إ` : `Accrued to date ${position.owed.toLocaleString()} AED`}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Payments Table - Desktop */}
@@ -234,7 +311,7 @@ export default function UnitDetails() {
                 onChange={e => setYearFilter(e.target.value)}
                 className="text-xs bg-muted/50 rounded-lg px-2 py-1.5 border border-border outline-none cursor-pointer"
               >
-                <option value="all">كل السنوات</option>
+                <option value="all">{isAr ? 'كل السنوات' : 'All Years'}</option>
                 {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
               <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-3 py-1.5 border border-border">
@@ -278,14 +355,14 @@ export default function UnitDetails() {
             <thead style={{ backgroundColor: '#F8F9FA' }}>
               <tr>
                 {[t('tenantName'), t('date'), t('amount'), t('dueMonth'), t('paymentMethod'), t('status'), t('notes'), ''].map(h => (
-                  <th key={h} className="text-right py-3 px-4 text-muted-foreground font-medium text-xs whitespace-nowrap border-b border-border">{h}</th>
+                  <th key={h} className="text-start py-3 px-4 text-muted-foreground font-medium text-xs whitespace-nowrap border-b border-border">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filteredPayments.length === 0 ? (
                 <tr><td colSpan={6} className="py-10 text-center text-muted-foreground">
-                  {payments.length === 0 ? t('noPaymentsUnit') : t('noMatchingResults')}
+                  {current.length === 0 ? (archives.length ? (isAr ? 'لا توجد دفعات للعقد الحالي. دفعات العقود السابقة في أرشيف العقود.' : 'No payments on the current contract. Earlier contracts keep their payments in the contract archive.') : t('noPaymentsUnit')) : t('noMatchingResults')}
                 </td></tr>
               ) : filteredPayments.map((p, i) => {
                 const ps = paymentStatusConfig[p.status] || paymentStatusConfig.paid;
@@ -331,13 +408,13 @@ export default function UnitDetails() {
           {/* Mobile Filters */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">السنة</label>
+              <label className="text-xs text-muted-foreground">{isAr ? 'السنة' : 'Year'}</label>
               <select
                 value={yearFilter}
                 onChange={e => setYearFilter(e.target.value)}
                 className="text-xs bg-muted/50 rounded-lg px-2 py-2 border border-border outline-none cursor-pointer w-full"
               >
-                <option value="all">كل السنوات</option>
+                <option value="all">{isAr ? 'كل السنوات' : 'All Years'}</option>
                 {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
@@ -380,7 +457,7 @@ export default function UnitDetails() {
         
         {filteredPayments.length === 0 ? (
           <div className="bg-white card-bevel rounded-xl p-10 text-center text-muted-foreground">
-            {payments.length === 0 ? t('noPaymentsUnit') : t('noMatchingResults')}
+            {current.length === 0 ? (archives.length ? (isAr ? 'لا توجد دفعات للعقد الحالي. دفعات العقود السابقة في أرشيف العقود.' : 'No payments on the current contract. Earlier contracts keep their payments in the contract archive.') : t('noPaymentsUnit')) : t('noMatchingResults')}
           </div>
         ) : (
           filteredPayments.map((p, i) => {
@@ -395,7 +472,7 @@ export default function UnitDetails() {
                     <p className="text-xs text-muted-foreground">{t('date')}</p>
                     <p className="text-sm font-medium">{p.payment_date}</p>
                   </div>
-                  <div className="text-left">
+                  <div className="text-end">
                     <p className="text-lg font-bold" style={{ color: '#2A9D8F' }}>
                       {(p.amount || 0).toLocaleString()} <span className="text-xs font-normal">AED</span>
                     </p>
@@ -425,29 +502,30 @@ export default function UnitDetails() {
       </div>
       {/* Edit Payment Dialog */}
       <Dialog open={editPaymentOpen} onOpenChange={setEditPaymentOpen}>
-        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-md font-cairo max-h-[90vh] overflow-y-auto" dir={isAr ? 'rtl' : 'ltr'}>
           <DialogHeader>
-            <DialogTitle>تعديل الدفعة</DialogTitle>
+            <DialogTitle>{isAr ? 'تعديل الدفعة' : 'Edit Payment'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-sm">اسم المستأجر</Label>
+              <Label className="text-sm">{isAr ? 'اسم المستأجر' : 'Tenant Name'}</Label>
               <Input value={paymentForm.tenant_name || ''} onChange={e => setPaymentForm(p => ({ ...p, tenant_name: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">المبلغ (AED)</Label>
+              <Label className="text-sm">{isAr ? 'المبلغ (AED)' : 'Amount (AED)'}</Label>
               <Input type="number" value={paymentForm.amount || ''} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} />
             </div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="text-sm">{isAr ? 'الأشهر المستحقة' : 'Due Months'}</Label>
+              <DueMonthsPicker value={paymentForm.due_months || ''} onChange={v => setPaymentForm(p => ({ ...p, due_months: v }))}
+                unitNumber={editingPayment?.unit_number} excludeId={editingPayment?.id} />
+            </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">تاريخ الدفع</Label>
+              <Label className="text-sm">{isAr ? 'تاريخ الدفع' : 'Payment Date'}</Label>
               <Input type="date" value={paymentForm.payment_date || ''} onChange={e => setPaymentForm(p => ({ ...p, payment_date: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">مستحق لشهر</Label>
-              <Input value={paymentForm.due_months || ''} onChange={e => setPaymentForm(p => ({ ...p, due_months: e.target.value }))} placeholder="مثال: يوليو 2026" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">طريقة الدفع</Label>
+              <Label className="text-sm">{isAr ? 'طريقة الدفع' : 'Payment Method'}</Label>
               <Select value={paymentForm.payment_method || 'bank_transfer'} onValueChange={v => setPaymentForm(p => ({ ...p, payment_method: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -459,7 +537,7 @@ export default function UnitDetails() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">الحالة</Label>
+              <Label className="text-sm">{isAr ? 'الحالة' : 'Status'}</Label>
               <Select value={paymentForm.status || 'paid'} onValueChange={v => setPaymentForm(p => ({ ...p, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -470,40 +548,52 @@ export default function UnitDetails() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">رقم الإيصال</Label>
+              <Label className="text-sm">{isAr ? 'رقم الإيصال' : 'Receipt No.'}</Label>
               <Input value={paymentForm.receipt_number || ''} onChange={e => setPaymentForm(p => ({ ...p, receipt_number: e.target.value }))} />
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-sm">ملاحظات</Label>
+              <Label className="text-sm">{isAr ? 'ملاحظات' : 'Notes'}</Label>
               <Input value={paymentForm.notes || ''} onChange={e => setPaymentForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditPaymentOpen(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setEditPaymentOpen(false)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
             <Button onClick={handleSavePayment} disabled={savingPayment} style={{ backgroundColor: '#1B2B4B' }}>
-              {savingPayment ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+              {savingPayment ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {chooserDialog}
+
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className=" max-h-[90vh] overflow-y-auto font-cairo" dir="rtl">
+        <DialogContent className=" max-h-[90vh] overflow-y-auto font-cairo" dir={isAr ? 'rtl' : 'ltr'}>
           <DialogHeader>
-            <DialogTitle>تعديل الوحدة — {unit?.unit_number}</DialogTitle>
+            <DialogTitle>
+              {editMode === 'renew'
+                ? (isAr ? `تجديد عقد الوحدة ${unit?.unit_number}` : `Renew unit ${unit?.unit_number}`)
+                : (isAr ? `تعديل الوحدة ${unit?.unit_number}` : `Edit unit ${unit?.unit_number}`)}
+            </DialogTitle>
           </DialogHeader>
+          {editMode === 'renew' && (
+            <p className="text-xs leading-relaxed rounded-xl px-3 py-2.5"
+              style={{ backgroundColor: 'rgba(42,157,143,0.07)', border: '1px solid rgba(42,157,143,0.25)', color: '#1F7A70' }}>
+              {isAr ? 'أدخل تاريخي العقد الجديد وقيمته وصورته. يُحفظ العقد الحالي في أرشيف الوحدة تلقائياً عند الحفظ.' : 'Enter the new contract dates, rent and image. The current contract is archived automatically on save.'}
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             {[
-              { label: 'اسم المستأجر', key: 'tenant_name', type: 'text' },
-              { label: 'الجنسية', key: 'nationality', type: 'text' },
-              { label: 'الإيجار السنوي (AED)', key: 'annual_rent', type: 'number' },
-              { label: 'التأمين', key: 'insurance', type: 'text' },
-              { label: 'رقم المالك', key: 'owner_phone', type: 'tel' },
-              { label: 'بداية العقد', key: 'contract_start', type: 'date' },
-              { label: 'نهاية العقد', key: 'contract_end', type: 'date' },
-              { label: 'خطة الدفع', key: 'payment_plan', type: 'text' },
-              { label: 'الطابق', key: 'floor', type: 'text' },
+              { label: isAr ? 'اسم المستأجر' : 'Tenant Name', key: 'tenant_name', type: 'text' },
+              { label: isAr ? 'الجنسية' : 'Nationality', key: 'nationality', type: 'text' },
+              { label: isAr ? 'الإيجار السنوي (AED)' : 'Annual Rent (AED)', key: 'annual_rent', type: 'number' },
+              { label: isAr ? 'التأمين' : 'Insurance', key: 'insurance', type: 'text' },
+              { label: isAr ? 'رقم المالك' : 'Owner Phone', key: 'owner_phone', type: 'tel' },
+              { label: isAr ? 'بداية العقد' : 'Contract Start', key: 'contract_start', type: 'date' },
+              { label: isAr ? 'نهاية العقد' : 'Contract End', key: 'contract_end', type: 'date' },
+              { label: isAr ? 'خطة الدفع' : 'Payment Plan', key: 'payment_plan', type: 'text' },
+              { label: isAr ? 'الطابق' : 'Floor', key: 'floor', type: 'text' },
             ].map(f => (
               <div key={f.key} className="space-y-1.5">
                 <Label className="text-sm">{f.label}</Label>
@@ -515,32 +605,32 @@ export default function UnitDetails() {
               </div>
             ))}
             <div className="space-y-1.5">
-              <Label className="text-sm">الحالة</Label>
+              <Label className="text-sm">{isAr ? 'الحالة' : 'Status'}</Label>
               <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="occupied">مأجرة</SelectItem>
-                  <SelectItem value="vacant">شاغرة</SelectItem>
-                  <SelectItem value="maintenance">صيانة</SelectItem>
+                  <SelectItem value="occupied">{isAr ? 'مأجرة' : 'Occupied'}</SelectItem>
+                  <SelectItem value="vacant">{isAr ? 'شاغرة' : 'Vacant'}</SelectItem>
+                  <SelectItem value="maintenance">{isAr ? 'صيانة' : 'Maintenance'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-sm">ملاحظات</Label>
+              <Label className="text-sm">{isAr ? 'ملاحظات' : 'Notes'}</Label>
               <Input value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-sm">صورة العقد</Label>
+              <Label className="text-sm">{isAr ? 'صورة العقد' : 'Contract Image'}</Label>
               <div className="flex items-center gap-3">
                 <input ref={contractFileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => handleContractUpload(e.target.files[0])} />
                 <Button type="button" variant="outline" size="sm" onClick={() => contractFileRef.current?.click()} disabled={uploadingContract} className="gap-2">
                   {uploadingContract ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                  {uploadingContract ? 'جاري الرفع...' : 'رفع صورة العقد'}
+                  {uploadingContract ? (isAr ? 'جاري الرفع...' : 'Uploading...') : (isAr ? 'رفع صورة العقد' : 'Upload Contract')}
                 </Button>
                 {form.contract_image_url && (
                   <div className="flex items-center gap-2">
                     <a href={form.contract_image_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs hover:underline" style={{ color: '#1B2B4B' }}>
-                      <FileImage size={14} /> عرض العقد
+                      <FileImage size={14} /> {isAr ? 'عرض العقد' : 'View Contract'}
                     </a>
                     <button type="button" onClick={() => setForm(p => ({ ...p, contract_image_url: '' }))} className="text-destructive hover:opacity-70">
                       <X size={14} />
@@ -550,10 +640,15 @@ export default function UnitDetails() {
               </div>
             </div>
           </div>
+          {saveError && (
+            <p className="text-xs font-medium px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(230,57,70,0.08)', color: '#E63946' }}>
+              {saveError}
+            </p>
+          )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
             <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#1B2B4B' }}>
-              {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+              {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </Button>
           </DialogFooter>
         </DialogContent>

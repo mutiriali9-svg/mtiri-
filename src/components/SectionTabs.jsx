@@ -11,6 +11,7 @@ export const SECTION_PAIRS = [
   ['/payments', '/re-payments'],
   ['/expenses', '/re-expenses'],
   ['/savings', '/re-savings'],
+  ['/archive', '/re-archive'],
 ];
 
 export function normalizePath(pathname) {

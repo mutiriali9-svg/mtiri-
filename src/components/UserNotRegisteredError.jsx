@@ -1,7 +1,7 @@
 import { Globe, CheckCircle2, Loader2, User, Phone, AtSign } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { t_data } from '@/lib/LanguageContext';
-import { base44, uploadFile } from '@/api/base44Client';
+import { base44, uploadFile, checkRegistration } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,8 +52,8 @@ export default function UserNotRegisteredError() {
     setLoading(true);
     try {
       // Check for duplicate email or username
-      const existing = await base44.entities.RegistrationRequest.list();
-      if (existing.find(r => r.email?.toLowerCase() === userEmail.toLowerCase())) {
+      const existing = await checkRegistration(userEmail, '');
+      if (existing.email_taken) {
         setError(isRtl ? 'طلبك مُسجَّل مسبقاً، انتظر موافقة المسؤول' : 'Request already submitted. Awaiting admin approval.');
         setLoading(false);
         return;
@@ -165,36 +165,36 @@ export default function UserNotRegisteredError() {
               <div className="space-y-1.5">
                 <Label>{isRtl ? 'الاسم الأول *' : 'First Name *'}</Label>
                 <div className="relative">
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input value={form.first_name} onChange={set('first_name')} className="pr-9 h-10" required />
+                  <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input value={form.first_name} onChange={set('first_name')} className="ps-9 h-10" required />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label>{isRtl ? 'اسم العائلة *' : 'Last Name *'}</Label>
                 <div className="relative">
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input value={form.last_name} onChange={set('last_name')} className="pr-9 h-10" required />
+                  <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input value={form.last_name} onChange={set('last_name')} className="ps-9 h-10" required />
                 </div>
               </div>
             </div>
             <div className="space-y-1.5">
               <Label>{isRtl ? 'اسم المستخدم *' : 'Username *'}</Label>
               <div className="relative">
-                <AtSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input value={form.username} onChange={set('username')} className="pr-9 h-10" required />
+                <AtSign className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input value={form.username} onChange={set('username')} className="ps-9 h-10" required />
               </div>
             </div>
             <div className="space-y-1.5">
               <Label>{isRtl ? 'رقم الهاتف *' : 'Phone *'}</Label>
               <div className="relative">
-                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input type="tel" value={form.phone} onChange={set('phone')} placeholder="+971 50 000 0000" className="pr-9 h-10" required />
+                <Phone className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input type="tel" value={form.phone} onChange={set('phone')} placeholder="+971 50 000 0000" className="ps-9 h-10" required />
               </div>
             </div>
             <div className="pt-1 space-y-2">
               <Button type="submit" className="w-full h-11" disabled={loading} style={{ backgroundColor: '#1B2B4B' }}>
                 {loading
-                  ? <><Loader2 className="w-4 h-4 ml-2 animate-spin" />{isRtl ? 'جاري الإرسال...' : 'Sending...'}</>
+                  ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />{isRtl ? 'جاري الإرسال...' : 'Sending...'}</>
                   : (isRtl ? 'إرسال الطلب' : 'Submit Request')}
               </Button>
               <button type="button" onClick={() => setShowForm(false)} className="w-full text-sm text-slate-400 underline">

@@ -10,6 +10,8 @@ export default function Investors() {
   const [investors, setInvestors] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [refunds, setRefunds] = useState([]);
+  const [recoveries, setRecoveries] = useState([]);
   const [selectedYear, setSelectedYear] = useState(String(thisYear));
   const [dateFrom, setDateFrom] = useState(`${thisYear}-01-01`);
   const [dateTo, setDateTo] = useState(`${thisYear}-12-31`);
@@ -31,10 +33,14 @@ export default function Investors() {
       base44.entities.Investor.list(),
       base44.entities.Payment.list(),
       base44.entities.Expense.list(),
-    ]).then(([inv, pay, exp]) => {
+      base44.entities.Refund.list().catch(() => []),
+      base44.entities.DepositDeduction.list().catch(() => []),
+    ]).then(([inv, pay, exp, ref, dd]) => {
       setInvestors(inv);
       setPayments(pay);
       setExpenses(exp);
+      setRefunds((ref || []).filter(x => x.property_type === 'qarya'));
+      setRecoveries((dd || []).filter(x => x.property_type === 'qarya' && x.destination === 'owner_recovery'));
       setLoading(false);
     });
   }, []);
@@ -44,7 +50,10 @@ export default function Investors() {
     return (!dateFrom || dateStr >= dateFrom) && (!dateTo || dateStr <= dateTo);
   };
 
-  const totalRevenue = payments.filter(p => p.status === 'paid' && inRange(p.payment_date)).reduce((s, p) => s + (p.amount || 0), 0);
+  const grossRevenue = payments.filter(p => p.status === 'paid' && inRange(p.payment_date)).reduce((s, p) => s + (p.amount || 0), 0);
+  const totalRefunds = refunds.filter(r => inRange(r.applies_to_date || r.refund_date)).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const totalRecovery = recoveries.filter(x => inRange(x.deduction_date)).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const totalRevenue = grossRevenue + totalRecovery - totalRefunds;
   const totalExpenses = expenses.filter(e => e.category !== 'savings' && inRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
   const totalSavings = expenses.filter(e => e.category === 'savings' && inRange(e.expense_date)).reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
@@ -149,17 +158,24 @@ export default function Investors() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button onClick={() => setModal('revenue')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
+        <button onClick={() => setModal('revenue')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-start w-full cursor-pointer">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EBF3FF' }}>
             <DollarSign size={20} style={{ color: '#1B2B4B' }} />
           </div>
           <div>
             <p className="text-xs text-muted-foreground">{t('totalRevenueI')}</p>
             <p className="text-lg font-bold" style={{ color: '#1B2B4B' }}>{fmt(totalRevenue)} AED</p>
+            {(totalRefunds > 0 || totalRecovery > 0) && (
+              <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#E63946' }}>
+                {lang === 'ar'
+                  ? `الدفعات ${fmt(grossRevenue)} − تسويات العقود ${fmt(totalRefunds)}${totalRecovery ? ` + استردادات التأمين ${fmt(totalRecovery)}` : ''}`
+                  : `Payments ${fmt(grossRevenue)} − contract settlements ${fmt(totalRefunds)}${totalRecovery ? ` + deposit recoveries ${fmt(totalRecovery)}` : ''}`}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">{filteredPayments.length} — {t('clickForDetails')}</p>
           </div>
         </button>
-        <button onClick={() => setModal('expenses')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
+        <button onClick={() => setModal('expenses')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-start w-full cursor-pointer">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFF3F3' }}>
             <TrendingUp size={20} style={{ color: '#E63946' }} />
           </div>
@@ -170,7 +186,7 @@ export default function Investors() {
             <p className="text-[11px] font-semibold mt-0.5 flex items-center gap-1" style={{ color: '#059669' }}><PiggyBank size={11} />{lang === 'ar' ? 'ادخار' : 'Savings'} {fmt(totalSavings)} AED</p>
           </div>
         </button>
-        <button onClick={() => setModal('profit')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-right w-full cursor-pointer">
+        <button onClick={() => setModal('profit')} className="bg-white rounded-xl card-bevel p-4 flex items-center gap-4 hover:shadow-md transition-shadow text-start w-full cursor-pointer">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F0FBF9' }}>
             <Percent size={20} style={{ color: '#2A9D8F' }} />
           </div>
@@ -193,11 +209,11 @@ export default function Investors() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-xs">
-                  <th className="text-right px-3 py-2 font-medium">{t('tenant')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('unitNumber')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('amount')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('date')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('paymentMethod')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('tenant')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('unitNumber')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('amount')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('date')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('paymentMethod')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,9 +230,30 @@ export default function Investors() {
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/30 font-bold">
                   <td colSpan={2} className="px-3 py-2.5" style={{ color: '#1B2B4B' }}>{t('subTotal')} ({filteredPayments.length})</td>
-                  <td className="px-3 py-2.5 text-green-700">{fmt(totalRevenue)} AED</td>
+                  <td className="px-3 py-2.5 text-green-700">{fmt(grossRevenue)} AED</td>
                   <td colSpan={2} />
                 </tr>
+                {totalRefunds > 0 && (
+                  <tr className="bg-muted/10">
+                    <td colSpan={2} className="px-3 py-2" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'تسويات العقود' : 'Contract settlements'}</td>
+                    <td className="px-3 py-2 font-bold text-red-600">- {fmt(totalRefunds)} AED</td>
+                    <td colSpan={2} />
+                  </tr>
+                )}
+                {totalRecovery > 0 && (
+                  <tr className="bg-muted/10">
+                    <td colSpan={2} className="px-3 py-2" style={{ color: '#1B2B4B' }}>{lang === 'ar' ? 'استردادات من التأمين' : 'Deposit recoveries'}</td>
+                    <td className="px-3 py-2 font-bold text-green-700">+ {fmt(totalRecovery)} AED</td>
+                    <td colSpan={2} />
+                  </tr>
+                )}
+                {(totalRefunds > 0 || totalRecovery > 0) && (
+                  <tr className="border-t border-border bg-muted/30 font-bold">
+                    <td colSpan={2} className="px-3 py-2.5" style={{ color: '#1B2B4B' }}>{t('totalRevenueI')}</td>
+                    <td className="px-3 py-2.5 text-green-700">{fmt(totalRevenue)} AED</td>
+                    <td colSpan={2} />
+                  </tr>
+                )}
               </tfoot>
             </table>
             {filteredPayments.length === 0 && <p className="text-center text-muted-foreground py-8">{t('noPaymentsPeriod')}</p>}
@@ -235,11 +272,11 @@ export default function Investors() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-xs">
-                  <th className="text-right px-3 py-2 font-medium">{t('description_col')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('category')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('amount')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('date')}</th>
-                  <th className="text-right px-3 py-2 font-medium">{t('vendor')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('description_col')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('category')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('amount')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('date')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{t('vendor')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,18 +335,18 @@ export default function Investors() {
         <div className="px-5 py-4 border-b border-border flex items-center gap-2 flex-wrap">
           <Users size={18} style={{ color: '#C9A84C' }} />
           <h2 className="font-semibold" style={{ color: '#1B2B4B' }}>{t('investorShares')}</h2>
-          <span className="text-xs text-muted-foreground ml-auto">{t('totalShares')}: {totalShares.toFixed(2)}%</span>
+          <span className="text-xs text-muted-foreground ms-auto">{t('totalShares')}: {totalShares.toFixed(2)}%</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-[11px] lg:text-sm">
             <thead>
               <tr className="bg-muted/40 text-muted-foreground text-xs">
-                <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('investorName')}</th>
-                <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('sharePct')}</th>
-                <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('revShare')}</th>
-                <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('expShare')}</th>
-                <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{lang === 'ar' ? 'نصيب الادخار' : 'Savings Share'}</th>
-                <th className="text-right px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('netShare')}</th>
+                <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('investorName')}</th>
+                <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('sharePct')}</th>
+                <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('revShare')}</th>
+                <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('expShare')}</th>
+                <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{lang === 'ar' ? 'نصيب الادخار' : 'Savings Share'}</th>
+                <th className="text-start px-2.5 lg:px-5 py-3 font-medium whitespace-nowrap">{t('netShare')}</th>
               </tr>
             </thead>
             <tbody>

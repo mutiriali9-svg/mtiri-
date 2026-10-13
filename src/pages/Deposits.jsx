@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44, supabase, uploadFile } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
@@ -11,12 +12,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MobileDrawerSelect from '@/components/MobileDrawerSelect';
+import DueMonthsPicker from '@/components/DueMonthsPicker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   PAY_METHODS, methodLabel, propLabel, depositBalance, isCheque, fmtNum,
   DEDUCTION_DESTINATIONS, destLabel, destColor,
 } from '@/utils/settlementCalc';
+
+const DEDUCT_RED = '#E63946';
+const moveColor = (dest) => (dest === 'tenant_return' ? destColor(dest) : DEDUCT_RED);
 
 const emptyForm = {
   property_type: 'qarya', unit_number: '', tenant_name: '', amount: '',
@@ -25,6 +30,8 @@ const emptyForm = {
 
 export default function Deposits() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [afterSave, setAfterSave] = useState('');
   const { lang } = useLang();
   const t = (ar, en) => (lang === 'en' ? en : ar);
   const isAr = lang !== 'en';
@@ -86,12 +93,15 @@ export default function Deposits() {
     deepLinked.current = true;
     const unitNumber = q.get('unit');
     const type = q.get('prop') || 'qarya';
+    const after = q.get('after') || '';
+    setAfterSave(/^\/(re-units|units)\?newTenant=[^&]+$/.test(after) ? after : '');
     window.history.replaceState({}, '', window.location.pathname);
     setProp(type);
     setDed({
       ...emptyDed,
       property_type: type,
       unit_number: unitNumber || '',
+      tenant_name: holderOf(type, unitNumber || ''),
       mode: 'return',
       destination: 'tenant_return',
     });
@@ -102,6 +112,15 @@ export default function Deposits() {
     ...units.map(u => ({ ...u, _type: 'qarya' })),
     ...reUnits.map(u => ({ ...u, _type: 'real_estate' })),
   ];
+
+  const holderOf = (type, unitNumber) => {
+    const u = allUnits.find(x => x._type === type && x.unit_number === unitNumber);
+    if (u?.tenant_name) return u.tenant_name;
+    const last = deposits
+      .filter(d => d.property_type === type && d.unit_number === unitNumber && d.released_at && d.tenant_name)
+      .sort((a, b) => String(b.released_at).localeCompare(String(a.released_at)))[0];
+    return last?.tenant_name || '';
+  };
 
   const rows = allUnits.map(u => ({
     ...u,
@@ -167,7 +186,7 @@ export default function Deposits() {
       ...emptyDed,
       property_type: row?._type || prop,
       unit_number: row?.unit_number || '',
-      tenant_name: row?.tenant_name || '',
+      tenant_name: row ? holderOf(row._type || prop, row.unit_number) : '',
     });
     setReceiptUrl(''); setInlineError('');
     setDedOpen(true);
@@ -181,7 +200,7 @@ export default function Deposits() {
 
   const pickDedUnit = (key) => {
     const [type, ...rest] = key.split('::');
-    setDed(d => ({ ...d, property_type: type, unit_number: rest.join('::'), amount: '' }));
+    setDed(d => ({ ...d, property_type: type, unit_number: rest.join('::'), tenant_name: holderOf(type, rest.join('::')), amount: '' }));
   };
 
   const handleDedSave = async () => {
@@ -230,6 +249,7 @@ export default function Deposits() {
       window.dispatchEvent(new Event('notifications-updated'));
 
       setDedOpen(false); setDed(null); setReceiptUrl('');
+      if (afterSave) { const to = afterSave; setAfterSave(''); navigate(to); return created; }
       await load();
       return created;
     } catch (e) {
@@ -310,10 +330,15 @@ export default function Deposits() {
   const askDelete = (d) => setConfirm({
     autoSourced: d.source === 'unit',
     message: d.source === 'unit'
-      ? t(
-        'هذا السند مسجَّل تلقائياً من بيانات الوحدة. لحذفه أو تعديله، غيّر حقل التأمين في صفحة الوحدات وسيتحدّث هنا تلقائياً.',
-        'This voucher is auto-synced from the unit. Change the unit deposit field instead.',
-      )
+      ? (d.released_at
+        ? t(
+          'هذا سند تأمين عقد سابق، حُفظ كما هو عند خروج مستأجره، ولا يُحذف من هنا.',
+          'This is the deposit of a previous contract, kept as it was when its tenant left, and it cannot be deleted here.',
+        )
+        : t(
+          'هذا السند مسجَّل تلقائياً من بيانات الوحدة. لحذفه أو تعديله، غيّر حقل التأمين في صفحة الوحدات وسيتحدّث هنا تلقائياً.',
+          'This voucher is synced automatically from the unit. To edit or delete it, change the deposit field on the Units page and it will update here.',
+        ))
       : t(
       `حذف سند ${d.receipt_number || ''}؟ سينقص رصيد الوحدة بمقدار المبلغ نفسه.`,
       `Delete voucher ${d.receipt_number || ''}? The unit balance will drop accordingly.`,
@@ -360,11 +385,11 @@ export default function Deposits() {
           <div className="flex gap-2 shrink-0">
             <Button onClick={() => openDed(null)} variant="outline"
               style={{ borderColor: 'rgba(124,58,237,0.4)', color: '#7C3AED', minHeight: 44 }}>
-              <MinusCircle size={15} className="ml-1" />
+              <MinusCircle size={15} className="me-1" />
               {t('استرجاع التأمين أو خصم', 'Refund / Deduct')}
             </Button>
             <Button onClick={openAdd} className="text-white" style={{ backgroundColor: '#2A9D8F', minHeight: 44 }}>
-              <Plus size={15} className="ml-1" />
+              <Plus size={15} className="me-1" />
               {t('تسجيل تأمين', 'Receive Deposit')}
             </Button>
           </div>
@@ -419,7 +444,7 @@ export default function Deposits() {
             {fmtNum(totalCheque)} <span className="text-xs font-normal">{currency}</span>
           </p>
           <p className="text-[10px] mt-1" style={{ color: '#94A3B8' }}>
-            {t(`${chequeCount} شيك · غير محتسبة مع النقدي`, `${chequeCount} cheques · not counted with cash`)}
+            {t(`${chequeCount} شيك · غير محتسبة مع النقدي`, `${chequeCount} ${chequeCount === 1 ? 'cheque' : 'cheques'} · not counted with cash`)}
           </p>
         </div>
 
@@ -535,7 +560,7 @@ export default function Deposits() {
                           {d.source === 'unit' && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
                               style={{ backgroundColor: 'rgba(27,43,75,0.07)', color: '#64748B' }}>
-                              {t('تلقائي', 'Auto')}
+                              {d.released_at ? t('عقد سابق', 'Previous contract') : t('تلقائي', 'Auto')}
                             </span>
                           )}
                           {isCheque(d) && (
@@ -667,14 +692,14 @@ export default function Deposits() {
                     <td className="py-2.5 px-3">
                       <p className="font-bold text-xs" style={{ color: '#1B2B4B' }}>{x.unit_number}</p>
                       {box.cut > 0 ? (
-                        <p className="text-[11px] font-bold" style={{ color: '#7C3AED' }}>
+                        <p className="text-[11px] font-bold" style={{ color: DEDUCT_RED }}>
                           {t(`خُصم منها ${fmtNum(box.cut)}`, `deducted ${fmtNum(box.cut)}`)}
                         </p>
                       ) : (
                         <p className="text-[11px]" style={{ color: '#94A3B8' }}>{propLabel(x.property_type, isAr)}</p>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-xs" style={{ color: '#7C3AED' }}>− {fmtNum(x.amount || 0)}</td>
+                    <td className="py-2.5 px-3 font-bold text-xs" style={{ color: moveColor(x.destination) }}>− {fmtNum(x.amount || 0)}</td>
                     <td className="py-2.5 px-3 text-xs" style={{ color: '#64748B', textAlign: 'start' }}><span dir="ltr">{x.deduction_date}</span></td>
                     <td className="py-2.5 px-3 text-xs" style={{ color: '#1B2B4B' }}>{x.reason}</td>
                     <td className="py-2.5 px-3">
@@ -749,7 +774,7 @@ export default function Deposits() {
                 ].filter(r => r.value).map(r => (
                   <div key={r.label} className="flex justify-between gap-2 text-xs">
                     <span style={{ color: '#94A3B8' }}>{r.label}</span>
-                    <span className="font-medium text-left" style={{ color: '#1B2B4B' }}>{r.value}</span>
+                    <span className="font-medium text-end" style={{ color: '#1B2B4B' }}>{r.value}</span>
                   </div>
                 ))}
               </div>
@@ -765,17 +790,22 @@ export default function Deposits() {
               {viewItem.source === 'unit' && (
                 <p className="text-[11px] font-medium rounded-xl px-3 py-2.5"
                   style={{ backgroundColor: 'rgba(27,43,75,0.05)', color: '#1B2B4B' }}>
-                  {t(
-                    'سند مسجَّل تلقائياً من حقل التأمين في الوحدة — يتحدّث معها ولا يُحذف من هنا.',
-                    'Auto-synced from the unit deposit field.',
-                  )}
+                  {viewItem.released_at
+                    ? t(
+                      'سند تأمين عقد سابق، حُفظ كما هو عند خروج مستأجره، ولا يتغير بتحديث الوحدة.',
+                      'Deposit of a previous contract, kept as it was when its tenant left; unit updates no longer change it.',
+                    )
+                    : t(
+                      'سند مسجَّل تلقائياً من حقل التأمين في الوحدة — يتحدّث معها ولا يُحذف من هنا.',
+                      'Synced automatically from the unit deposit field — it updates with the unit and cannot be deleted here.',
+                    )}
                 </p>
               )}
 
               <p className="text-[10px] font-medium" style={{ color: '#94A3B8' }}>
                 {t(
-                  'الإرجاع والخصم من التأمين يتمّان من صفحة الاسترجاعات والخصومات، وهناك يُسجَّل السبب واسم المستأجر وبيانات العقد.',
-                  'Refunds and deductions are done from the Refunds page.',
+                  'الإرجاع والخصم من التأمين يتمّان من صفحة تسويات العقود، وهناك يُسجَّل السبب واسم المستأجر وبيانات العقد.',
+                  'Refunds and deductions are recorded on the Contract Settlements page, along with the reason, tenant name and contract details.',
                 )}
               </p>
 
@@ -783,7 +813,7 @@ export default function Deposits() {
                 {isAdmin && viewItem.source !== 'unit' && (
                   <Button variant="outline" onClick={() => askDelete(viewItem)}
                     className="flex-1" style={{ borderColor: 'rgba(230,57,70,0.35)', color: '#E63946', minHeight: 44 }}>
-                    <Trash2 size={14} className="ml-1" /> {t('حذف', 'Delete')}
+                    <Trash2 size={14} className="me-1" /> {t('حذف', 'Delete')}
                   </Button>
                 )}
                 <Button variant="outline" onClick={() => setViewItem(null)} className="flex-1" style={{ minHeight: 44 }}>
@@ -921,7 +951,7 @@ export default function Deposits() {
                   <p className="text-[11px] font-medium leading-relaxed" style={{ color: '#8A6D1F' }}>
                     {t(
                       'شيك تأمين — يُسجَّل في بطاقة «شيكات التأمين» منفصلاً، ولا يُجمع مع التأمينات النقدية.',
-                      'Deposit cheque — tracked separately and not summed with cash deposits.',
+                      'Deposit cheque — tracked separately under "Deposit Cheques" and not added to cash deposits.',
                     )}
                   </p>
                 </div>
@@ -930,8 +960,8 @@ export default function Deposits() {
               <div className="rounded-xl px-3 py-2.5 text-[11px] leading-relaxed"
                 style={{ backgroundColor: 'rgba(42,157,143,0.07)', color: '#1B2B4B' }}>
                 {t(
-                  'هذا المبلغ أمانة لدى المالك — لا يُضاف إلى الإيراد ولا يرفع هامش الربح، ولا يتحوّل إلى إيراد إلا عند خصم جزء منه فعلياً من صفحة الاسترجاعات والخصومات.',
-                  'Held in trust — not revenue until actually deducted from the Refunds page.',
+                  'هذا المبلغ أمانة لدى المالك — لا يُضاف إلى الإيراد ولا يرفع هامش الربح، ولا يتحوّل إلى إيراد إلا عند خصم جزء منه فعلياً من صفحة تسويات العقود.',
+                  'Held in trust — not added to revenue or profit margin until part of it is actually deducted on the Contract Settlements page.',
                 )}
               </div>
 
@@ -946,7 +976,7 @@ export default function Deposits() {
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={saving || uploading}
                   className="flex-1 text-white" style={{ backgroundColor: '#2A9D8F', minHeight: 44 }}>
-                  <CheckCircle2 size={15} className="ml-1" />
+                  <CheckCircle2 size={15} className="me-1" />
                   {saving ? t('جاري الحفظ...', 'Saving...') : t('حفظ', 'Save')}
                 </Button>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1" style={{ minHeight: 44 }}>
@@ -969,9 +999,9 @@ export default function Deposits() {
             return (
               <div className="overflow-y-auto flex-1 py-3 space-y-3">
                 <div className="rounded-xl p-4 text-center"
-                  style={{ backgroundColor: `${destColor(dedView.destination)}0F`, border: `1px solid ${destColor(dedView.destination)}44` }}>
+                  style={{ backgroundColor: `${moveColor(dedView.destination)}0F`, border: `1px solid ${moveColor(dedView.destination)}44` }}>
                   <p className="text-xs" style={{ color: '#94A3B8' }}>{destLabel(dedView.destination, isAr)}</p>
-                  <p className="text-2xl font-bold mt-1" style={{ color: destColor(dedView.destination) }}>
+                  <p className="text-2xl font-bold mt-1" style={{ color: moveColor(dedView.destination) }}>
                     − {fmtNum(dedView.amount || 0)} {currency}
                   </p>
                   {dedView.receipt_number && (
@@ -993,7 +1023,7 @@ export default function Deposits() {
                   ].filter(r => r.value).map(r => (
                     <div key={r.label} className="flex justify-between gap-2 text-xs">
                       <span style={{ color: '#94A3B8' }}>{r.label}</span>
-                      <span className="font-medium text-left" style={{ color: '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>{r.value}</span>
+                      <span className="font-medium text-end" style={{ color: '#1B2B4B' }} dir={r.raw ? 'ltr' : undefined}>{r.value}</span>
                     </div>
                   ))}
                 </div>
@@ -1004,8 +1034,8 @@ export default function Deposits() {
                     {t(`ملخص تأمين الوحدة ${dedView.unit_number}`, `Unit ${dedView.unit_number} deposit summary`)}
                   </p>
                   {[
-                    { l: t('المستلَم نقداً', 'Received'), v: fmtNum(box.received), c: '#1B2B4B' },
-                    { l: t('المخصوم', 'Deducted'), v: '− ' + fmtNum(box.cut), c: box.cut > 0 ? '#7C3AED' : '#94A3B8' },
+                    { l: t('المستلَم نقداً', 'Received in cash'), v: fmtNum(box.received), c: '#1B2B4B' },
+                    { l: t('المخصوم', 'Deducted'), v: '− ' + fmtNum(box.cut), c: box.cut > 0 ? DEDUCT_RED : '#94A3B8' },
                     { l: t('المُرجَع للمستأجر', 'Returned'), v: '− ' + fmtNum(box.back), c: box.back > 0 ? '#0EA5E9' : '#94A3B8' },
                   ].map(r => (
                     <div key={r.l} className="flex justify-between gap-2 text-[11px]">
@@ -1038,7 +1068,12 @@ export default function Deposits() {
       </Dialog>
 
       {isAdmin && (
-        <Dialog open={dedOpen} onOpenChange={o => { setDedOpen(o); if (!o) setInlineError(''); }}>
+        <Dialog open={dedOpen} onOpenChange={o => {
+          setDedOpen(o);
+          if (o) return;
+          setInlineError('');
+          if (afterSave) { const to = afterSave; setAfterSave(''); navigate(to); }
+        }}>
           <DialogContent className="max-w-md w-full" dir={isAr ? 'rtl' : 'ltr'}
             style={{ maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <DialogHeader className="flex-shrink-0 pb-2 border-b">
@@ -1050,7 +1085,7 @@ export default function Deposits() {
                 <div className="flex gap-1.5 p-1 rounded-xl" style={{ backgroundColor: '#F1F5F9' }}>
                   {[
                     { k: 'return', label: t('استرجاع', 'Refund'), color: '#0EA5E9', Icon: RotateCcw },
-                    { k: 'deduction', label: t('خصم', 'Deduction'), color: '#7C3AED', Icon: MinusCircle },
+                    { k: 'deduction', label: t('خصم', 'Deduction'), color: DEDUCT_RED, Icon: MinusCircle },
                   ].map(m => {
                     const on = ded.mode === m.k;
                     return (
@@ -1084,6 +1119,17 @@ export default function Deposits() {
                   />
                 </div>
 
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">{t('المستأجر', 'Tenant')}</Label>
+                  <Input value={ded.tenant_name}
+                    onChange={e => setDed(d => ({ ...d, tenant_name: e.target.value }))}
+                    className="text-sm" style={{ minHeight: 44 }} />
+                  <p className="text-[11px] leading-relaxed" style={{ color: '#94A3B8' }}>
+                    {t('تُنسب الحركة إلى عقد هذا المستأجر، فإن كان قد خرج ظهرت في عقده المؤرشف.',
+                      'The record goes to this tenant’s contract; if the tenant has left, it shows in their archived contract.')}
+                  </p>
+                </div>
+
                 <div className="rounded-xl p-3 space-y-1.5"
                   style={{
                     backgroundColor: dedBalance.hasDeposit ? 'rgba(42,157,143,0.07)' : 'rgba(230,57,70,0.07)',
@@ -1105,8 +1151,8 @@ export default function Deposits() {
                       </div>
                       {dedAmount > 0 && (
                         <div className="flex justify-between gap-2 text-[11px]">
-                          <span style={{ color: '#7C3AED' }}>{ded.mode === 'return' ? t('المبلغ المسترجَع', 'Refunded now') : t('المبلغ المخصوم', 'Deducted now')}</span>
-                          <span className="font-bold" style={{ color: '#7C3AED' }}>− {fmtNum(dedAmount)}</span>
+                          <span style={{ color: ded.mode === 'return' ? '#0EA5E9' : DEDUCT_RED }}>{ded.mode === 'return' ? t('المبلغ المسترجَع', 'Refunded now') : t('المبلغ المخصوم', 'Deducted now')}</span>
+                          <span className="font-bold" style={{ color: ded.mode === 'return' ? '#0EA5E9' : DEDUCT_RED }}>− {fmtNum(dedAmount)}</span>
                         </div>
                       )}
                       <div className="flex justify-between gap-2 text-xs pt-1 border-t" style={{ borderColor: 'rgba(42,157,143,0.2)' }}>
@@ -1162,7 +1208,7 @@ export default function Deposits() {
                       return (
                         <button key={o.value}
                           onClick={() => setDed(d => ({ ...d, destination: o.value, due_months: '' }))}
-                          className="w-full text-right rounded-xl border px-3 py-2.5 transition"
+                          className="w-full text-start rounded-xl border px-3 py-2.5 transition"
                           style={{
                             backgroundColor: on ? `${o.color}12` : '#fff',
                             borderColor: on ? o.color : '#E2E8F0',
@@ -1188,34 +1234,25 @@ export default function Deposits() {
                         {' — '}{fmtNum(dedAmount)} {currency}
                       </span>
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] font-semibold text-muted-foreground">{t('الشهر المستحق *', 'Due month *')}</Label>
-                        <Input value={ded.due_months}
-                          onChange={e => setDed(d => ({ ...d, due_months: e.target.value }))}
-                          placeholder={t('مثال: 8 أو 8/9', 'e.g. 8')}
-                          className="text-sm bg-white" style={{ minHeight: 40 }} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] font-semibold text-muted-foreground">{t('طريقة الدفعة', 'Method')}</Label>
-                        <MobileDrawerSelect
-                          value={ded.method}
-                          onValueChange={v => setDed(d => ({ ...d, method: v }))}
-                          triggerClassName="text-sm w-full bg-white"
-                          dir={isAr ? 'rtl' : 'ltr'}
-                          options={PAY_METHODS.map(m => ({ value: m.value, label: m.label[isAr ? 'ar' : 'en'] }))}
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">{t('الأشهر المستحقة *', 'Due months *')}</Label>
+                      <DueMonthsPicker value={ded.due_months} onChange={v => setDed(d => ({ ...d, due_months: v }))}
+                        table={ded.property_type === 'real_estate' ? 're_payments' : 'payments'}
+                        unitNumber={ded.unit_number} suggest />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-muted-foreground">{t('اسم المستأجر في الدفعة', 'Tenant on the payment')}</Label>
-                      <Input value={ded.tenant_name}
-                        onChange={e => setDed(d => ({ ...d, tenant_name: e.target.value }))}
-                        className="text-sm bg-white" style={{ minHeight: 40 }} />
+                      <Label className="text-[10px] font-semibold text-muted-foreground">{t('طريقة الدفعة', 'Method')}</Label>
+                      <MobileDrawerSelect
+                        value={ded.method}
+                        onValueChange={v => setDed(d => ({ ...d, method: v }))}
+                        triggerClassName="text-sm w-full bg-white"
+                        dir={isAr ? 'rtl' : 'ltr'}
+                        options={PAY_METHODS.map(m => ({ value: m.value, label: m.label[isAr ? 'ar' : 'en'] }))}
+                      />
                     </div>
                     <p className="text-[11px] leading-relaxed" style={{ color: '#64748B' }}>
                       {t('يُنشأ سند دفعة في سجل الدفعات بملاحظة «محسوم من التأمين» ويدخل الإيراد.',
-                         'A payment voucher is created and counted as revenue.')}
+                         'A payment voucher noted "Deducted from deposit" is added to the Payment Ledger and counted as revenue.')}
                     </p>
                   </div>
                 )}
@@ -1277,13 +1314,16 @@ export default function Deposits() {
                 <div className="flex gap-2">
                   <Button onClick={handleDedSave} disabled={saving || uploading}
                     className="flex-1 text-white"
-                    style={{ backgroundColor: ded.mode === 'return' ? '#0EA5E9' : '#7C3AED', minHeight: 44 }}>
-                    <CheckCircle2 size={15} className="ml-1" />
+                    style={{ backgroundColor: ded.mode === 'return' ? '#0EA5E9' : DEDUCT_RED, minHeight: 44 }}>
+                    <CheckCircle2 size={15} className="me-1" />
                     {saving
                       ? t('جاري الحفظ...', 'Saving...')
                       : ded.mode === 'return' ? t('حفظ الاسترجاع', 'Save refund') : t('حفظ الخصم', 'Save deduction')}
                   </Button>
-                  <Button variant="outline" onClick={() => setDedOpen(false)} className="flex-1" style={{ minHeight: 44 }}>
+                  <Button variant="outline" onClick={() => {
+                    setDedOpen(false);
+                    if (afterSave) { const to = afterSave; setAfterSave(''); navigate(to); }
+                  }} className="flex-1" style={{ minHeight: 44 }}>
                     {t('إلغاء', 'Cancel')}
                   </Button>
                 </div>

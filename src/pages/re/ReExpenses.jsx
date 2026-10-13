@@ -41,6 +41,8 @@ export default function ReExpenses() {
   const { toast } = useToast();
   const { t, lang } = useLang();
   const isAr = lang === 'ar';
+  const PrevIcon = isAr ? ChevronRight : ChevronLeft;
+  const NextIcon = isAr ? ChevronLeft : ChevronRight;
   const canEdit = user?.role === 'admin';
 
   const itemsPerPage = 35;
@@ -122,7 +124,7 @@ export default function ReExpenses() {
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedData = filtered.slice(startIdx, startIdx + itemsPerPage);
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
-  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString('ar-AE') : n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n) => Number.isInteger(n) ? n.toLocaleString(isAr ? 'ar-AE' : 'en-GB') : n.toLocaleString(isAr ? 'ar-AE' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const catBreakdown = Object.keys(categoryLabels).map(k => ({
     key: k, label: categoryLabels[k],
@@ -150,7 +152,7 @@ export default function ReExpenses() {
           {catBreakdown.slice(0, 5).map(c => (
             <div key={c.key} className="bg-white card-bevel rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => setCatFilter(catFilter === c.key ? 'all' : c.key)}
-              style={{ borderRight: `3px solid ${c.color}`, opacity: catFilter !== 'all' && catFilter !== c.key ? 0.5 : 1 }}>
+              style={{ borderInlineStart: `3px solid ${c.color}`, opacity: catFilter !== 'all' && catFilter !== c.key ? 0.5 : 1 }}>
               <p className="text-xs text-muted-foreground">{c.label}</p>
               <p className="font-bold text-sm mt-1" style={{ color: c.color }}>{fmt(c.total)} AED</p>
               <p className="text-xs text-muted-foreground">{c.count}</p>
@@ -161,8 +163,8 @@ export default function ReExpenses() {
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-52">
-          <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-          <Input placeholder={t('searchExpenses')} value={search} onChange={e => setSearch(e.target.value)} className="pr-9 text-sm" />
+          <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
+          <Input placeholder={t('searchExpenses')} value={search} onChange={e => setSearch(e.target.value)} className="ps-9 text-sm" />
         </div>
         <Select value={catFilter} onValueChange={setCatFilter}>
           <SelectTrigger className="w-40"><SelectValue placeholder={t('category')} /></SelectTrigger>
@@ -172,7 +174,7 @@ export default function ReExpenses() {
           </SelectContent>
         </Select>
         <Select value={yearFilter} onValueChange={setYearFilter}>
-          <SelectTrigger className="w-28"><SelectValue placeholder="السنة" /></SelectTrigger>
+          <SelectTrigger className="w-28"><SelectValue placeholder={isAr ? 'السنة' : 'Year'} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{isAr ? 'كل السنوات' : 'All Years'}</SelectItem>
             {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -198,7 +200,7 @@ export default function ReExpenses() {
             <thead style={{ backgroundColor: '#1B2B4B' }}>
               <tr>
                 {[t('details'), t('amount'), t('date'), t('category'), t('vendor'), t('unitNumber'), ''].map(h => (
-                  <th key={h} className="text-right py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-start py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -271,7 +273,7 @@ export default function ReExpenses() {
         <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl card-bevel flex-wrap">
           <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
             className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
-            <ChevronRight size={18} />
+            <PrevIcon size={18} />
           </button>
           <div className="flex items-center gap-2 flex-wrap justify-center">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
@@ -288,9 +290,9 @@ export default function ReExpenses() {
           </div>
           <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
             className="p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors">
-            <ChevronLeft size={18} />
+            <NextIcon size={18} />
           </button>
-          <span className="text-xs text-muted-foreground ml-auto">{isAr ? `الصفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
+          <span className="text-xs text-muted-foreground me-auto">{isAr ? `الصفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
         </div>
       )}
 
@@ -330,7 +332,7 @@ export default function ReExpenses() {
                     <img src={image} alt="invoice" className="w-full max-h-48 object-contain" />
                   )}
                   <button type="button" onClick={() => { setImage(null); setImageType('image'); }}
-                    className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                    className="absolute top-2 end-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
                     <X size={14} />
                   </button>
                 </div>

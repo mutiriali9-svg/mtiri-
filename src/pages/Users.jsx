@@ -6,12 +6,13 @@ import { Shield, User, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { logActivity } from '@/utils/activityLogger';
+import { useLang } from '@/lib/LanguageContext';
 
 const ROLES = [
-  { value: 'admin',      label: 'Admin — مدير',           color: '#E63946', bg: 'rgba(230,57,70,0.1)' },
-  { value: 'data_entry', label: 'Data Entry — مدخل بيانات', color: '#2A9D8F', bg: 'rgba(42,157,143,0.1)' },
-  { value: 'investor',   label: 'Investor — مستثمر',       color: '#C9A84C', bg: 'rgba(201,168,76,0.1)' },
-  { value: 'tester',     label: 'Tester — تجريبي',         color: '#6B7280', bg: 'rgba(107,114,128,0.1)' },
+  { value: 'admin',      label: { ar: 'Admin — مدير', en: 'Admin' },           color: '#E63946', bg: 'rgba(230,57,70,0.1)' },
+  { value: 'data_entry', label: { ar: 'Data Entry — مدخل بيانات', en: 'Data Entry' }, color: '#2A9D8F', bg: 'rgba(42,157,143,0.1)' },
+  { value: 'investor',   label: { ar: 'Investor — مستثمر', en: 'Investor' },       color: '#C9A84C', bg: 'rgba(201,168,76,0.1)' },
+  { value: 'tester',     label: { ar: 'Tester — تجريبي', en: 'Tester' },         color: '#6B7280', bg: 'rgba(107,114,128,0.1)' },
 ];
 
 const roleConfig = Object.fromEntries(ROLES.map(r => [r.value, r]));
@@ -22,6 +23,8 @@ export default function Users() {
   const [saving, setSaving]   = useState({});
   const { user: currentUser } = useAuth();
   const { toast }             = useToast();
+  const { lang }              = useLang();
+  const isAr = lang === 'ar';
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -50,9 +53,9 @@ export default function Users() {
         `تغيير دور ${targetUser?.name || targetUser?.email} من ${oldRole} إلى ${newRole}`,
         currentUser
       );
-      toast({ description: 'تم تحديث الصلاحية ✓' });
+      toast({ description: isAr ? 'تم تحديث الصلاحية ✓' : 'Role updated ✓' });
     } catch {
-      toast({ description: 'حدث خطأ، حاول مرة أخرى', variant: 'destructive' });
+      toast({ description: isAr ? 'حدث خطأ، حاول مرة أخرى' : 'An error occurred, please try again', variant: 'destructive' });
     } finally {
       setSaving(prev => ({ ...prev, [userId]: false }));
     }
@@ -63,7 +66,7 @@ export default function Users() {
       <PageHeader
         titleAr="إدارة المستخدمين"
         titleEn="User Management"
-        description={`${users.length} مستخدم`}
+        description={isAr ? `${users.length} مستخدم` : `${users.length} user${users.length === 1 ? '' : 's'}`}
       />
 
       {/* Desktop Table */}
@@ -72,8 +75,8 @@ export default function Users() {
           <table className="w-full text-sm">
             <thead style={{ backgroundColor: '#1B2B4B' }}>
               <tr>
-                {['المستخدم', 'البريد الإلكتروني', 'الصلاحية'].map(h => (
-                  <th key={h} className="text-right py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
+                {(isAr ? ['المستخدم', 'البريد الإلكتروني', 'الصلاحية'] : ['User', 'Email', 'Role']).map(h => (
+                  <th key={h} className="text-start py-3 px-4 text-white/80 font-medium text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -89,7 +92,7 @@ export default function Users() {
                   </tr>
                 ))
               ) : users.length === 0 ? (
-                <tr><td colSpan={3} className="py-12 text-center text-muted-foreground">لا يوجد مستخدمون</td></tr>
+                <tr><td colSpan={3} className="py-12 text-center text-muted-foreground">{isAr ? 'لا يوجد مستخدمون' : 'No users found'}</td></tr>
               ) : users.map((u, i) => {
                 const rc = roleConfig[u.role];
                 return (
@@ -121,7 +124,7 @@ export default function Users() {
                                 <SelectItem key={r.value} value={r.value}>
                                   <span className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: r.color }} />
-                                    {r.label}
+                                    {r.label[lang]}
                                   </span>
                                 </SelectItem>
                               ))}
@@ -133,7 +136,7 @@ export default function Users() {
                       ) : (
                         <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
                           style={{ backgroundColor: rc?.bg, color: rc?.color }}>
-                          {rc?.label || u.role}
+                          {rc?.label?.[lang] || u.role}
                         </span>
                       )}
                     </td>
@@ -172,7 +175,7 @@ export default function Users() {
                 {(!isAdmin || u.id === currentUser?.id) && (
                   <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
                     style={{ backgroundColor: rc?.bg, color: rc?.color }}>
-                    {rc?.label || u.role}
+                    {rc?.label?.[lang] || u.role}
                   </span>
                 )}
               </div>
@@ -188,7 +191,7 @@ export default function Users() {
                         <SelectItem key={r.value} value={r.value}>
                           <span className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: r.color }} />
-                            {r.label}
+                            {r.label[lang]}
                           </span>
                         </SelectItem>
                       ))}

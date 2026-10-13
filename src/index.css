@@ -315,3 +315,53 @@ header button [data-lucide] {
 [dir="rtl"] .ltr-override {
   direction: ltr;
 }
+
+/* ===== Mobile fields ===== */
+/* 16px font stops the iPhone from zooming in when a field is focused */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* iPhone date fields keep a fixed inner width that pushes past the column; force them to shrink */
+  input[type="date"],
+  input[type="time"],
+  input[type="month"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Keep the date text aligned with other fields and stop empty date fields from collapsing on iPhone */
+input::-webkit-date-and-time-value {
+  text-align: start;
+  min-height: 1.5em;
+}
+
+/* ===== Touch response ===== */
+button,
+a,
+label,
+select,
+summary,
+[role="button"],
+[role="menuitem"],
+[role="tab"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) {
+  button:active,
+  a:active,
+  [role="button"]:active,
+  [role="menuitem"]:active,
+  [role="tab"]:active {
+    opacity: 0.62;
+  }
+}

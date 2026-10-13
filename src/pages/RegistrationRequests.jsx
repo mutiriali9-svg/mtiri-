@@ -166,7 +166,7 @@ export default function RegistrationRequests() {
             }>
             {tab.label}
             {tab.key === 'pending' && pendingCount > 0 && (
-              <span className="mr-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>
+              <span className="ms-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>
             )}
           </button>
         ))}

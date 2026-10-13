@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/api/base44Client';
+import { useLang } from '@/lib/LanguageContext';
 
 export default function PendingApproval() {
+  const { lang } = useLang();
+  const isAr = lang === 'ar';
   const [requestId, setRequestId] = useState('');
 
   useEffect(() => {
@@ -24,7 +27,7 @@ export default function PendingApproval() {
   }, []);
 
   return (
-    <div dir="rtl" style={{
+    <div dir={isAr ? 'rtl' : 'ltr'} style={{
       minHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', padding: '40px 20px',
       fontFamily: "'Tajawal', sans-serif",
@@ -47,9 +50,9 @@ export default function PendingApproval() {
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', marginBottom:'30px' }}>
         <div style={{ fontSize:'40px', fontWeight:900, letterSpacing:'-1px', lineHeight:1, background:'linear-gradient(170deg,#f3dca6 0%,#dcb976 45%,#c79a52 100%)', WebkitBackgroundClip:'text', backgroundClip:'text', WebkitTextFillColor:'transparent', color:'#dcb976' }}>المطيري</div>
         <div style={{ display:'flex', alignItems:'center', gap:'9px', opacity:.72 }}>
-          <span style={{ width:'22px', height:'1px', background:'linear-gradient(90deg,transparent,rgba(201,162,94,.7))' }} />
-          <span style={{ fontSize:'11.5px', fontWeight:500, letterSpacing:'4px', color:'#cdb78a' }}>بوابة الخدمات</span>
-          <span style={{ width:'22px', height:'1px', background:'linear-gradient(90deg,rgba(201,162,94,.7),transparent)' }} />
+          <span style={{ width:'22px', height:'1px', background:`linear-gradient(${isAr ? '270deg' : '90deg'},transparent,rgba(201,162,94,.7))` }} />
+          <span style={{ fontSize:'11.5px', fontWeight:500, letterSpacing:'4px', color:'#cdb78a' }}>{isAr ? 'بوابة الخدمات' : 'Services Portal'}</span>
+          <span style={{ width:'22px', height:'1px', background:`linear-gradient(${isAr ? '270deg' : '90deg'},rgba(201,162,94,.7),transparent)` }} />
         </div>
       </div>
 
@@ -81,12 +84,12 @@ export default function PendingApproval() {
         <div style={{ textAlign:'center', marginBottom:'6px' }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:'7px', padding:'5px 13px', borderRadius:'999px', background:'rgba(201,162,94,.1)', border:'1px solid rgba(201,162,94,.22)' }}>
             <span style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#c9a25e', animation:'mt-dot 1.6s ease-in-out infinite' }} />
-            <span style={{ fontSize:'12px', fontWeight:700, color:'#a9803f', letterSpacing:'.2px' }}>قيد المعالجة</span>
+            <span style={{ fontSize:'12px', fontWeight:700, color:'#a9803f', letterSpacing:'.2px' }}>{isAr ? 'قيد المعالجة' : 'In Progress'}</span>
           </span>
         </div>
 
-        <h1 style={{ margin:'14px 0 8px', textAlign:'center', fontSize:'23px', fontWeight:800, color:'#16233f', letterSpacing:'-.3px' }}>طلبك قيد المراجعة</h1>
-        <p style={{ margin:'0 auto', textAlign:'center', fontSize:'14.5px', fontWeight:400, lineHeight:1.75, color:'#6b7689', maxWidth:'290px' }}>تتم مراجعة طلبك من قبل فريق المختصين، وسيتم إشعارك فور الموافقة عليه.</p>
+        <h1 style={{ margin:'14px 0 8px', textAlign:'center', fontSize:'23px', fontWeight:800, color:'#16233f', letterSpacing:'-.3px' }}>{isAr ? 'طلبك قيد المراجعة' : 'Your Request Is Under Review'}</h1>
+        <p style={{ margin:'0 auto', textAlign:'center', fontSize:'14.5px', fontWeight:400, lineHeight:1.75, color:'#6b7689', maxWidth:'290px' }}>{isAr ? 'تتم مراجعة طلبك من قبل فريق المختصين، وسيتم إشعارك فور الموافقة عليه.' : 'Our team is reviewing your request. You will be notified as soon as it is approved.'}</p>
 
         {/* Steps */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'center', margin:'30px 0 26px' }}>
@@ -94,41 +97,41 @@ export default function PendingApproval() {
             <div style={{ width:'30px', height:'30px', borderRadius:'50%', background:'linear-gradient(160deg,#d7b377,#c0934d)', display:'grid', placeItems:'center', boxShadow:'0 4px 10px -3px rgba(192,147,77,.55)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
-            <span style={{ fontSize:'11.5px', fontWeight:700, color:'#2c3852', textAlign:'center', lineHeight:1.3 }}>تم الاستلام</span>
+            <span style={{ fontSize:'11.5px', fontWeight:700, color:'#2c3852', textAlign:'center', lineHeight:1.3 }}>{isAr ? 'تم الاستلام' : 'Received'}</span>
           </div>
-          <div style={{ flex:1, height:'2px', marginTop:'14px', maxWidth:'46px', borderRadius:'2px', background:'linear-gradient(90deg,#c0934d,#d9c08a)' }} />
+          <div style={{ flex:1, height:'2px', marginTop:'14px', maxWidth:'46px', borderRadius:'2px', background:`linear-gradient(${isAr ? '270deg' : '90deg'},#c0934d,#d9c08a)` }} />
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'9px', width:'78px' }}>
             <div style={{ position:'relative', width:'30px', height:'30px', borderRadius:'50%', background:'#fff', border:'2.5px solid #c9a25e', display:'grid', placeItems:'center', boxShadow:'0 0 0 4px rgba(201,162,94,.12)' }}>
               <span style={{ width:'9px', height:'9px', borderRadius:'50%', background:'#c9a25e', animation:'mt-pulse 1.8s ease-in-out infinite' }} />
             </div>
-            <span style={{ fontSize:'11.5px', fontWeight:800, color:'#16233f', textAlign:'center', lineHeight:1.3 }}>قيد المراجعة</span>
+            <span style={{ fontSize:'11.5px', fontWeight:800, color:'#16233f', textAlign:'center', lineHeight:1.3 }}>{isAr ? 'قيد المراجعة' : 'Under Review'}</span>
           </div>
           <div style={{ flex:1, height:'2px', marginTop:'14px', maxWidth:'46px', borderRadius:'2px', background:'#e7e9ee' }} />
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'9px', width:'78px' }}>
             <div style={{ width:'30px', height:'30px', borderRadius:'50%', background:'#f4f5f8', border:'1.5px solid #e2e5ec', display:'grid', placeItems:'center' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="#c2c7d2" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
-            <span style={{ fontSize:'11.5px', fontWeight:600, color:'#9aa3b2', textAlign:'center', lineHeight:1.3 }}>الموافقة</span>
+            <span style={{ fontSize:'11.5px', fontWeight:600, color:'#9aa3b2', textAlign:'center', lineHeight:1.3 }}>{isAr ? 'الموافقة' : 'Approval'}</span>
           </div>
         </div>
 
         {/* Info box */}
         <div style={{ borderRadius:'16px', background:'#f7f8fa', border:'1px solid #eef0f4', padding:'4px 16px' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0', borderBottom:'1px solid #eceef2' }}>
-            <span style={{ fontSize:'12.5px', fontWeight:500, color:'#8a93a3' }}>رقم الطلب</span>
+            <span style={{ fontSize:'12.5px', fontWeight:500, color:'#8a93a3' }}>{isAr ? 'رقم الطلب' : 'Request No.'}</span>
             <span style={{ fontSize:'13px', fontWeight:700, color:'#1f2c47', letterSpacing:'.5px', direction:'ltr' }}>{requestId || 'MT-2026-****'}</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0' }}>
-            <span style={{ fontSize:'12.5px', fontWeight:500, color:'#8a93a3' }}>المدة المتوقعة</span>
-            <span style={{ fontSize:'13px', fontWeight:700, color:'#1f2c47' }}>٢٤ – ٤٨ ساعة</span>
+            <span style={{ fontSize:'12.5px', fontWeight:500, color:'#8a93a3' }}>{isAr ? 'المدة المتوقعة' : 'Estimated Time'}</span>
+            <span style={{ fontSize:'13px', fontWeight:700, color:'#1f2c47' }}>{isAr ? '٢٤ – ٤٨ ساعة' : '24–48 hours'}</span>
           </div>
         </div>
       </div>
 
       {/* Footer */}
       <div style={{ marginTop:'22px', display:'flex', alignItems:'center', gap:'7px' }}>
-        <span style={{ fontSize:'12.5px', color:'rgba(214,222,236,.55)' }}>هل لديك استفسار؟</span>
-        <a href="mailto:support@mtiri.com" style={{ fontSize:'12.5px', fontWeight:700, color:'#d6b676', textDecoration:'none', borderBottom:'1px solid rgba(214,182,118,.35)', paddingBottom:'1px' }}>تواصل مع الدعم</a>
+        <span style={{ fontSize:'12.5px', color:'rgba(214,222,236,.55)' }}>{isAr ? 'هل لديك استفسار؟' : 'Have a question?'}</span>
+        <a href="mailto:support@mtiri.com" style={{ fontSize:'12.5px', fontWeight:700, color:'#d6b676', textDecoration:'none', borderBottom:'1px solid rgba(214,182,118,.35)', paddingBottom:'1px' }}>{isAr ? 'تواصل مع الدعم' : 'Contact Support'}</a>
       </div>
     </div>
   );

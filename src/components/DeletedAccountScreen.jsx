@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { base44, uploadFile } from '@/api/base44Client';
+import { useLang } from '@/lib/LanguageContext';
 
 export default function DeletedAccountScreen() {
+  const { lang } = useLang();
+  const isAr = lang === 'ar';
   const [seconds, setSeconds] = useState(30);
 
   useEffect(() => {
@@ -19,7 +22,7 @@ export default function DeletedAccountScreen() {
   }, []);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 z-50" dir="rtl">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 z-50" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-l from-navy-deep to-navy p-6 text-center" style={{ background: 'linear-gradient(to left, #0E1A30, #1B2B4B)' }}>
@@ -29,7 +32,7 @@ export default function DeletedAccountScreen() {
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-white font-cairo">المطيري لإدارة الأعمال</h1>
+          <h1 className="text-xl font-bold text-white font-cairo">{isAr ? 'المطيري لإدارة الأعمال' : 'Al-Mutairi Business Management'}</h1>
         </div>
 
         {/* Body */}
@@ -42,15 +45,24 @@ export default function DeletedAccountScreen() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-slate-800">عذراً، لا يمكنك الدخول</h2>
+            <h2 className="text-xl font-bold text-slate-800">{isAr ? 'عذراً، لا يمكنك الدخول' : 'Sorry, you cannot sign in'}</h2>
             <p className="text-slate-600 leading-relaxed text-sm">
-              لا يمكنك الوصول إلى الموقع المسجل.<br />
-              تم حذف حسابك بناءً على طلبك.
+              {isAr ? (
+                <>
+                  لا يمكنك الوصول إلى الموقع المسجل.<br />
+                  تم حذف حسابك بناءً على طلبك.
+                </>
+              ) : (
+                <>
+                  You can no longer access this site.<br />
+                  Your account has been deleted at your request.
+                </>
+              )}
             </p>
           </div>
 
           <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-500 leading-relaxed border border-slate-100">
-            للوصول إلى الموقع مرة أخرى، يرجى تسجيل حساب جديد خلال الأيام القادمة.
+            {isAr ? 'للوصول إلى الموقع مرة أخرى، يرجى تسجيل حساب جديد خلال الأيام القادمة.' : 'To access the site again, please register a new account in the coming days.'}
           </div>
 
           {/* Countdown */}
@@ -61,7 +73,7 @@ export default function DeletedAccountScreen() {
             >
               {seconds}
             </div>
-            <p className="text-xs text-slate-400">سيتم تسجيل الخروج تلقائياً</p>
+            <p className="text-xs text-slate-400">{isAr ? 'سيتم تسجيل الخروج تلقائياً' : 'You will be logged out automatically'}</p>
           </div>
         </div>
       </div>
