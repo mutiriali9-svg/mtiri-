@@ -218,11 +218,7 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} subtitle={totalRefunds || totalRecovery
-          ? (isAr
-            ? `بعد خصم تسويات العقود ${fmt(totalRefunds)}${totalRecovery ? ` وإضافة استردادات التأمين ${fmt(totalRecovery)}` : ''}`
-            : `After ${fmt(totalRefunds)} in contract settlements${totalRecovery ? ` and ${fmt(totalRecovery)} in deposit recoveries` : ''}`)
-          : t('revenueMinusExpenses')} icon={TrendingUp} accentColor="navy" delay={0} />
+        <StatCard title="صافي الدخل" titleEn="Net Income" value={`${fmt(netIncome)} ${currency}`} icon={TrendingUp} accentColor="navy" delay={0} />
 <StatCard title="إجمالي المحصل" titleEn="Total Collected" value={`${fmt(totalCollected)} ${currency}`} subtitle={`${filteredPayments.length} ${t('paymentsCount')}`} icon={CreditCard} accentColor="success" delay={80} href="/payments" />
 <StatCard title="إجمالي المصاريف" titleEn="Total Expenses" value={`${fmt(totalExpenses)} ${currency}`} subtitle={`${filteredExpenses.length} ${t('expensesCount')}`} icon={Receipt} accentColor="urgent" delay={160} href="/expenses" />
         <StatCard title="نسبة الإشغال" titleEn="Occupancy Rate" value={`${occupancyRate}%`} subtitle={`${occupiedUnits} / ${units.length}`} icon={Building2} accentColor="gold" delay={240} href="/units"
