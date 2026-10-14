@@ -230,7 +230,7 @@ export default function ContractArchiveDetails() {
           {facts.map(([label, value, ltr]) => (
             <div key={label}>
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="font-medium text-sm mt-1" style={{ color: value ? '#1B2B4B' : '#CBD5E1' }} dir={ltr ? 'ltr' : undefined}>{value || '—'}</p>
+              <p className="font-medium text-sm mt-1" style={{ color: value ? '#1B2B4B' : '#CBD5E1' }}>{value && ltr ? <bdi dir="ltr">{value}</bdi> : (value || '—')}</p>
             </div>
           ))}
         </div>

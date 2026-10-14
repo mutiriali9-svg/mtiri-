@@ -248,7 +248,7 @@ export default function UnitDetails() {
           {unit.owner_phone && (
             <div>
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone size={11} /> {t('ownerPhoneLabel')}</p>
-              <p className="font-medium text-sm mt-1" dir="ltr">{formatPhone(unit.owner_phone)}</p>
+              <p className="font-medium text-sm mt-1"><bdi dir="ltr">{formatPhone(unit.owner_phone)}</bdi></p>
             </div>
           )}
           {unit.payment_plan && (

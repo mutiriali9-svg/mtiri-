@@ -294,7 +294,7 @@ export function ContractArchiveList({ propertyType }) {
                       style={{ backgroundColor: i % 2 === 1 ? '#F8F9FA' : undefined }}>
                       <td className="py-2.5 lg:py-3 px-2 lg:px-4 max-w-[160px] lg:max-w-56">
                         <span className="truncate font-bold block text-sm lg:text-[15px]" style={{ color: '#1B2B4B' }}>{c.tenant_name || (isAr ? 'بدون مستأجر' : 'No tenant')}</span>
-                        {c.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground mt-0.5" dir="ltr">{formatPhone(c.owner_phone)}</p>}
+                        {c.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground mt-0.5"><bdi dir="ltr">{formatPhone(c.owner_phone)}</bdi></p>}
                       </td>
                       <td className="py-2.5 lg:py-3 px-2 lg:px-4">
                         <div className="flex items-center gap-1.5 font-semibold" style={{ color: '#1B2B4B' }}>

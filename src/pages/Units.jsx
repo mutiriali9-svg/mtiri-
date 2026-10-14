@@ -712,7 +712,7 @@ export default function Units() {
                           <div className="flex items-center gap-2">
                             <span className="truncate font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</span>
                           </div>
-                          {u.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone size={10} />{formatPhone(u.owner_phone)}</p>}
+                          {u.owner_phone && <p className="text-[9px] lg:text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone size={10} /><bdi dir="ltr">{formatPhone(u.owner_phone)}</bdi></p>}
                         </td>
                         <td className="py-2.5 lg:py-3 px-2 lg:px-4 text-muted-foreground text-[10px] lg:text-xs">{u.nationality || '-'}</td>
                         <td className="py-2.5 lg:py-3 px-2 lg:px-4 font-semibold whitespace-nowrap" style={{ color: '#1B2B4B' }}>{u.annual_rent ? `${Number(u.annual_rent).toLocaleString()} AED` : '-'}</td>
@@ -779,7 +779,7 @@ export default function Units() {
                       <span className="text-sm font-semibold" style={{ color: '#1B2B4B' }}>{u.tenant_name || '-'}</span>
                     </div>
                     {u.owner_phone && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone size={12} />{formatPhone(u.owner_phone)}</div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone size={12} /><bdi dir="ltr">{formatPhone(u.owner_phone)}</bdi></div>
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{t('annualRent')}</span>
@@ -1082,7 +1082,7 @@ export default function Units() {
                   { label: isAr ? 'الإيجار السنوي' : 'Annual Rent', value: viewUnit.annual_rent ? `${Number(viewUnit.annual_rent).toLocaleString()} AED` : null },
                   { label: isAr ? 'خطة الدفع' : 'Payment Plan', value: viewUnit.payment_plan },
                   { label: isAr ? 'الطابق' : 'Floor', value: viewUnit.floor },
-                  { label: isAr ? 'رقم المالك' : 'Owner Phone', value: formatPhone(viewUnit.owner_phone) },
+                  { label: isAr ? 'رقم المالك' : 'Owner Phone', value: viewUnit.owner_phone ? <bdi dir="ltr">{formatPhone(viewUnit.owner_phone)}</bdi> : null },
                   { label: isAr ? 'بداية العقد' : 'Contract Start', value: viewUnit.contract_start },
                   { label: endLabel, value: viewUnit.contract_end },
                   { label: isAr ? 'التأمين' : 'Deposit', value: viewUnit.insurance ? `${viewUnit.insurance} (${viewUnit.insurance_type === 'cheque' ? (isAr ? 'شيك' : 'Cheque') : (isAr ? 'نقداً' : 'Cash')})` : null },

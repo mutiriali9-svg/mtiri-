@@ -250,7 +250,7 @@ export default function Notes() {
                 <div className="space-y-1">
                   {selectedNote.tenant_name && <NoteRow icon={<User size={14}/>} label={isAr ? 'اسم المستأجر' : 'Tenant'} value={selectedNote.tenant_name} />}
                   {selectedNote.unit_info && <NoteRow icon={<Building2 size={14}/>} label={isAr ? 'الشقة / العقار' : 'Unit / Property'} value={selectedNote.unit_info} />}
-                  {selectedNote.phone && <NoteRow icon={<Phone size={14}/>} label={isAr ? 'رقم الهاتف' : 'Phone'} value={selectedNote.phone} />}
+                  {selectedNote.phone && <NoteRow icon={<Phone size={14}/>} label={isAr ? 'رقم الهاتف' : 'Phone'} value={<bdi dir="ltr">{selectedNote.phone}</bdi>} />}
                   {selectedNote.description && <NoteRow icon={<FileText size={14}/>} label={isAr ? 'الشرح' : 'Description'} value={selectedNote.description} multiline />}
                   {selectedNote.created_by_name && <NoteRow icon={<User size={14}/>} label={isAr ? 'أضافه' : 'Added by'} value={selectedNote.created_by_name} />}
                   {selectedNote.created_at && <NoteRow icon={<Calendar size={14}/>} label={isAr ? 'التاريخ' : 'Date'} value={new Date(selectedNote.created_at).toLocaleDateString()} />}

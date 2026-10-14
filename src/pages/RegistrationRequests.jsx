@@ -200,7 +200,7 @@ export default function RegistrationRequests() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2"><AtSign size={13} /> <span className="truncate">{req.username}</span></div>
                       <div className="flex items-center gap-2"><Mail size={13} /> <span className="truncate">{req.email}</span></div>
-                      <div className="flex items-center gap-2"><Phone size={13} /> <span>{req.phone}</span></div>
+                      <div className="flex items-center gap-2"><Phone size={13} /> <bdi dir="ltr">{req.phone}</bdi></div>
                       <div className="flex items-center gap-2"><Clock size={13} /> <span className="text-xs">{req.created_at ? new Date(req.created_at).toLocaleDateString(isAr ? 'ar-AE' : 'en-GB') : '—'}</span></div>
                     </div>
                   </div>

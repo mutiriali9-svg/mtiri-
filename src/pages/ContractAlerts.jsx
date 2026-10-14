@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { base44, uploadFile } from '@/api/base44Client';
+import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useLang } from '@/lib/LanguageContext';
-import { Bell, ArrowRight, ArrowLeft, Edit2, X, Building2, Calendar, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Bell, ArrowRight, ArrowLeft, Edit2, Building2, Calendar, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInDays, parseISO, isValid, startOfDay } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';

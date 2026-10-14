@@ -912,7 +912,7 @@ export default function SmartAlerts() {
                   { label: t('خطة الدفع', 'Payment Plan'), value: unitDetailModal.payment_plan },
                   { label: t('بداية العقد', 'Contract Start'), value: unitDetailModal.contract_start },
                   { label: t('نهاية العقد', 'Contract End'), value: unitDetailModal.contract_end },
-                  { label: t('رقم المالك', 'Owner Phone'), value: formatPhone(unitDetailModal.owner_phone) },
+                  { label: t('رقم المالك', 'Owner Phone'), value: unitDetailModal.owner_phone ? <bdi dir="ltr">{formatPhone(unitDetailModal.owner_phone)}</bdi> : null },
                   { label: t('الطابق', 'Floor'), value: unitDetailModal.floor },
                   { label: t('ملاحظات', 'Notes'), value: unitDetailModal.notes },
                 ].filter(r => r.value).map(row => (
